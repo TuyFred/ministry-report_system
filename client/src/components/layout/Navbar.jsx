@@ -1,0 +1,99 @@
+import React, { useContext } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import { FaBars, FaUserCircle, FaChurch, FaSignOutAlt } from 'react-icons/fa';
+
+const Navbar = ({ toggleSidebar }) => {
+    const { user, logout } = useContext(AuthContext);
+    const navigate = useNavigate();
+
+    const onLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    return (
+        <nav className="bg-white shadow-md h-16 flex items-center justify-between px-4 lg:px-6">
+            <div className="flex items-center gap-4">
+                <button onClick={toggleSidebar} className="text-gray-600 hover:text-indigo-600 focus:outline-none lg:hidden">
+                    <FaBars className="h-6 w-6" />
+                </button>
+                <div className="flex items-center gap-2">
+                    <FaChurch className="text-indigo-600 text-2xl" />
+                    <span className="text-xl font-bold text-gray-800">Ministry Reports</span>
+                </div>
+            </div>
+            <div className="flex items-center space-x-4">
+                <div className="hidden sm:block text-right">
+                    <p className="text-sm text-gray-500">Welcome back,</p>
+                    <p className="text-sm font-semibold text-gray-800">{user?.fullname}</p>
+                </div>
+                <div className="relative group">
+                    <button className="flex items-center focus:outline-none">
+                        <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-100 hover:border-indigo-300 transition-colors shadow-sm">
+                            {user?.profile_image ? (
+                                <img 
+                                    src={`http://localhost:5000/${user.profile_image}`} 
+                                    alt="Profile" 
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-indigo-50 flex items-center justify-center text-indigo-300">
+                                    <FaUserCircle className="h-full w-full" />
+                                </div>
+                            )}
+                        </div>
+                    </button>
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 z-50 hidden group-hover:block border border-gray-100 transform origin-top-right transition-all">
+                        <div className="px-4 py-4 border-b border-gray-100 bg-gray-50">
+                            <div className="flex items-center gap-3 mb-3">
+                                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
+                                    {user?.profile_image ? (
+                                        <img 
+                                            src={`http://localhost:5000/${user.profile_image}`} 
+                                            alt="Profile" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-400">
+                                            <FaUserCircle className="text-3xl" />
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-900">{user?.fullname}</p>
+                                    <p className="text-xs text-gray-500 truncate max-w-[140px]">{user?.email}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded capitalize">
+                                    {user?.role}
+                                </span>
+                                <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded">
+                                    {user?.country}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="py-1">
+                            <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                                <FaUserCircle />
+                                My Profile
+                            </Link>
+                        </div>
+                        <div className="border-t border-gray-100 mt-1 pt-1">
+                            <button 
+                                onClick={onLogout} 
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left transition-colors"
+                            >
+                                <FaSignOutAlt />
+                                Logout
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    );
+};
+
+export default Navbar;
