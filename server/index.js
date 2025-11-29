@@ -1,7 +1,9 @@
+// 1. Load environment variables FIRST
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-const { connectDB, sequelize } = require('./config/db');
-require('dotenv').config();
+const { connectDB } = require('./config/db');
 
 const app = express();
 
@@ -21,24 +23,32 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-// Connect Database and Sync
-connectDB();
-
 // Routes
-app.get('/', (req, res) => {
-    res.send('Ministry Reporting System API');
-});
-
-// Handle Favicon
+app.get('/', (req, res) => res.send('Ministry Reporting System API'));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
-
-// Define Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 
+// 2. Connect to DB THEN start server
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+// Health check route to verify DB connectivity
+app.get('/api/health', async (req, res) => {
+    const { sequelize } = require('./config/db');
+    try {
+        await sequelize.authenticate();
+        return res.status(200).json({ status: 'ok', db: 'connected' });
+    } catch (err) {
+        return res.status(500).json({ status: 'error', db: 'disconnected', message: err.message });
+    }
+});
+
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}).catch(err => {
+    console.error('Failed to connect to DB:', err);
+    process.exit(1);
 });
