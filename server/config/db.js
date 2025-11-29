@@ -9,10 +9,17 @@ if (process.env.DATABASE_URL) {
         protocol: 'postgres',
         logging: false,
         dialectOptions: {
-            ssl: {
+            ssl: process.env.DB_SSL === 'false' ? false : {
                 require: true,
                 rejectUnauthorized: false
-            }
+            },
+            keepAlive: true
+        },
+        pool: {
+            max: 5,
+            min: 0,
+            acquire: 30000,
+            idle: 10000
         }
     });
 } else {
