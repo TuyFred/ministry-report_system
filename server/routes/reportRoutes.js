@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { createReport, getReports, getReportById, updateReport, exportPDF, exportExcel, getAnalytics } = require('../controllers/reportController');
+const { createReport, getReports, getReportById, updateReport, deleteReport, exportPDF, exportExcel, getAnalytics } = require('../controllers/reportController');
 const auth = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
@@ -11,5 +11,6 @@ router.get('/export/pdf', auth, exportPDF);
 router.get('/export/excel', auth, exportExcel);
 router.get('/:id', auth, getReportById);
 router.put('/:id', auth, updateReport);
+router.delete('/:id', auth, deleteReport);
 
 module.exports = router;

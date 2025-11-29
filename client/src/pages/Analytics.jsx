@@ -32,6 +32,47 @@ const Analytics = () => {
         }
     };
 
+    const handleExport = async (type) => {
+        try {
+            const token = localStorage.getItem('token');
+            
+            // Calculate dates based on timeRange
+            const endDate = new Date();
+            let startDate = new Date();
+            
+            if (timeRange === 'week') {
+                startDate.setDate(endDate.getDate() - 7);
+            } else if (timeRange === 'month') {
+                startDate.setMonth(endDate.getMonth() - 1);
+            } else if (timeRange === 'year') {
+                startDate.setFullYear(endDate.getFullYear() - 1);
+            }
+
+            const params = {
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            };
+
+            const response = await axios.get(`http://localhost:5000/api/reports/export/${type}`, {
+                headers: { 'x-auth-token': token },
+                params: params,
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `ministry_analytics_${type === 'pdf' ? 'pdf' : 'xlsx'}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export analytics. Please try again.');
+        }
+    };
+
     const getPerformanceColor = (percentage) => {
         if (percentage >= 90) return 'text-green-600';
         if (percentage >= 70) return 'text-yellow-600';
@@ -137,30 +178,26 @@ const Analytics = () => {
                             </button>
                             
                             {/* Export Buttons */}
-                            <a 
-                                href="http://localhost:5000/api/reports/export/pdf"
-                                download
+                            <button 
+                                onClick={() => handleExport('pdf')}
+                                className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
                             >
-                                <button className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg flex items-center gap-2">
-                                    <FaFilePdf />
-                                    PDF
-                                </button>
-                            </a>
-                            <a 
-                                href="http://localhost:5000/api/reports/export/excel"
-                                download
+                                <FaFilePdf />
+                                PDF
+                            </button>
+                            <button 
+                                onClick={() => handleExport('excel')}
+                                className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg flex items-center gap-2"
                             >
-                                <button className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg flex items-center gap-2">
-                                    <FaFileExcel />
-                                    Excel
-                                </button>
-                            </a>
+                                <FaFileExcel />
+                                Excel
+                            </button>
                         </div>
                     </div>
                 </div>
 
                 {/* Overview Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
                     <div className="bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
                         <FaUsers className="text-3xl mb-2 opacity-80" />
                         <p className="text-sm opacity-90">Total Members</p>
@@ -170,6 +207,11 @@ const Analytics = () => {
                         <FaCalendarCheck className="text-3xl mb-2 opacity-80" />
                         <p className="text-sm opacity-90">Total Reports</p>
                         <p className="text-4xl font-bold">{analytics?.totalReports || 0}</p>
+                    </div>
+                    <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
+                        <FaChartLine className="text-3xl mb-2 opacity-80" />
+                        <p className="text-sm opacity-90">Evangelism Hours</p>
+                        <p className="text-4xl font-bold">{analytics?.totalEvangelismHours || 0}</p>
                     </div>
                     <div className="bg-gradient-to-br from-yellow-400 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
                         <FaCheckCircle className="text-3xl mb-2 opacity-80" />
@@ -190,7 +232,9 @@ const Analytics = () => {
                             <FaTrophy className="text-indigo-500" />
                             Country Performance Ranking
                         </h2>
-                        <div className="overflow-x-auto">
+                        
+                        {/* Desktop Table */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
@@ -231,6 +275,41 @@ const Analytics = () => {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile Cards */}
+                        <div className="md:hidden space-y-3">
+                            {currentCountryStats.map((stat, index) => {
+                                const globalIndex = (countryPage - 1) * itemsPerPage + index;
+                                return (
+                                    <div key={stat.country} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                                    globalIndex === 0 ? 'bg-yellow-100 text-yellow-800' :
+                                                    globalIndex === 1 ? 'bg-gray-100 text-gray-800' :
+                                                    globalIndex === 2 ? 'bg-orange-100 text-orange-800' :
+                                                    'bg-indigo-50 text-indigo-800'
+                                                }`}>
+                                                    #{globalIndex + 1}
+                                                </div>
+                                                <span className="font-bold text-gray-900">{stat.country}</span>
+                                            </div>
+                                            <span className={`px-2 py-1 text-xs rounded-full ${
+                                                stat.averageCompletion >= 90 ? 'bg-green-100 text-green-800' :
+                                                stat.averageCompletion >= 70 ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {stat.averageCompletion}%
+                                            </span>
+                                        </div>
+                                        <div className="text-sm text-gray-600 pl-11">
+                                            {stat.memberCount} members
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
                         {renderPagination(analytics.countryStats.length, countryPage, setCountryPage)}
                     </div>
                 )}
@@ -336,13 +415,16 @@ const Analytics = () => {
                         <FaUsers className="text-indigo-600" />
                         All Members Performance
                     </h2>
-                    <div className="overflow-x-auto">
+                    
+                    {/* Desktop Table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evangelism Hours</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Streak</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Report</th>
                                 </tr>
@@ -361,6 +443,7 @@ const Analytics = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.reportsSubmitted}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-bold">{member.totalEvangelismHours || 0}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.currentStreak} days</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.lastReportDate || 'Never'}</td>
                                     </tr>
@@ -368,6 +451,43 @@ const Analytics = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile Cards */}
+                    <div className="md:hidden space-y-4">
+                        {currentAllStats.map((member) => (
+                            <div key={member.id} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 className="font-bold text-gray-900">{member.fullname}</h3>
+                                        <p className="text-xs text-gray-500">Last: {member.lastReportDate || 'Never'}</p>
+                                    </div>
+                                    <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                                        member.completionRate >= 90 ? 'bg-green-100 text-green-800' : 
+                                        member.completionRate >= 70 ? 'bg-yellow-100 text-yellow-800' : 
+                                        'bg-red-100 text-red-800'
+                                    }`}>
+                                        {member.completionRate}%
+                                    </span>
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                    <div className="bg-white p-2 rounded border border-gray-100">
+                                        <p className="text-xs text-gray-500">Reports</p>
+                                        <p className="font-semibold">{member.reportsSubmitted}</p>
+                                    </div>
+                                    <div className="bg-white p-2 rounded border border-gray-100">
+                                        <p className="text-xs text-gray-500">Streak</p>
+                                        <p className="font-semibold">{member.currentStreak} days</p>
+                                    </div>
+                                    <div className="bg-white p-2 rounded border border-gray-100 col-span-2">
+                                        <p className="text-xs text-gray-500">Evangelism Hours</p>
+                                        <p className="font-bold text-indigo-600">{member.totalEvangelismHours || 0}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                     {renderPagination(analytics?.allStats?.length || 0, membersPage, setMembersPage)}
                 </div>
 

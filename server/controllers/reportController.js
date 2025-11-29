@@ -43,7 +43,7 @@ exports.createReport = async (req, res) => {
 // Get Reports (with filters)
 exports.getReports = async (req, res) => {
     try {
-        const { startDate, endDate, userId, country } = req.query;
+        const { startDate, endDate, userId, country, searchQuery } = req.query;
         let whereClause = {};
 
         // Date Filter
@@ -51,13 +51,25 @@ exports.getReports = async (req, res) => {
             whereClause.date = { [Op.between]: [startDate, endDate] };
         }
 
+        // User Filter Logic
+        let userWhereClause = {};
+        if (searchQuery) {
+            userWhereClause = {
+                [Op.or]: [
+                    { fullname: { [Op.iLike]: `%${searchQuery}%` } },
+                    { contact: { [Op.iLike]: `%${searchQuery}%` } }
+                ]
+            };
+        }
+
         // Role-based Access
         if (req.user.role === 'member') {
             whereClause.user_id = req.user.id;
         } else if (req.user.role === 'leader') {
             // Leader sees reports from their country
-            // First find all users in that country
-            const countryUsers = await User.findAll({ where: { country: req.user.country }, attributes: ['id'] });
+            userWhereClause.country = req.user.country;
+            
+            const countryUsers = await User.findAll({ where: userWhereClause, attributes: ['id'] });
             const userIds = countryUsers.map(u => u.id);
 
             if (userId) {
@@ -72,17 +84,32 @@ exports.getReports = async (req, res) => {
             }
         } else if (req.user.role === 'admin') {
             if (country) {
-                const countryUsers = await User.findAll({ where: { country: country }, attributes: ['id'] });
-                const userIds = countryUsers.map(u => u.id);
-                whereClause.user_id = { [Op.in]: userIds };
+                userWhereClause.country = country;
             }
-            if (userId) whereClause.user_id = userId;
+            
+            // If we have user search criteria or country filter, we need to find matching users first
+            if (searchQuery || country) {
+                 const users = await User.findAll({ where: userWhereClause, attributes: ['id'] });
+                 const userIds = users.map(u => u.id);
+                 
+                 if (userId) {
+                     if (userIds.includes(parseInt(userId))) {
+                         whereClause.user_id = userId;
+                     } else {
+                         whereClause.user_id = -1; // No match
+                     }
+                 } else {
+                     whereClause.user_id = { [Op.in]: userIds };
+                 }
+            } else {
+                if (userId) whereClause.user_id = userId;
+            }
         }
 
         const reports = await Report.findAll({
             where: whereClause,
             include: [
-                { model: User, attributes: ['fullname', 'country'] },
+                { model: User, attributes: ['fullname', 'country', 'contact'] },
                 { model: Attachment }
             ],
             order: [['date', 'DESC']]
@@ -106,7 +133,20 @@ exports.updateReport = async (req, res) => {
 
         // Check if user owns this report
         if (report.user_id !== req.user.id) {
-            return res.status(403).json({ msg: 'Not authorized to edit this report' });
+            let authorized = false;
+            
+            if (req.user.role === 'leader') {
+                const reportUser = await User.findByPk(report.user_id);
+                if (reportUser && reportUser.country === req.user.country) {
+                    authorized = true;
+                }
+            } else if (req.user.role === 'admin') {
+                authorized = true;
+            }
+
+            if (!authorized) {
+                return res.status(403).json({ msg: 'Not authorized to edit this report' });
+            }
         }
 
         const {
@@ -164,31 +204,72 @@ exports.getReportById = async (req, res) => {
 // Export to PDF
 exports.exportPDF = async (req, res) => {
     try {
-        const { startDate, endDate, userId, country } = req.query;
+        const { startDate, endDate, userId, country, searchQuery } = req.query;
         let whereClause = {};
 
-        // Apply same filters as getReports
+        // Date Filter
         if (startDate && endDate) {
             whereClause.date = { [Op.between]: [startDate, endDate] };
         }
 
-        // Role-based filtering
-        if (req.user.role === 'admin') {
-            if (userId) whereClause.user_id = userId;
-            if (country) {
-                const users = await User.findAll({ where: { country } });
-                whereClause.user_id = { [Op.in]: users.map(u => u.id) };
-            }
-        } else if (req.user.role === 'leader') {
-            const users = await User.findAll({ where: { country: req.user.country } });
-            whereClause.user_id = { [Op.in]: users.map(u => u.id) };
-        } else {
+        // User Filter Logic
+        let userWhereClause = {};
+        if (searchQuery) {
+            userWhereClause = {
+                [Op.or]: [
+                    { fullname: { [Op.iLike]: `%${searchQuery}%` } },
+                    { contact: { [Op.iLike]: `%${searchQuery}%` } }
+                ]
+            };
+        }
+
+        // Role-based Access
+        if (req.user.role === 'member') {
             whereClause.user_id = req.user.id;
+        } else if (req.user.role === 'leader') {
+            // Leader sees reports from their country
+            userWhereClause.country = req.user.country;
+            
+            const countryUsers = await User.findAll({ where: userWhereClause, attributes: ['id'] });
+            const userIds = countryUsers.map(u => u.id);
+
+            if (userId) {
+                // Specific user requested
+                if (userIds.includes(parseInt(userId))) {
+                    whereClause.user_id = userId;
+                } else {
+                    return res.status(403).json({ msg: 'Not authorized to view this user reports' });
+                }
+            } else {
+                whereClause.user_id = { [Op.in]: userIds };
+            }
+        } else if (req.user.role === 'admin') {
+            if (country) {
+                userWhereClause.country = country;
+            }
+            
+            // If we have user search criteria or country filter, we need to find matching users first
+            if (searchQuery || country) {
+                 const users = await User.findAll({ where: userWhereClause, attributes: ['id'] });
+                 const userIds = users.map(u => u.id);
+                 
+                 if (userId) {
+                     if (userIds.includes(parseInt(userId))) {
+                         whereClause.user_id = userId;
+                     } else {
+                         whereClause.user_id = -1; // No match
+                     }
+                 } else {
+                     whereClause.user_id = { [Op.in]: userIds };
+                 }
+            } else {
+                if (userId) whereClause.user_id = userId;
+            }
         }
 
         const reports = await Report.findAll({
             where: whereClause,
-            include: [{ model: User, attributes: ['fullname', 'country', 'church'] }],
+            include: [{ model: User, attributes: ['fullname', 'country'] }],
             order: [['date', 'DESC']]
         });
 
@@ -219,65 +300,75 @@ exports.exportPDF = async (req, res) => {
                 if (index > 0) doc.addPage();
 
                 // Report Header
-                doc.fontSize(16).fillColor('#4F46E5').text(`Report #${index + 1}`, { underline: true });
+                doc.fontSize(18).fillColor('#4F46E5').text(`Report #${index + 1}`, { underline: true });
                 doc.moveDown(0.5);
 
-                // Basic Info
-                doc.fontSize(12).fillColor('#111827').text(`Name: ${report.User?.fullname || 'N/A'}`, { continued: false });
-                doc.text(`Country: ${report.User?.country || 'N/A'}`);
-                doc.text(`Church: ${report.User?.church || 'N/A'}`);
-                doc.text(`Date: ${new Date(report.date).toLocaleDateString()}`);
-                doc.moveDown();
+                // Basic Info Grid
+                const startY = doc.y;
+                doc.fontSize(12).fillColor('#111827');
+                
+                doc.text(`Name: ${report.User?.fullname || 'N/A'}`, 50, startY);
+                doc.text(`Country: ${report.User?.country || 'N/A'}`, 300, startY);
+                
+                const nextY = startY + 20;
+                doc.text(`Church: ${report.church || 'N/A'}`, 50, nextY);
+                doc.text(`Date: ${new Date(report.date).toLocaleDateString()}`, 300, nextY);
+                
+                doc.y = nextY + 30; // Move down
+                
+                // Horizontal Line
+                doc.moveTo(50, doc.y).lineTo(550, doc.y).lineWidth(1).strokeColor('#E5E7EB').stroke();
+                doc.moveDown(2);
 
-                // Evangelism Section
-                doc.fontSize(14).fillColor('#7C3AED').text('Evangelism Activities');
-                doc.fontSize(11).fillColor('#374151');
-                doc.text(`Evangelism Hours: ${report.evangelism_hours || 0} hours`);
-                doc.text(`People Reached: ${report.people_reached || 0}`);
-                doc.text(`Contacts Received: ${report.contacts_received || 0}`);
-                doc.moveDown();
+                // 3-Column Metrics Layout
+                const metricsTop = doc.y;
+                const col1X = 50;
+                const col2X = 220;
+                const col3X = 390;
 
-                // Bible Study Section
-                doc.fontSize(14).fillColor('#7C3AED').text('Bible Study');
-                doc.fontSize(11).fillColor('#374151');
-                doc.text(`Sessions: ${report.bible_study_sessions || 0}`);
-                doc.text(`Attendants: ${report.bible_study_attendants || 0}`);
-                doc.text(`Unique Attendants: ${report.unique_attendants || 0}`);
-                doc.text(`Newcomers: ${report.newcomers || 0}`);
-                doc.moveDown();
+                // Column 1: Evangelism
+                doc.fontSize(14).fillColor('#7C3AED').text('Evangelism', col1X, metricsTop);
+                doc.fontSize(10).fillColor('#374151');
+                doc.text(`Hours: ${report.evangelism_hours || 0}`, col1X, metricsTop + 25);
+                doc.text(`Reached: ${report.people_reached || 0}`, col1X, metricsTop + 40);
+                doc.text(`Contacts: ${report.contacts_received || 0}`, col1X, metricsTop + 55);
 
-                // Spiritual Life Section
-                doc.fontSize(14).fillColor('#7C3AED').text('Spiritual Life');
-                doc.fontSize(11).fillColor('#374151');
-                doc.text(`Meditation Time: ${report.meditation_time || 0} minutes`);
-                doc.text(`Prayer Time: ${report.prayer_time || 0} minutes`);
-                doc.text(`Morning Service: ${report.morning_service ? 'Yes' : 'No'}`);
-                doc.text(`Regular Service: ${report.regular_service ? 'Yes' : 'No'}`);
-                doc.text(`Sermons Listened: ${report.sermons_listened || 0}`);
-                doc.text(`Articles Written: ${report.articles_written || 0}`);
-                doc.text(`Exercise Time: ${report.exercise_time || 0} minutes`);
-                doc.moveDown();
+                // Column 2: Bible Study
+                doc.fontSize(14).fillColor('#7C3AED').text('Bible Study', col2X, metricsTop);
+                doc.fontSize(10).fillColor('#374151');
+                doc.text(`Sessions: ${report.bible_study_sessions || 0}`, col2X, metricsTop + 25);
+                doc.text(`Attendants: ${report.bible_study_attendants || 0}`, col2X, metricsTop + 40);
+                doc.text(`Unique: ${report.unique_attendants || 0}`, col2X, metricsTop + 55);
+                doc.text(`Newcomers: ${report.newcomers || 0}`, col2X, metricsTop + 70);
 
-                // Reflections
-                if (report.reflections) {
-                    doc.fontSize(14).fillColor('#7C3AED').text('Reflections');
-                    doc.fontSize(10).fillColor('#374151').text(report.reflections, { width: 500 });
-                    doc.moveDown();
-                }
+                // Column 3: Spiritual Life
+                doc.fontSize(14).fillColor('#7C3AED').text('Spiritual Life', col3X, metricsTop);
+                doc.fontSize(10).fillColor('#374151');
+                doc.text(`Meditation: ${report.meditation_time || 0}m`, col3X, metricsTop + 25);
+                doc.text(`Prayer: ${report.prayer_time || 0}m`, col3X, metricsTop + 40);
+                doc.text(`Exercise: ${report.exercise_time || 0}m`, col3X, metricsTop + 55);
+                doc.text(`Sermons: ${report.sermons_listened || 0}`, col3X, metricsTop + 70);
+                doc.text(`Articles: ${report.articles_written || 0}`, col3X, metricsTop + 85);
 
-                // Thanksgiving
-                if (report.thanksgiving) {
-                    doc.fontSize(14).fillColor('#7C3AED').text('Thanksgiving');
-                    doc.fontSize(10).fillColor('#374151').text(report.thanksgiving, { width: 500 });
-                    doc.moveDown();
-                }
+                // Move cursor past the tallest column
+                doc.y = metricsTop + 110;
+                doc.x = 50;
 
-                // Prayer Requests
-                if (report.prayer_requests) {
-                    doc.fontSize(14).fillColor('#7C3AED').text('Prayer Requests');
-                    doc.fontSize(10).fillColor('#374151').text(report.prayer_requests, { width: 500 });
-                    doc.moveDown();
-                }
+                // Text Areas
+                const sections = [
+                    { title: 'Reflections', content: report.reflections },
+                    { title: 'Thanksgiving', content: report.thanksgiving },
+                    { title: 'Prayer Requests', content: report.prayer_requests }
+                ];
+
+                sections.forEach(section => {
+                    if (section.content) {
+                        doc.moveDown();
+                        doc.fontSize(12).fillColor('#4F46E5').text(section.title, { underline: true });
+                        doc.moveDown(0.5);
+                        doc.fontSize(10).fillColor('#374151').text(section.content, { width: 500, align: 'justify' });
+                    }
+                });
             });
         }
 
@@ -292,74 +383,137 @@ exports.exportPDF = async (req, res) => {
 // Export to Excel
 exports.exportExcel = async (req, res) => {
     try {
-        const { startDate, endDate, userId, country } = req.query;
+        const { startDate, endDate, userId, country, searchQuery } = req.query;
         let whereClause = {};
 
-        // Apply same filters as getReports
+        // Date Filter
         if (startDate && endDate) {
             whereClause.date = { [Op.between]: [startDate, endDate] };
         }
 
-        // Role-based filtering
-        if (req.user.role === 'admin') {
-            if (userId) whereClause.user_id = userId;
-            if (country) {
-                const users = await User.findAll({ where: { country } });
-                whereClause.user_id = { [Op.in]: users.map(u => u.id) };
-            }
-        } else if (req.user.role === 'leader') {
-            const users = await User.findAll({ where: { country: req.user.country } });
-            whereClause.user_id = { [Op.in]: users.map(u => u.id) };
-        } else {
+        // User Filter Logic
+        let userWhereClause = {};
+        if (searchQuery) {
+            userWhereClause = {
+                [Op.or]: [
+                    { fullname: { [Op.iLike]: `%${searchQuery}%` } },
+                    { contact: { [Op.iLike]: `%${searchQuery}%` } }
+                ]
+            };
+        }
+
+        // Role-based Access
+        if (req.user.role === 'member') {
             whereClause.user_id = req.user.id;
+        } else if (req.user.role === 'leader') {
+            // Leader sees reports from their country
+            userWhereClause.country = req.user.country;
+            
+            const countryUsers = await User.findAll({ where: userWhereClause, attributes: ['id'] });
+            const userIds = countryUsers.map(u => u.id);
+
+            if (userId) {
+                // Specific user requested
+                if (userIds.includes(parseInt(userId))) {
+                    whereClause.user_id = userId;
+                } else {
+                    return res.status(403).json({ msg: 'Not authorized to view this user reports' });
+                }
+            } else {
+                whereClause.user_id = { [Op.in]: userIds };
+            }
+        } else if (req.user.role === 'admin') {
+            if (country) {
+                userWhereClause.country = country;
+            }
+            
+            // If we have user search criteria or country filter, we need to find matching users first
+            if (searchQuery || country) {
+                 const users = await User.findAll({ where: userWhereClause, attributes: ['id'] });
+                 const userIds = users.map(u => u.id);
+                 
+                 if (userId) {
+                     if (userIds.includes(parseInt(userId))) {
+                         whereClause.user_id = userId;
+                     } else {
+                         whereClause.user_id = -1; // No match
+                     }
+                 } else {
+                     whereClause.user_id = { [Op.in]: userIds };
+                 }
+            } else {
+                if (userId) whereClause.user_id = userId;
+            }
         }
 
         const reports = await Report.findAll({
             where: whereClause,
-            include: [{ model: User, attributes: ['fullname', 'country', 'church'] }],
+            include: [{ model: User, attributes: ['fullname', 'country'] }],
             order: [['date', 'DESC']]
         });
 
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Ministry Reports');
 
-        // Style the header
+        // Add Title Row
+        worksheet.mergeCells('A1:X1');
+        const titleCell = worksheet.getCell('A1');
+        titleCell.value = 'MINISTRY REPORTS SYSTEM';
+        titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+        worksheet.getRow(1).height = 35;
+
+        // Define Columns (Keys and Widths only)
         worksheet.columns = [
-            { header: 'Date', key: 'date', width: 12 },
-            { header: 'Name', key: 'name', width: 25 },
-            { header: 'Country', key: 'country', width: 15 },
-            { header: 'Church', key: 'church', width: 20 },
-            { header: 'Evangelism Hours', key: 'evangelism_hours', width: 18 },
-            { header: 'People Reached', key: 'people_reached', width: 15 },
-            { header: 'Contacts Received', key: 'contacts_received', width: 18 },
-            { header: 'Bible Study Sessions', key: 'bible_study_sessions', width: 20 },
-            { header: 'Bible Study Attendants', key: 'bible_study_attendants', width: 22 },
-            { header: 'Unique Attendants', key: 'unique_attendants', width: 18 },
-            { header: 'Newcomers', key: 'newcomers', width: 12 },
-            { header: 'Meditation (min)', key: 'meditation_time', width: 16 },
-            { header: 'Prayer (min)', key: 'prayer_time', width: 14 },
-            { header: 'Morning Service', key: 'morning_service', width: 16 },
-            { header: 'Regular Service', key: 'regular_service', width: 16 },
-            { header: 'Sermons Listened', key: 'sermons_listened', width: 16 },
-            { header: 'Articles Written', key: 'articles_written', width: 16 },
-            { header: 'Exercise (min)', key: 'exercise_time', width: 14 },
-            { header: 'Reflections', key: 'reflections', width: 40 },
-            { header: 'Thanksgiving', key: 'thanksgiving', width: 40 },
-            { header: 'Repentance', key: 'repentance', width: 40 },
-            { header: 'Prayer Requests', key: 'prayer_requests', width: 40 },
-            { header: 'Other Work', key: 'other_work', width: 40 },
-            { header: 'Tomorrow Tasks', key: 'tomorrow_tasks', width: 40 }
+            { key: 'date', width: 15 },
+            { key: 'name', width: 25 },
+            { key: 'country', width: 15 },
+            { key: 'church', width: 20 },
+            { key: 'evangelism_hours', width: 18 },
+            { key: 'people_reached', width: 15 },
+            { key: 'contacts_received', width: 18 },
+            { key: 'bible_study_sessions', width: 20 },
+            { key: 'bible_study_attendants', width: 22 },
+            { key: 'unique_attendants', width: 18 },
+            { key: 'newcomers', width: 12 },
+            { key: 'meditation_time', width: 16 },
+            { key: 'prayer_time', width: 14 },
+            { key: 'morning_service', width: 16 },
+            { key: 'regular_service', width: 16 },
+            { key: 'sermons_listened', width: 16 },
+            { key: 'articles_written', width: 16 },
+            { key: 'exercise_time', width: 14 },
+            { key: 'reflections', width: 40 },
+            { key: 'thanksgiving', width: 40 },
+            { key: 'repentance', width: 40 },
+            { key: 'prayer_requests', width: 40 },
+            { key: 'other_work', width: 40 },
+            { key: 'tomorrow_tasks', width: 40 }
         ];
 
-        // Style header row
-        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-        worksheet.getRow(1).fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FF4F46E5' }
+        // Add Header Row manually at Row 2
+        const headerRow = worksheet.getRow(2);
+        headerRow.values = [
+            'Date', 'Name', 'Country', 'Church', 
+            'Evangelism Hours', 'People Reached', 'Contacts Received',
+            'Bible Study Sessions', 'Bible Study Attendants', 'Unique Attendants', 'Newcomers',
+            'Meditation (min)', 'Prayer (min)', 'Morning Service', 'Regular Service',
+            'Sermons Listened', 'Articles Written', 'Exercise (min)',
+            'Reflections', 'Thanksgiving', 'Repentance', 'Prayer Requests', 'Other Work', 'Tomorrow Tasks'
+        ];
+
+        // Style Header Row
+        headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6B7280' } };
+        headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+        headerRow.height = 25;
+
+        // AutoFilter
+        worksheet.autoFilter = {
+            from: { row: 2, column: 1 },
+            to: { row: 2, column: 24 }
         };
-        worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
-        worksheet.getRow(1).height = 25;
 
         // Add data rows
         reports.forEach(report => {
@@ -367,7 +521,7 @@ exports.exportExcel = async (req, res) => {
                 date: new Date(report.date).toLocaleDateString(),
                 name: report.User?.fullname || 'N/A',
                 country: report.User?.country || 'N/A',
-                church: report.User?.church || 'N/A',
+                church: report.church || 'N/A',
                 evangelism_hours: report.evangelism_hours || 0,
                 people_reached: report.people_reached || 0,
                 contacts_received: report.contacts_received || 0,
@@ -393,7 +547,7 @@ exports.exportExcel = async (req, res) => {
 
         // Add alternating row colors
         worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber > 1) {
+            if (rowNumber > 2) { // Start from data rows (row 3)
                 row.fill = {
                     type: 'pattern',
                     pattern: 'solid',
@@ -483,6 +637,9 @@ exports.getAnalytics = async (req, res) => {
             const reportsSubmitted = userReports.length;
             const completionRate = Math.round((reportsSubmitted / expectedDays) * 100);
 
+            // Calculate total evangelism hours
+            const totalEvangelismHours = userReports.reduce((sum, r) => sum + (parseFloat(r.evangelism_hours) || 0), 0);
+
             // Calculate current streak (consecutive days)
             const sortedDates = userReports
                 .map(r => new Date(r.date))
@@ -518,7 +675,8 @@ exports.getAnalytics = async (req, res) => {
                 completionRate,
                 currentStreak,
                 lastReportDate,
-                missedDays
+                missedDays,
+                totalEvangelismHours // Added total hours
             };
         });
 
@@ -552,6 +710,7 @@ exports.getAnalytics = async (req, res) => {
         // Calculate overall statistics
         const totalMembers = users.length;
         const totalReports = reports.length;
+        const totalEvangelismHours = userStats.reduce((sum, stat) => sum + stat.totalEvangelismHours, 0); // Calculate grand total
         const averageCompletion = totalMembers > 0 
             ? Math.round(userStats.reduce((sum, stat) => sum + stat.completionRate, 0) / totalMembers)
             : 0;
@@ -562,6 +721,7 @@ exports.getAnalytics = async (req, res) => {
         res.json({
             totalMembers,
             totalReports,
+            totalEvangelismHours, // Return grand total
             averageCompletion,
             topStreak,
             topPerformers,
@@ -575,6 +735,51 @@ exports.getAnalytics = async (req, res) => {
             }
         });
 
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};
+
+// Delete Report
+exports.deleteReport = async (req, res) => {
+    try {
+        const report = await Report.findByPk(req.params.id);
+
+        if (!report) {
+            return res.status(404).json({ msg: 'Report not found' });
+        }
+
+        // Authorization Check
+        let authorized = false;
+
+        if (req.user.role === 'admin') {
+            authorized = true;
+        } else if (req.user.role === 'leader') {
+            // Leader can delete their own reports OR reports from their country
+            if (report.user_id === req.user.id) {
+                authorized = true;
+            } else {
+                const reportUser = await User.findByPk(report.user_id);
+                if (reportUser && reportUser.country === req.user.country) {
+                    authorized = true;
+                }
+            }
+        } 
+        // Members are NOT authorized to delete reports
+        
+        if (!authorized) {
+            return res.status(403).json({ msg: 'Not authorized to delete this report' });
+        }
+
+        // Delete attachments first (optional, but good practice to clean up files)
+        // For now, we just delete the database record. 
+        // In a real app, you'd delete files from 'uploads/' too.
+        await Attachment.destroy({ where: { report_id: report.id } });
+        
+        await report.destroy();
+
+        res.json({ msg: 'Report removed' });
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');

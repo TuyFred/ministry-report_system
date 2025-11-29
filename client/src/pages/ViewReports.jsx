@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaEye, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight, FaEdit, FaFilePdf, FaFileExcel } from 'react-icons/fa';
+import { FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaEye, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight, FaEdit, FaFilePdf, FaFileExcel, FaTrash, FaUser, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const ViewReports = () => {
@@ -14,14 +14,28 @@ const ViewReports = () => {
     const [expandedReport, setExpandedReport] = useState(null);
 
     const [country, setCountry] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     
+    // Leader View Mode: 'personal' or 'team'
+    const [viewMode, setViewMode] = useState('personal'); 
+
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
 
     useEffect(() => {
-        fetchReports();
-    }, [filter, selectedDate, country]);
+        // If user is leader, default to personal view initially or keep current
+        if (user?.role === 'leader' && !viewMode) {
+            setViewMode('personal');
+        }
+    }, [user]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            fetchReports();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [filter, selectedDate, country, searchQuery, viewMode]);
 
     const fetchReports = async () => {
         setLoading(true);
@@ -45,6 +59,20 @@ const ViewReports = () => {
 
             const params = { startDate, endDate };
             if (country) params.country = country;
+            
+            // Handle Leader View Modes
+            if (user?.role === 'leader') {
+                if (viewMode === 'personal') {
+                    params.userId = user.id; // Only fetch my reports
+                    // Clear search query for personal view to avoid confusion, or ignore it
+                } else {
+                    // Team view: pass search query if exists
+                    if (searchQuery) params.searchQuery = searchQuery;
+                }
+            } else {
+                // Admin or Member
+                if (searchQuery) params.searchQuery = searchQuery;
+            }
 
             const response = await axios.get('http://localhost:5000/api/reports', {
                 headers: { 'x-auth-token': token },
@@ -56,6 +84,77 @@ const ViewReports = () => {
             console.error('Error fetching reports:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleDeleteReport = async (reportId) => {
+        if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+            try {
+                const token = localStorage.getItem('token');
+                await axios.delete(`http://localhost:5000/api/reports/${reportId}`, {
+                    headers: { 'x-auth-token': token }
+                });
+                // Refresh reports
+                fetchReports();
+                alert('Report deleted successfully');
+            } catch (error) {
+                console.error('Error deleting report:', error);
+                alert('Failed to delete report');
+            }
+        }
+    };
+
+    const handleExport = async (type) => {
+        try {
+            const token = localStorage.getItem('token');
+            const params = { startDate: selectedDate, endDate: selectedDate }; // Default to daily
+            
+            // Apply current filters
+            if (filter === 'weekly') {
+                const curr = new Date(selectedDate);
+                const first = curr.getDate() - curr.getDay(); 
+                const last = first + 6; 
+                params.startDate = new Date(curr.setDate(first)).toISOString().split('T')[0];
+                params.endDate = new Date(curr.setDate(last)).toISOString().split('T')[0];
+            } else if (filter === 'monthly') {
+                const date = new Date(selectedDate);
+                params.startDate = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+                params.endDate = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().split('T')[0];
+            }
+
+            if (country) params.country = country;
+            if (searchQuery) params.searchQuery = searchQuery;
+            
+            // Handle Leader View Modes
+            if (user?.role === 'leader') {
+                if (viewMode === 'personal') {
+                    params.userId = user.id;
+                } else {
+                    if (searchQuery) params.searchQuery = searchQuery;
+                }
+            } else {
+                if (searchQuery) params.searchQuery = searchQuery;
+            }
+
+            const response = await axios.get(`http://localhost:5000/api/reports/export/${type}`, {
+                headers: { 'x-auth-token': token },
+                params: params,
+                responseType: 'blob' // Important for file download
+            });
+
+            // Create download link
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `ministry_reports_${type === 'pdf' ? 'pdf' : 'xlsx'}`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Failed to export report. Please try again.');
         }
     };
 
@@ -86,9 +185,39 @@ const ViewReports = () => {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 mb-6">
-                        {user?.role === 'member' ? 'My Reports' : user?.role === 'leader' ? 'Team Reports' : 'All Reports'}
-                    </h1>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                            {user?.role === 'member' ? 'My Reports' : 
+                             user?.role === 'leader' ? (viewMode === 'personal' ? 'My Reports' : 'Team Reports') : 
+                             'All Reports'}
+                        </h1>
+                        
+                        {/* Leader View Toggle */}
+                        {user?.role === 'leader' && (
+                            <div className="flex bg-gray-100 p-1 rounded-xl">
+                                <button
+                                    onClick={() => setViewMode('personal')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        viewMode === 'personal' 
+                                            ? 'bg-white text-indigo-600 shadow-sm' 
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <FaUser size={14} /> My Reports
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('team')}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+                                        viewMode === 'team' 
+                                            ? 'bg-white text-indigo-600 shadow-sm' 
+                                            : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    <FaUsers size={14} /> Team Reports
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Filter Buttons */}
                     <div className="flex flex-wrap gap-3 mb-4">
@@ -152,26 +281,36 @@ const ViewReports = () => {
                             </div>
                         )}
 
+                        {/* Search Box - Only for Admin or Leader in Team Mode */}
+                        {((user?.role === 'leader' && viewMode === 'team') || user?.role === 'admin') && (
+                            <div className="flex items-center gap-3">
+                                <label className="font-semibold text-gray-700">Search:</label>
+                                <input
+                                    type="text"
+                                    placeholder="Name or Contact..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                />
+                            </div>
+                        )}
+
                         {/* Export Buttons */}
                         <div className="ml-auto flex gap-2">
-                            <a 
-                                href={`http://localhost:5000/api/reports/export/pdf${country ? `?country=${country}` : ''}`}
-                                download
+                            <button 
+                                onClick={() => handleExport('pdf')}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
                             >
-                                <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-lg flex items-center gap-2">
-                                    <FaFilePdf />
-                                    Export PDF
-                                </button>
-                            </a>
-                            <a 
-                                href={`http://localhost:5000/api/reports/export/excel${country ? `?country=${country}` : ''}`}
-                                download
+                                <FaFilePdf />
+                                Export PDF
+                            </button>
+                            <button 
+                                onClick={() => handleExport('excel')}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-lg flex items-center gap-2"
                             >
-                                <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-lg flex items-center gap-2">
-                                    <FaFileExcel />
-                                    Export Excel
-                                </button>
-                            </a>
+                                <FaFileExcel />
+                                Export Excel
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -212,17 +351,31 @@ const ViewReports = () => {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        {user?.id === report.user_id && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleEditReport(report);
-                                                }}
-                                                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md"
-                                                title="Edit Report"
-                                            >
-                                                <FaEdit /> Edit
-                                            </button>
+                                        {(user?.id === report.user_id || user?.role === 'leader' || user?.role === 'admin') && (
+                                            <>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleEditReport(report);
+                                                    }}
+                                                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-md"
+                                                    title="Edit Report"
+                                                >
+                                                    <FaEdit /> Edit
+                                                </button>
+                                                {(user?.role === 'admin' || user?.role === 'leader') && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteReport(report.id);
+                                                        }}
+                                                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all flex items-center gap-2 shadow-md"
+                                                        title="Delete Report"
+                                                    >
+                                                        <FaTrash /> Delete
+                                                    </button>
+                                                )}
+                                            </>
                                         )}
                                         <div className="text-indigo-600">
                                             {expandedReport === report.id ? <FaChevronUp size={24} /> : <FaChevronDown size={24} />}

@@ -7,7 +7,7 @@ const Welcome = () => {
     
     const slides = [
         { 
-            image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1920&q=80', 
+            image: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?w=1920&q=80', 
             title: 'Heaven\'s Glory Awaits', 
             subtitle: 'Discover the eternal beauty of God\'s kingdom and His perfect love' 
         },

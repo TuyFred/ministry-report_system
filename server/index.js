@@ -6,7 +6,11 @@ require('dotenv').config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+    exposedHeaders: ['Content-Disposition']
+}));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
@@ -28,6 +32,9 @@ syncDb();
 app.get('/', (req, res) => {
     res.send('Ministry Reporting System API');
 });
+
+// Handle Favicon
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 // Define Routes
 app.use('/api/auth', require('./routes/authRoutes'));

@@ -256,63 +256,109 @@ const Members = () => {
           </div>
         )}
         
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {currentMembers.map((member) => (
-                <tr key={member.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                        <div className="h-8 w-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 overflow-hidden">
-                            {member.profile_image ? (
-                                <img src={`http://localhost:5000/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
-                            ) : (
-                                member.fullname.charAt(0)
+        <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentMembers.map((member) => (
+                    <tr key={member.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                            <div className="h-8 w-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 overflow-hidden">
+                                {member.profile_image ? (
+                                    <img src={`http://localhost:5000/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                                ) : (
+                                    member.fullname.charAt(0)
+                                )}
+                            </div>
+                            {member.fullname}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{member.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap capitalize">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                            member.role === 'admin' ? 'bg-red-100 text-red-800' :
+                            member.role === 'leader' ? 'bg-purple-100 text-purple-800' :
+                            'bg-green-100 text-green-800'
+                        }`}>
+                            {member.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{member.country}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {user.role === 'admin' && (
+                            <div className="flex gap-3">
+                                <button onClick={() => startEdit(member)} className="text-indigo-600 hover:text-indigo-900" title="Edit">
+                                    <FaEdit />
+                                </button>
+                                <button onClick={() => handleDelete(member.id)} className="text-red-600 hover:text-red-900" title="Delete">
+                                    <FaTrash />
+                                </button>
+                            </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+                {currentMembers.map((member) => (
+                    <div key={member.id} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden">
+                                    {member.profile_image ? (
+                                        <img src={`http://localhost:5000/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                                    ) : (
+                                        member.fullname.charAt(0)
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900">{member.fullname}</h3>
+                                    <p className="text-xs text-gray-500">{member.email}</p>
+                                </div>
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full capitalize ${
+                                member.role === 'admin' ? 'bg-red-100 text-red-800' :
+                                member.role === 'leader' ? 'bg-purple-100 text-purple-800' :
+                                'bg-green-100 text-green-800'
+                            }`}>
+                                {member.role}
+                            </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div className="text-sm text-gray-600">
+                                <span className="font-medium">Country:</span> {member.country}
+                            </div>
+                            {user.role === 'admin' && (
+                                <div className="flex gap-3">
+                                    <button onClick={() => startEdit(member)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" title="Edit">
+                                        <FaEdit />
+                                    </button>
+                                    <button onClick={() => handleDelete(member.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors" title="Delete">
+                                        <FaTrash />
+                                    </button>
+                                </div>
                             )}
                         </div>
-                        {member.fullname}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{member.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap capitalize">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                        member.role === 'admin' ? 'bg-red-100 text-red-800' :
-                        member.role === 'leader' ? 'bg-purple-100 text-purple-800' :
-                        'bg-green-100 text-green-800'
-                    }`}>
-                        {member.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">{member.country}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {user.role === 'admin' && (
-                        <div className="flex gap-3">
-                            <button onClick={() => startEdit(member)} className="text-indigo-600 hover:text-indigo-900" title="Edit">
-                                <FaEdit />
-                            </button>
-                            <button onClick={() => handleDelete(member.id)} className="text-red-600 hover:text-red-900" title="Delete">
-                                <FaTrash />
-                            </button>
-                        </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredMembers.length === 0 && (
-            <div className="text-center py-4 text-gray-500">No members found matching your filters.</div>
-          )}
-        </div>
+                ))}
+            </div>
+        </>
 
         {/* Pagination Controls */}
         {totalPages > 1 && (

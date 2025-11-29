@@ -163,49 +163,85 @@ const Dashboard = () => {
                         )}
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted By</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">People Reached</th>
-                                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {reports.map(report => (
-                                    <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {new Date(report.date).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            {report.User ? report.User.fullname : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            <span className="flex items-center gap-1">
-                                                <FaGlobe className="text-indigo-600" />
-                                                {report.User ? report.User.country : 'N/A'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                                            {report.evangelism_hours}h
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                                            {report.people_reached}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button className="text-indigo-600 hover:text-indigo-900 font-medium">
-                                                View Details
-                                            </button>
-                                        </td>
+                    <>
+                        {/* Desktop Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted By</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">People Reached</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {reports.map(report => (
+                                        <tr key={report.id} className="hover:bg-gray-50 transition-colors">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {new Date(report.date).toLocaleDateString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                                {report.User ? report.User.fullname : 'N/A'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                <span className="flex items-center gap-1">
+                                                    <FaGlobe className="text-indigo-600" />
+                                                    {report.User ? report.User.country : 'N/A'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                                                {report.evangelism_hours}h
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                                                {report.people_reached}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button className="text-indigo-600 hover:text-indigo-900 font-medium">
+                                                    View Details
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Mobile Cards */}
+                        <div className="md:hidden space-y-4 p-4">
+                            {reports.map(report => (
+                                <div key={report.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <p className="text-sm text-gray-500">{new Date(report.date).toLocaleDateString()}</p>
+                                            <h3 className="font-bold text-gray-900">{report.User ? report.User.fullname : 'N/A'}</h3>
+                                        </div>
+                                        <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full flex items-center gap-1">
+                                            <FaGlobe className="text-xs" />
+                                            {report.User ? report.User.country : 'N/A'}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                        <div className="bg-white p-3 rounded-lg border border-gray-100">
+                                            <p className="text-xs text-gray-500 mb-1">Hours</p>
+                                            <p className="font-bold text-indigo-600">{report.evangelism_hours}h</p>
+                                        </div>
+                                        <div className="bg-white p-3 rounded-lg border border-gray-100">
+                                            <p className="text-xs text-gray-500 mb-1">Reached</p>
+                                            <p className="font-bold text-green-600">{report.people_reached}</p>
+                                        </div>
+                                    </div>
+
+                                    <button className="w-full py-2 bg-white border border-indigo-200 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-50 transition-colors">
+                                        View Details
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
         </div>
