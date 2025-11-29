@@ -32,10 +32,7 @@ const connectDB = async () => {
         if (err.original && err.original.code === 'ECONNREFUSED') {
             console.error('HINT: If you are running locally and trying to connect to a Render database, make sure you are using the "External Database URL" (starts with postgres://... and has a hostname like dpg-...-a.oregon-postgres.render.com but resolves publicly). Internal URLs (dpg-...) are only accessible from within Render services.');
         }
-    }
-};
-        console.error('Unable to connect to the database:', err);
-        process.exit(1);
+        // process.exit(1);
     }
 };
 
