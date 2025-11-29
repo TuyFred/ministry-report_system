@@ -1,9 +1,13 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
-// 1. Use only one URL: DATABASE_URL (Construct if missing)
-const databaseUrl = process.env.DATABASE_URL || 
-    `postgres://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASS || 'fred123'}@${process.env.DB_HOST || 'localhost'}:5432/${process.env.DB_NAME || 'ministry_db'}`;
+// 1. Use only one URL: DATABASE_URL (no localhost fallback)
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+    console.error('ERROR: DATABASE_URL is missing. Set it in environment variables.');
+    process.exit(1);
+}
 
 // 2. Add SSL config inside Sequelize
 const sequelize = new Sequelize(databaseUrl, {
@@ -14,14 +18,7 @@ const sequelize = new Sequelize(databaseUrl, {
         ssl: {
             require: true,
             rejectUnauthorized: false
-        },
-        keepAlive: true
-    },
-    pool: {
-        max: 10,
-        min: 0,
-        acquire: 30000,
-        idle: 10000
+        }
     }
 });
 
@@ -29,11 +26,9 @@ const sequelize = new Sequelize(databaseUrl, {
 const connectDB = async () => {
     try {
         await sequelize.authenticate();
-        console.log('PostgreSQL Connected...');
-        
-        // Sync models here to ensure connection is established first
-        await sequelize.sync({ alter: true });
-        console.log('Database Synced...');
+        console.log('PostgreSQL Connected to Render');
+        await sequelize.sync();
+        console.log('Database Synced');
     } catch (err) {
         console.error('Unable to connect to the database:', err);
         if (err.original && err.original.code === 'ECONNREFUSED') {
