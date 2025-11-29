@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { FaLock, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaCheckCircle, FaCamera, FaUserPlus } from 'react-icons/fa';
+import { API_URL } from '../utils/api';
 
 const Settings = () => {
     const { user, updateUser } = useContext(AuthContext);
@@ -37,7 +38,7 @@ const Settings = () => {
         setUploading(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('http://localhost:5000/api/users/profile-image', formData, {
+            const res = await axios.post(`${API_URL}/api/users/profile-image`, formData, {
                 headers: {
                     'x-auth-token': token,
                     'Content-Type': 'multipart/form-data'
@@ -73,7 +74,7 @@ const Settings = () => {
         try {
             const token = localStorage.getItem('token');
             const response = await axios.post(
-                'http://localhost:5000/api/auth/change-password',
+                `${API_URL}/api/auth/change-password`,
                 {
                     currentPassword: passwordData.currentPassword,
                     newPassword: passwordData.newPassword
@@ -102,7 +103,7 @@ const Settings = () => {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/auth/create-admin', newAdminData, {
+            await axios.post(`${API_URL}/api/auth/create-admin`, newAdminData, {
                 headers: { 'x-auth-token': token }
             });
 
@@ -141,7 +142,7 @@ const Settings = () => {
                             <label className="block relative w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl transition-transform transform group-hover:scale-105">
                                 {user?.profile_image ? (
                                     <img 
-                                        src={`http://localhost:5000/${user.profile_image}`} 
+                                        src={`${API_URL}/${user.profile_image}`} 
                                         alt="Profile" 
                                         className="w-full h-full object-cover transition-opacity group-hover:opacity-75"
                                     />

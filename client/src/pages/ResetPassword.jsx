@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { FaChurch, FaLock, FaCheckCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URL } from '../utils/api';
 
 const ResetPassword = () => {
     const { token } = useParams();
@@ -36,7 +37,7 @@ const ResetPassword = () => {
 
         setLoading(true);
         try {
-            await axios.post('http://localhost:5000/api/auth/reset-password', {
+            await axios.post(`${API_URL}/api/auth/reset-password`, {
                 token,
                 newPassword
             });

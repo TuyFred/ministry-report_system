@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaChurch, FaEnvelope, FaCheckCircle } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URL } from '../utils/api';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
@@ -16,7 +17,7 @@ const ForgotPassword = () => {
         setLoading(true);
 
         try {
-            const res = await axios.post('http://localhost:5000/api/auth/forgot-password', { email });
+            const res = await axios.post(`${API_URL}/api/auth/forgot-password`, { email });
             setSuccess(true);
             setResetLink(res.data.resetLink);
         } catch (err) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from '../utils/api';
 import { FaChartLine, FaTrophy, FaExclamationTriangle, FaCheckCircle, FaCalendarCheck, FaUsers, FaFire, FaChevronLeft, FaChevronRight, FaFilePdf, FaFileExcel } from 'react-icons/fa';
 
 const Analytics = () => {
@@ -20,7 +21,7 @@ const Analytics = () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/reports/analytics', {
+            const response = await axios.get(`${API_URL}/api/reports/analytics`, {
                 headers: { 'x-auth-token': token },
                 params: { range: timeRange }
             });
@@ -53,7 +54,7 @@ const Analytics = () => {
                 endDate: endDate.toISOString().split('T')[0]
             };
 
-            const response = await axios.get(`http://localhost:5000/api/reports/export/${type}`, {
+            const response = await axios.get(`${API_URL}/api/reports/export/${type}`, {
                 headers: { 'x-auth-token': token },
                 params: params,
                 responseType: 'blob'

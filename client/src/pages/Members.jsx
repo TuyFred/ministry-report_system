@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { FaEdit, FaTrash, FaUserPlus, FaTimes, FaFilter, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { API_URL } from '../utils/api';
 
 const Members = () => {
   const [members, setMembers] = useState([]);
@@ -30,7 +31,7 @@ const Members = () => {
   const fetchMembers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5000/api/users', {
+      const res = await axios.get(`${API_URL}/api/users`, {
         headers: { 'x-auth-token': token }
       });
       setMembers(res.data);
@@ -67,12 +68,12 @@ const Members = () => {
       const token = localStorage.getItem('token');
       if (editingUser) {
         // Update existing user
-        await axios.put(`http://localhost:5000/api/users/${editingUser.id}`, formData, {
+        await axios.put(`${API_URL}/api/users/${editingUser.id}`, formData, {
           headers: { 'x-auth-token': token }
         });
       } else {
         // Create new user
-        await axios.post('http://localhost:5000/api/users', formData, {
+        await axios.post(`${API_URL}/api/users`, formData, {
           headers: { 'x-auth-token': token }
         });
       }
@@ -89,7 +90,7 @@ const Members = () => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:5000/api/users/${id}`, {
+      await axios.delete(`${API_URL}/api/users/${id}`, {
         headers: { 'x-auth-token': token }
       });
       fetchMembers();
@@ -276,7 +277,7 @@ const Members = () => {
                         <div className="flex items-center">
                             <div className="h-8 w-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 overflow-hidden">
                                 {member.profile_image ? (
-                                    <img src={`http://localhost:5000/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                                    <img src={`${API_URL}/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
                                 ) : (
                                     member.fullname.charAt(0)
                                 )}
@@ -321,7 +322,7 @@ const Members = () => {
                             <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden">
                                     {member.profile_image ? (
-                                        <img src={`http://localhost:5000/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                                        <img src={`${API_URL}/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
                                     ) : (
                                         member.fullname.charAt(0)
                                     )}

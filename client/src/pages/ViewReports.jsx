@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaEye, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight, FaEdit, FaFilePdf, FaFileExcel, FaTrash, FaUser, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
@@ -74,7 +75,7 @@ const ViewReports = () => {
                 if (searchQuery) params.searchQuery = searchQuery;
             }
 
-            const response = await axios.get('http://localhost:5000/api/reports', {
+            const response = await axios.get(`${API_URL}/api/reports`, {
                 headers: { 'x-auth-token': token },
                 params: params
             });
@@ -91,7 +92,7 @@ const ViewReports = () => {
         if (window.confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
             try {
                 const token = localStorage.getItem('token');
-                await axios.delete(`http://localhost:5000/api/reports/${reportId}`, {
+                await axios.delete(`${API_URL}/api/reports/${reportId}`, {
                     headers: { 'x-auth-token': token }
                 });
                 // Refresh reports
@@ -136,7 +137,7 @@ const ViewReports = () => {
                 if (searchQuery) params.searchQuery = searchQuery;
             }
 
-            const response = await axios.get(`http://localhost:5000/api/reports/export/${type}`, {
+            const response = await axios.get(`${API_URL}/api/reports/export/${type}`, {
                 headers: { 'x-auth-token': token },
                 params: params,
                 responseType: 'blob' // Important for file download

@@ -1,6 +1,7 @@
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FaTachometerAlt, FaFileAlt, FaPlus, FaUsers, FaChartBar, FaCog, FaChurch, FaEye, FaCalendarAlt } from 'react-icons/fa';
+import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
@@ -34,7 +35,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border-2 border-gray-600">
                     {user?.profile_image ? (
                         <img 
-                            src={`http://localhost:5000/${user.profile_image}`} 
+                            src={`${API_URL}/${user.profile_image}`} 
                             alt="Profile" 
                             className="w-full h-full object-cover"
                         />

@@ -3,6 +3,7 @@ import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe } from 'react-icons/fa';
+import { API_URL } from '../utils/api';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
@@ -17,7 +18,7 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchReports = async () => {
             try {
-                const res = await axios.get('http://localhost:5000/api/reports');
+                const res = await axios.get(`${API_URL}/api/reports`);
                 setReports(res.data);
                 
                 // Calculate stats
@@ -45,7 +46,7 @@ const Dashboard = () => {
                     <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                         {user?.profile_image ? (
                             <img 
-                                src={`http://localhost:5000/${user.profile_image}`} 
+                                src={`${API_URL}/${user.profile_image}`} 
                                 alt="Profile" 
                                 className="w-full h-full object-cover"
                             />
@@ -76,7 +77,7 @@ const Dashboard = () => {
                             </button>
                         </Link>
                         <a 
-                            href={`http://localhost:5000/api/reports/export/pdf`}
+                            href={`${API_URL}/api/reports/export/pdf`}
                             download
                         >
                             <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
@@ -85,7 +86,7 @@ const Dashboard = () => {
                             </button>
                         </a>
                         <a 
-                            href={`http://localhost:5000/api/reports/export/excel`}
+                            href={`${API_URL}/api/reports/export/excel`}
                             download
                         >
                             <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">

@@ -1,5 +1,6 @@
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 import { FaBars, FaUserCircle, FaChurch, FaSignOutAlt } from 'react-icons/fa';
 
@@ -33,7 +34,7 @@ const Navbar = ({ toggleSidebar }) => {
                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-100 hover:border-indigo-300 transition-colors shadow-sm">
                             {user?.profile_image ? (
                                 <img 
-                                    src={`http://localhost:5000/${user.profile_image}`} 
+                                    src={`${API_URL}/${user.profile_image}`} 
                                     alt="Profile" 
                                     className="w-full h-full object-cover"
                                 />
@@ -50,7 +51,7 @@ const Navbar = ({ toggleSidebar }) => {
                                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
                                     {user?.profile_image ? (
                                         <img 
-                                            src={`http://localhost:5000/${user.profile_image}`} 
+                                            src={`${API_URL}/${user.profile_image}`} 
                                             alt="Profile" 
                                             className="w-full h-full object-cover"
                                         />

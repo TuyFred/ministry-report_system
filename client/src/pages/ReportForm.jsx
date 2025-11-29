@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaCalendarAlt, FaChurch, FaGlobe, FaUser, FaClock, FaUsers, FaBook, FaPray, FaDumbbell, FaPen, FaSearch } from 'react-icons/fa';
+import { API_URL } from '../utils/api';
 
 const ReportForm = () => {
     const navigate = useNavigate();
@@ -147,7 +148,7 @@ const ReportForm = () => {
             const token = localStorage.getItem('token');
             if (editReport) {
                 // Update existing report
-                await axios.put(`http://localhost:5000/api/reports/${editReport.id}`, dataToSend, {
+                await axios.put(`${API_URL}/api/reports/${editReport.id}`, dataToSend, {
                     headers: {
                         'x-auth-token': token,
                         'Content-Type': 'application/json'
@@ -156,7 +157,7 @@ const ReportForm = () => {
                 alert('Report Updated Successfully! ✓');
             } else {
                 // Create new report
-                await axios.post('http://localhost:5000/api/reports', dataToSend, {
+                await axios.post(`${API_URL}/api/reports`, dataToSend, {
                     headers: {
                         'x-auth-token': token,
                         'Content-Type': 'application/json'
