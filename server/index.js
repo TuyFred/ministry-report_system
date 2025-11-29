@@ -21,19 +21,8 @@ app.use(cors({
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
-// Connect Database
+// Connect Database and Sync
 connectDB();
-
-// Sync Models
-const syncDb = async () => {
-    try {
-        await sequelize.sync({ alter: true }); // Use { force: true } only for development reset
-        console.log('Database Synced...');
-    } catch (err) {
-        console.error('Error syncing database:', err);
-    }
-};
-syncDb();
 
 // Routes
 app.get('/', (req, res) => {
