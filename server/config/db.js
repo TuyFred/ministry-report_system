@@ -5,7 +5,7 @@ const { Sequelize } = require('sequelize');
 
 const databaseUrl = process.env.DATABASE_URL;
 
-console.log('Initializing Sequelize with URL:', databaseUrl ? '***PRESENT***' : '***MISSING***');
+console.log('Initializing Sequelize (Supabase) with URL:', databaseUrl ? '***PRESENT***' : '***MISSING***');
 
 
 if (!databaseUrl) {
@@ -24,9 +24,9 @@ const sequelize = new Sequelize(databaseUrl, {
         }
     },
     pool: {
-        max: 5,
+        max: 10,
         min: 0,
-        acquire: 30000,
+        acquire: 60000,
         idle: 10000
     },
     keepAlive: true,
@@ -40,7 +40,7 @@ const connectDB = async (retries = 5, delay = 2000) => {
     for (let i = 0; i < retries; i++) {
         try {
             await sequelize.authenticate();
-            console.log('PostgreSQL Connected to Render');
+            console.log('PostgreSQL Connected to Supabase');
             await sequelize.sync();
             console.log('Database Synced');
             return; // Success
