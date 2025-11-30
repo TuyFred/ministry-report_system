@@ -5,6 +5,9 @@ const { Sequelize } = require('sequelize');
 
 const databaseUrl = process.env.DATABASE_URL;
 
+console.log('Initializing Sequelize with URL:', databaseUrl ? '***PRESENT***' : '***MISSING***');
+
+
 if (!databaseUrl) {
     console.error('ERROR: DATABASE_URL is missing. Set it in environment variables.');
     process.exit(1);
