@@ -49,18 +49,6 @@ app.get('/api/health', async (req, res) => {
     }
 });
 
-// Catch-all route for client-side routing (should be last)
-// This ensures that page refreshes work correctly with React Router
-app.get('*', (req, res) => {
-    // Only handle non-API routes
-    if (!req.path.startsWith('/api')) {
-        res.status(200).json({ 
-            message: 'Ministry Reporting System API', 
-            note: 'This is the backend API. Please use the frontend application.' 
-        });
-    }
-});
-
 connectDB().then(() => {
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
