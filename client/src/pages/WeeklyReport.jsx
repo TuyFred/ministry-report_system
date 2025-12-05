@@ -162,19 +162,44 @@ const WeeklyReport = () => {
             };
 
             const response = await axios.get(`${API_URL}/api/reports/export/${type}`, {
-                headers: { 'x-auth-token': token },
+                headers: { 
+                    'x-auth-token': token,
+                    'Accept': type === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                },
                 params: params,
                 responseType: 'blob'
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            // Verify response
+            if (!response.data || response.data.size === 0) {
+                throw new Error('Received empty file');
+            }
+
+            // Create blob with explicit MIME type
+            const blob = new Blob([response.data], {
+                type: type === 'pdf' 
+                    ? 'application/pdf' 
+                    : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            });
+
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `weekly_report_${weekDates.start}_${type === 'pdf' ? 'pdf' : 'xlsx'}`);
+            
+            // Proper filename with correct extension
+            const extension = type === 'pdf' ? 'pdf' : 'xlsx';
+            link.setAttribute('download', `weekly_report_${weekDates.start}.${extension}`);
+            
             document.body.appendChild(link);
             link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            
+            // Cleanup
+            setTimeout(() => {
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+
+            alert(`Weekly report exported successfully as ${extension.toUpperCase()}!`);
         } catch (error) {
             console.error('Export failed:', error);
             alert('Failed to export report. Please try again.');

@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
+import ExportReports from '../components/ExportReports';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
@@ -69,32 +70,12 @@ const Dashboard = () => {
                 </div>
                 
                 {(user?.role === 'member' || user?.role === 'leader') && (
-                    <div className="flex flex-wrap gap-2">
-                        <Link to="/report-form">
-                            <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
-                                <FaFileAlt />
-                                Submit Report
-                            </button>
-                        </Link>
-                        <a 
-                            href={`${API_URL}/api/reports/export/pdf`}
-                            download
-                        >
-                            <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
-                                <FaFilePdf />
-                                Export PDF
-                            </button>
-                        </a>
-                        <a 
-                            href={`${API_URL}/api/reports/export/excel`}
-                            download
-                        >
-                            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
-                                <FaFileExcel />
-                                Export Excel
-                            </button>
-                        </a>
-                    </div>
+                    <Link to="/report-form">
+                        <button className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
+                            <FaFileAlt />
+                            Submit New Report
+                        </button>
+                    </Link>
                 )}
             </div>
 
@@ -136,6 +117,11 @@ const Dashboard = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Export Reports Section */}
+            {(user?.role === 'member' || user?.role === 'leader') && (
+                <ExportReports />
+            )}
 
             {/* Reports Table */}
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
