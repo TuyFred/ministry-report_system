@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
@@ -7,10 +7,33 @@ import { FaBars, FaUserCircle, FaChurch, FaSignOutAlt } from 'react-icons/fa';
 const Navbar = ({ toggleSidebar }) => {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
+    const [showProfileMenu, setShowProfileMenu] = useState(false);
+    const profileMenuRef = useRef(null);
 
     const onLogout = () => {
         logout();
         navigate('/login');
+    };
+
+    // Close profile menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+                setShowProfileMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, []);
+
+    const toggleProfileMenu = () => {
+        setShowProfileMenu(!showProfileMenu);
     };
 
     return (
@@ -29,8 +52,11 @@ const Navbar = ({ toggleSidebar }) => {
                     <p className="text-sm text-gray-500">Welcome back,</p>
                     <p className="text-sm font-semibold text-gray-800">{user?.fullname}</p>
                 </div>
-                <div className="relative group">
-                    <button className="flex items-center focus:outline-none">
+                <div className="relative" ref={profileMenuRef}>
+                    <button 
+                        onClick={toggleProfileMenu}
+                        className="flex items-center focus:outline-none"
+                    >
                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-100 hover:border-indigo-300 transition-colors shadow-sm">
                             {user?.profile_image ? (
                                 <img 
@@ -45,7 +71,9 @@ const Navbar = ({ toggleSidebar }) => {
                             )}
                         </div>
                     </button>
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 z-50 hidden group-hover:block border border-gray-100 transform origin-top-right transition-all">
+                    
+                    {/* Profile Dropdown Menu */}
+                    <div className={`absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-2xl py-2 z-50 border border-gray-100 transform origin-top-right transition-all ${showProfileMenu ? 'block' : 'hidden'}`}>
                         <div className="px-4 py-4 border-b border-gray-100 bg-gray-50">
                             <div className="flex items-center gap-3 mb-3">
                                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
@@ -61,9 +89,9 @@ const Navbar = ({ toggleSidebar }) => {
                                         </div>
                                     )}
                                 </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-900">{user?.fullname}</p>
-                                    <p className="text-xs text-gray-500 truncate max-w-[140px]">{user?.email}</p>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 truncate">{user?.fullname}</p>
+                                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
                                 </div>
                             </div>
                             <div className="flex gap-2">
@@ -76,7 +104,11 @@ const Navbar = ({ toggleSidebar }) => {
                             </div>
                         </div>
                         <div className="py-1">
-                            <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                            <Link 
+                                to="/settings" 
+                                onClick={() => setShowProfileMenu(false)}
+                                className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                            >
                                 <FaUserCircle />
                                 My Profile
                             </Link>
