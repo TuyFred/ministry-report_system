@@ -7,9 +7,18 @@ exports.register = async (req, res) => {
     try {
         const { fullname, email, password, country, contact, address } = req.body;
 
+        console.log('Registration attempt for email:', email);
+
+        // Validate input
+        if (!fullname || !email || !password || !country) {
+            console.log('Missing required fields');
+            return res.status(400).json({ msg: 'Please provide all required fields: fullname, email, password, country' });
+        }
+
         // Check if user exists
         let user = await User.findOne({ where: { email } });
         if (user) {
+            console.log('User already exists:', email);
             return res.status(400).json({ msg: 'User already exists' });
         }
 
@@ -28,6 +37,8 @@ exports.register = async (req, res) => {
             address
         });
 
+        console.log('User registered successfully:', email);
+
         // Create token
         const payload = {
             user: {
@@ -43,8 +54,8 @@ exports.register = async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Registration error:', err.message);
+        res.status(500).json({ msg: 'Server Error', error: err.message });
     }
 };
 
@@ -107,17 +118,31 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        console.log('Login attempt for email:', email);
+
+        // Validate input
+        if (!email || !password) {
+            console.log('Missing email or password');
+            return res.status(400).json({ msg: 'Please provide email and password' });
+        }
+
         // Check user
         const user = await User.findOne({ where: { email } });
         if (!user) {
+            console.log('User not found:', email);
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
+
+        console.log('User found, checking password...');
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.log('Password mismatch for user:', email);
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
+
+        console.log('Login successful for user:', email);
 
         // Create token
         const payload = {
@@ -134,8 +159,8 @@ exports.login = async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Login error:', err.message);
+        res.status(500).json({ msg: 'Server Error', error: err.message });
     }
 };
 
