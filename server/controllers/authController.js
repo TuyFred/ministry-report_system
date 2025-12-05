@@ -5,12 +5,7 @@ const User = require('../models/User');
 
 exports.register = async (req, res) => {
     try {
-        const { fullname, email, password, role, country, contact, address } = req.body;
-
-        // Prevent admin registration through this endpoint
-        if (role === 'admin') {
-            return res.status(403).json({ msg: 'Admin accounts cannot be created through registration. Please contact system administrator.' });
-        }
+        const { fullname, email, password, country, contact, address } = req.body;
 
         // Check if user exists
         let user = await User.findOne({ where: { email } });
@@ -22,12 +17,12 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user with role (leader or member only)
+        // Create user - always as 'member' role (admin can change role later)
         user = await User.create({
             fullname,
             email,
             password: hashedPassword,
-            role: role || 'member', // Default to member if not provided
+            role: 'member', // Always create as member
             country,
             contact,
             address

@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaTachometerAlt, FaFileAlt, FaPlus, FaUsers, FaChartBar, FaCog, FaChurch, FaEye, FaCalendarAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaFileAlt, FaPlus, FaUsers, FaChartBar, FaCog, FaChurch, FaEye, FaCalendarWeek, FaCalendarAlt } from 'react-icons/fa';
 import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -12,6 +12,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { name: 'Dashboard', path: '/dashboard', icon: <FaTachometerAlt />, roles: ['admin', 'leader', 'member'] },
         { name: 'Submit Report', path: '/report-form', icon: <FaPlus />, roles: ['leader', 'member'] },
         { name: 'View My Reports', path: '/view-reports', icon: <FaEye />, roles: ['leader', 'member'] },
+        { name: 'Weekly Report', path: '/weekly-report', icon: <FaCalendarWeek />, roles: ['leader', 'member'] },
+        { name: 'Monthly Report', path: '/monthly-report', icon: <FaCalendarAlt />, roles: ['leader', 'member'] },
         { name: 'All Reports', path: '/reports', icon: <FaFileAlt />, roles: ['admin', 'leader'] },
         { name: 'Members', path: '/members', icon: <FaUsers />, roles: ['admin', 'leader'] },
         { name: 'Analytics', path: '/analytics', icon: <FaChartBar />, roles: ['admin', 'leader'] },

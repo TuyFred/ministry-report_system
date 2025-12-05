@@ -75,19 +75,6 @@ const Register = () => {
                     )}
 
                     <form onSubmit={onSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                            <select
-                                name="role"
-                                value={role}
-                                onChange={onChange}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                            >
-                                <option value="member">Member</option>
-                                <option value="leader">Country Leader</option>
-                            </select>
-                        </div>
-
                         <div className="grid grid-cols-2 gap-3">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>

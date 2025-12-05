@@ -9,6 +9,8 @@ import ResetPassword from './pages/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import ReportForm from './pages/ReportForm';
 import ViewReports from './pages/ViewReports';
+import WeeklyReport from './pages/WeeklyReport';
+import MonthlyReport from './pages/MonthlyReport';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
 import Members from './pages/Members';
@@ -55,6 +57,16 @@ function App() {
           <Route path="/reports" element={
             <PrivateRoute>
               <ViewReports />
+            </PrivateRoute>
+          } />
+          <Route path="/weekly-report" element={
+            <PrivateRoute>
+              <WeeklyReport />
+            </PrivateRoute>
+          } />
+          <Route path="/monthly-report" element={
+            <PrivateRoute>
+              <MonthlyReport />
             </PrivateRoute>
           } />
           <Route path="/members" element={

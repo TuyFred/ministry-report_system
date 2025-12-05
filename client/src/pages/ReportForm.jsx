@@ -44,6 +44,17 @@ const ReportForm = () => {
     const [isFormValid, setIsFormValid] = useState(false);
     const [countrySearch, setCountrySearch] = useState('');
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+    const [isWeekend, setIsWeekend] = useState(false);
+
+    // Check if selected date is weekend (Saturday or Sunday)
+    useEffect(() => {
+        if (formData.date) {
+            const selectedDate = new Date(formData.date + 'T00:00:00');
+            const dayOfWeek = selectedDate.getDay();
+            // 0 = Sunday, 6 = Saturday
+            setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
+        }
+    }, [formData.date]);
 
     // Load edit data if editing
     useEffect(() => {
@@ -94,17 +105,23 @@ const ReportForm = () => {
         }
     }, [editReport]);
 
-    // Check if all required fields are filled
+    // Check if all required fields are filled - different requirements for weekday vs weekend
     useEffect(() => {
-        const requiredFields = [
+        const weekdayRequiredFields = [
             'date', 'name', 'country', 'church', 'evangelism_hours', 'evangelism_minutes',
             'people_reached', 'contacts_received', 'bible_study_sessions', 'bible_study_attendants',
             'unique_attendants', 'newcomers', 'meditation_hours', 'meditation_minutes',
             'prayer_hours', 'prayer_minutes', 'morning_service', 'regular_service',
-            'sermons_listened', 'articles_written', 'exercise_hours', 'exercise_minutes',
-            'sermon_reflection', 'thanksgiving', 'repentance', 'prayer_requests',
-            'reflections', 'other_work', 'tomorrow_tasks'
+            'sermons_listened', 'articles_written'
         ];
+
+        const weekendRequiredFields = [
+            ...weekdayRequiredFields,
+            'exercise_hours', 'exercise_minutes', 'sermon_reflection', 'thanksgiving',
+            'repentance', 'prayer_requests', 'reflections', 'other_work', 'tomorrow_tasks'
+        ];
+
+        const requiredFields = isWeekend ? weekendRequiredFields : weekdayRequiredFields;
 
         const allFilled = requiredFields.every(field => {
             const value = formData[field];
@@ -112,7 +129,7 @@ const ReportForm = () => {
         });
 
         setIsFormValid(allFilled);
-    }, [formData]);
+    }, [formData, isWeekend]);
 
     const onChange = e => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -132,7 +149,7 @@ const ReportForm = () => {
             evangelism_hours: parseInt(formData.evangelism_hours) * 60 + parseInt(formData.evangelism_minutes),
             meditation_time: parseInt(formData.meditation_hours) * 60 + parseInt(formData.meditation_minutes),
             prayer_time: parseInt(formData.prayer_hours) * 60 + parseInt(formData.prayer_minutes),
-            exercise_time: parseInt(formData.exercise_hours) * 60 + parseInt(formData.exercise_minutes)
+            exercise_time: parseInt(formData.exercise_hours || 0) * 60 + parseInt(formData.exercise_minutes || 0)
         };
 
         // Remove the individual hour/minute fields
@@ -577,141 +594,146 @@ const ReportForm = () => {
                         </div>
                     </div>
 
-                    {/* Physical Health */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <FaDumbbell className="text-red-600" />
-                            Physical Health
-                        </h2>
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise (HH:MM)</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="number"
-                                    name="exercise_hours"
-                                    value={formData.exercise_hours}
-                                    onChange={onChange}
-                                    placeholder="HH"
-                                    min="0"
-                                    max="23"
-                                    required
-                                    className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                />
-                                <span className="text-2xl font-bold text-gray-500">:</span>
-                                <input
-                                    type="number"
-                                    name="exercise_minutes"
-                                    value={formData.exercise_minutes}
-                                    onChange={onChange}
-                                    placeholder="MM"
-                                    min="0"
-                                    max="59"
-                                    required
-                                    className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Reflections */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                            <FaPen className="text-pink-600" />
-                            Reflections and Prayer
-                        </h2>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Sermon Reflection</label>
-                                <textarea
-                                    name="sermon_reflection"
-                                    value={formData.sermon_reflection}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="Write your sermon reflection..."
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
+                    {/* Weekend Only Sections */}
+                    {isWeekend && (
+                        <>
+                            {/* Physical Health */}
+                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <FaDumbbell className="text-red-600" />
+                                    Physical Health
+                                </h2>
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise (HH:MM)</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            name="exercise_hours"
+                                            value={formData.exercise_hours}
+                                            onChange={onChange}
+                                            placeholder="HH"
+                                            min="0"
+                                            max="23"
+                                            required={isWeekend}
+                                            className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                        />
+                                        <span className="text-2xl font-bold text-gray-500">:</span>
+                                        <input
+                                            type="number"
+                                            name="exercise_minutes"
+                                            value={formData.exercise_minutes}
+                                            onChange={onChange}
+                                            placeholder="MM"
+                                            min="0"
+                                            max="59"
+                                            required={isWeekend}
+                                            className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Thanksgiving</label>
-                                <textarea
-                                    name="thanksgiving"
-                                    value={formData.thanksgiving}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="What are you thankful for today..."
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
-                            </div>
+                            {/* Reflections */}
+                            <div className="bg-white rounded-2xl shadow-lg p-6">
+                                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                    <FaPen className="text-pink-600" />
+                                    Reflections and Prayer
+                                </h2>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Sermon Reflection</label>
+                                        <textarea
+                                            name="sermon_reflection"
+                                            value={formData.sermon_reflection}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="Write your sermon reflection..."
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Repentance/Struggles</label>
-                                <textarea
-                                    name="repentance"
-                                    value={formData.repentance}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="Areas of repentance or struggles..."
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
-                            </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Thanksgiving</label>
+                                        <textarea
+                                            name="thanksgiving"
+                                            value={formData.thanksgiving}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="What are you thankful for today..."
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Prayer Requests (no more than three)</label>
-                                <textarea
-                                    name="prayer_requests"
-                                    value={formData.prayer_requests}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="1. &#10;2. &#10;3. "
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
-                            </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Repentance/Struggles</label>
+                                        <textarea
+                                            name="repentance"
+                                            value={formData.repentance}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="Areas of repentance or struggles..."
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Overall Reflection and Evaluation on the Day</label>
-                                <textarea
-                                    name="reflections"
-                                    value={formData.reflections}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="Reflect on your day..."
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
-                            </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Prayer Requests (no more than three)</label>
+                                        <textarea
+                                            name="prayer_requests"
+                                            value={formData.prayer_requests}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="1. &#10;2. &#10;3. "
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Other Work Done Today (e.g., departmental work, attended training, church cleaning...)</label>
-                                <textarea
-                                    name="other_work"
-                                    value={formData.other_work}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="Describe other activities..."
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
-                            </div>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Overall Reflection and Evaluation on the Day</label>
+                                        <textarea
+                                            name="reflections"
+                                            value={formData.reflections}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="Reflect on your day..."
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">3 Things Must Do Tomorrow</label>
-                                <textarea
-                                    name="tomorrow_tasks"
-                                    value={formData.tomorrow_tasks}
-                                    onChange={onChange}
-                                    rows="4"
-                                    placeholder="1. &#10;2. &#10;3. "
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Other Work Done Today (e.g., departmental work, attended training, church cleaning...)</label>
+                                        <textarea
+                                            name="other_work"
+                                            value={formData.other_work}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="Describe other activities..."
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">3 Things Must Do Tomorrow</label>
+                                        <textarea
+                                            name="tomorrow_tasks"
+                                            value={formData.tomorrow_tasks}
+                                            onChange={onChange}
+                                            rows="4"
+                                            placeholder="1. &#10;2. &#10;3. "
+                                            required={isWeekend}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                        ></textarea>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </>
+                    )}
 
                     {/* Submit Button */}
                     <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-6">

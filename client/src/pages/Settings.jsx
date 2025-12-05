@@ -5,7 +5,7 @@ import { FaLock, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaCheckCircle, FaCamera,
 import { API_URL } from '../utils/api';
 
 const Settings = () => {
-    const { user, updateUser } = useContext(AuthContext);
+    const { user, updateUser, refreshUser } = useContext(AuthContext);
     const [passwordData, setPasswordData] = useState({
         currentPassword: '',
         newPassword: '',
@@ -45,8 +45,8 @@ const Settings = () => {
                 }
             });
             
-            // Update user context with new image
-            updateUser({ ...user, profile_image: res.data.profile_image });
+            // Refresh user data from server to get the new profile image
+            await refreshUser();
             setMessage({ type: 'success', text: 'Profile image updated successfully!' });
         } catch (err) {
             console.error(err);

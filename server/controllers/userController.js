@@ -140,6 +140,23 @@ exports.updateUser = async (req, res) => {
         // Authorization
         if (requestingUser.role === 'admin') {
             // Admin can update anyone
+            
+            // If admin is changing role to 'leader', check country leader limit
+            if (role === 'leader' && user.role !== 'leader') {
+                const targetCountry = country || user.country;
+                const leaderCount = await User.count({
+                    where: {
+                        role: 'leader',
+                        country: targetCountry
+                    }
+                });
+                
+                if (leaderCount >= 2) {
+                    return res.status(400).json({ 
+                        msg: `Cannot assign more leaders. ${targetCountry} already has 2 leaders. Please remove an existing leader first.` 
+                    });
+                }
+            }
         } else if (requestingUser.role === 'leader') {
             // Leader can only update their country's members
             if (user.country !== requestingUser.country || user.role !== 'member') {
