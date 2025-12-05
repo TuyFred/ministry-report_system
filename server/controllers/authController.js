@@ -5,9 +5,9 @@ const User = require('../models/User');
 
 exports.register = async (req, res) => {
     try {
-        const { fullname, email, password, country, contact, address, role } = req.body;
+        const { fullname, email, password, country, contact, address } = req.body;
 
-        console.log('Registration attempt for email:', email, 'with role:', role);
+        console.log('Registration attempt for email:', email);
 
         // Validate input
         if (!fullname || !email || !password || !country) {
@@ -15,9 +15,9 @@ exports.register = async (req, res) => {
             return res.status(400).json({ msg: 'Please provide all required fields: fullname, email, password, country' });
         }
 
-        // Validate role (only allow member, leader, admin)
-        const allowedRoles = ['member', 'leader', 'admin'];
-        const userRole = role && allowedRoles.includes(role) ? role : 'member';
+        // All new registrations are created as 'member' role
+        // Admins can change user roles after registration
+        const userRole = 'member';
 
         // Check if user exists
         let user = await User.findOne({ where: { email } });
@@ -30,7 +30,7 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user with selected role
+        // Create user with member role (admins can upgrade role later)
         user = await User.create({
             fullname,
             email,
@@ -41,7 +41,7 @@ exports.register = async (req, res) => {
             address
         });
 
-        console.log('User registered successfully:', email, 'as', userRole);
+        console.log('User registered successfully:', email, 'as member (admin can change role later)');
 
         // Create token
         const payload = {
