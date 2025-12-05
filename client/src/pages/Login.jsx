@@ -1,17 +1,30 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { FaChurch, FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Login = () => {
-    const [formData, setFormData] = useState({ email: '', password: '' });
+    const location = useLocation();
+    const [formData, setFormData] = useState({ 
+        email: location.state?.email || '', 
+        password: '' 
+    });
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const { email, password } = formData;
+
+    // Clear success message after 5 seconds
+    useEffect(() => {
+        if (successMessage) {
+            const timer = setTimeout(() => setSuccessMessage(''), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [successMessage]);
 
     const onChange = e => {
         setError('');
@@ -56,13 +69,19 @@ const Login = () => {
 
                 {/* Login Form */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
+                    {successMessage && (
+                        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+                            ✓ {successMessage}
+                        </div>
+                    )}
+                    
                     {error && (
                         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
                             {error}
                         </div>
                     )}
 
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <form onSubmit={onSubmit} className="space-y-6">\
                         {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">

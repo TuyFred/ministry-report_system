@@ -45,7 +45,13 @@ const Register = () => {
         setLoading(true);
         try {
             await register({ fullname, email, password, role, country, contact, address });
-            navigate('/dashboard');
+            // After successful registration, redirect to login page
+            navigate('/login', { 
+                state: { 
+                    message: 'Registration successful! Please login with your credentials.',
+                    email: email 
+                }
+            });
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.msg || 'Registration failed. Please try again.');

@@ -35,10 +35,10 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (formData) => {
-        const res = await axios.post(`${API_URL}/api/auth/register`, formData);
-        localStorage.setItem('token', res.data.token);
-        axios.defaults.headers.common['x-auth-token'] = res.data.token;
-        setUser(res.data.user);
+        // Register user but don't auto-login
+        // User will be redirected to login page to enter credentials
+        await axios.post(`${API_URL}/api/auth/register`, formData);
+        // Don't set token or user - let them login manually
     };
 
     const logout = () => {
