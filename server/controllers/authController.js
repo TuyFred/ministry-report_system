@@ -5,15 +5,19 @@ const User = require('../models/User');
 
 exports.register = async (req, res) => {
     try {
-        const { fullname, email, password, country, contact, address } = req.body;
+        const { fullname, email, password, country, contact, address, role } = req.body;
 
-        console.log('Registration attempt for email:', email);
+        console.log('Registration attempt for email:', email, 'with role:', role);
 
         // Validate input
         if (!fullname || !email || !password || !country) {
             console.log('Missing required fields');
             return res.status(400).json({ msg: 'Please provide all required fields: fullname, email, password, country' });
         }
+
+        // Validate role (only allow member, leader, admin)
+        const allowedRoles = ['member', 'leader', 'admin'];
+        const userRole = role && allowedRoles.includes(role) ? role : 'member';
 
         // Check if user exists
         let user = await User.findOne({ where: { email } });
@@ -26,18 +30,18 @@ exports.register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create user - always as 'member' role (admin can change role later)
+        // Create user with selected role
         user = await User.create({
             fullname,
             email,
             password: hashedPassword,
-            role: 'member', // Always create as member
+            role: userRole,
             country,
             contact,
             address
         });
 
-        console.log('User registered successfully:', email);
+        console.log('User registered successfully:', email, 'as', userRole);
 
         // Create token
         const payload = {
