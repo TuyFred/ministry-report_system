@@ -86,7 +86,15 @@ const MonthlyReport = () => {
 
         const parseTime = (timeStr) => {
             if (!timeStr) return 0;
-            const [hours, minutes] = timeStr.split(':').map(Number);
+            // Handle if it's already a number
+            if (typeof timeStr === 'number') return timeStr;
+            // Handle if it's not a string
+            if (typeof timeStr !== 'string') return 0;
+            // Parse HH:MM format
+            const parts = timeStr.toString().split(':');
+            if (parts.length !== 2) return 0;
+            const [hours, minutes] = parts.map(Number);
+            if (isNaN(hours) || isNaN(minutes)) return 0;
             return hours + (minutes / 60);
         };
 
