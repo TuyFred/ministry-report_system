@@ -207,9 +207,16 @@ exports.exportPDF = async (req, res) => {
         const { startDate, endDate, userId, country, searchQuery } = req.query;
         let whereClause = {};
 
-        // Date Filter
+        // Date Filter - REQUIRED
         if (startDate && endDate) {
             whereClause.date = { [Op.between]: [startDate, endDate] };
+        } else if (startDate) {
+            // Single date
+            whereClause.date = startDate;
+        } else {
+            // Default to today if no date provided
+            const today = new Date().toISOString().split('T')[0];
+            whereClause.date = today;
         }
 
         // User Filter Logic
@@ -270,16 +277,29 @@ exports.exportPDF = async (req, res) => {
         const reports = await Report.findAll({
             where: whereClause,
             include: [{ model: User, attributes: ['fullname', 'country'] }],
-            order: [['date', 'DESC']]
+            order: [['date', 'ASC']]
         });
 
-        const doc = new PDFDocument({ margin: 50, size: 'A4' });
-        let filename = `ministry_reports_${new Date().toISOString().split('T')[0]}.pdf`;
-        filename = encodeURIComponent(filename);
+        // Generate unique filename
+        const dateStr = startDate && endDate ? `${startDate}_to_${endDate}` : (startDate || 'report');
+        const filename = `ministry_report_${dateStr}.pdf`;
 
-        res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
-        res.setHeader('Content-type', 'application/pdf');
+        // Set headers FIRST before creating document
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
 
+        // Create PDF
+        const doc = new PDFDocument({ 
+            margin: 50, 
+            size: 'A4',
+            bufferPages: true,
+            autoFirstPage: true
+        });
+
+        // Pipe to response
         doc.pipe(res);
 
         // Header
@@ -372,11 +392,14 @@ exports.exportPDF = async (req, res) => {
             });
         }
 
+        // Finalize the PDF
         doc.end();
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('PDF Export Error:', err.message);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Failed to export PDF', details: err.message });
+        }
     }
 };
 
@@ -386,9 +409,16 @@ exports.exportExcel = async (req, res) => {
         const { startDate, endDate, userId, country, searchQuery } = req.query;
         let whereClause = {};
 
-        // Date Filter
+        // Date Filter - REQUIRED
         if (startDate && endDate) {
             whereClause.date = { [Op.between]: [startDate, endDate] };
+        } else if (startDate) {
+            // Single date
+            whereClause.date = startDate;
+        } else {
+            // Default to today if no date provided
+            const today = new Date().toISOString().split('T')[0];
+            whereClause.date = today;
         }
 
         // User Filter Logic
@@ -449,10 +479,23 @@ exports.exportExcel = async (req, res) => {
         const reports = await Report.findAll({
             where: whereClause,
             include: [{ model: User, attributes: ['fullname', 'country'] }],
-            order: [['date', 'DESC']]
+            order: [['date', 'ASC']]
         });
 
+        // Generate unique filename
+        const dateStr = startDate && endDate ? `${startDate}_to_${endDate}` : (startDate || 'report');
+        const filename = `ministry_report_${dateStr}.xlsx`;
+
+        // Set headers FIRST before creating workbook
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+
         const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Ministry Report System';
+        workbook.created = new Date();
         const worksheet = workbook.addWorksheet('Ministry Reports');
 
         // Add Title Row
@@ -569,16 +612,13 @@ exports.exportExcel = async (req, res) => {
             });
         });
 
-        const filename = `ministry_reports_${new Date().toISOString().split('T')[0]}.xlsx`;
-        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-
+        // Write workbook to response
         await workbook.xlsx.write(res);
         res.end();
 
     } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
+        console.error('Excel Export Error:', err.message);
+        res.status(500).json({ error: 'Failed to export Excel file', details: err.message });
     }
 };
 
