@@ -54,7 +54,7 @@ exports.register = async (req, res) => {
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' }, (err, token) => {
             if (err) throw err;
-            res.json({ token, user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country } });
+            res.json({ token, user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country, profile_image: user.profile_image } });
         });
 
     } catch (err) {
@@ -108,7 +108,7 @@ exports.registerAdmin = async (req, res) => {
             res.json({ 
                 msg: 'Admin account created successfully',
                 token, 
-                user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country } 
+                user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country, profile_image: user.profile_image } 
             });
         });
 
@@ -159,7 +159,7 @@ exports.login = async (req, res) => {
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' }, (err, token) => {
             if (err) throw err;
-            res.json({ token, user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country } });
+            res.json({ token, user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country, profile_image: user.profile_image } });
         });
 
     } catch (err) {
