@@ -163,10 +163,27 @@ const ViewReports = () => {
         setExpandedReport(expandedReport === reportId ? null : reportId);
     };
 
-    const formatTime = (minutes) => {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+    const formatTime = (timeValue) => {
+        // Handle if it's already a number (hours)
+        if (typeof timeValue === 'number') {
+            const hours = Math.floor(timeValue);
+            const mins = Math.round((timeValue - hours) * 60);
+            if (mins === 0) {
+                return `${hours} hrs`;
+            }
+            return `${hours} hrs ${mins} min`;
+        }
+        // Handle if it's a string number
+        const parsed = parseFloat(timeValue);
+        if (!isNaN(parsed)) {
+            const hours = Math.floor(parsed);
+            const mins = Math.round((parsed - hours) * 60);
+            if (mins === 0) {
+                return `${hours} hrs`;
+            }
+            return `${hours} hrs ${mins} min`;
+        }
+        return '0 hrs';
     };
 
     // Pagination Logic

@@ -172,12 +172,6 @@ const MonthlyReport = () => {
         return weekNumber;
     };
 
-    const parseTime = (timeStr) => {
-        if (!timeStr) return 0;
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        return hours + (minutes / 60);
-    };
-
     const formatHours = (hours) => {
         const h = Math.floor(hours);
         const m = Math.round((hours - h) * 60);
