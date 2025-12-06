@@ -23,8 +23,8 @@ const ReportForm = () => {
         newcomers: '',
         meditation_hours: '',
         prayer_hours: '',
-        morning_service: '',
-        regular_service: '',
+        morning_service: 'No',
+        regular_service: [],
         sermons_listened: '',
         articles_written: '',
         exercise_hours: '',
@@ -97,8 +97,8 @@ const ReportForm = () => {
                 newcomers: editReport.newcomers?.toString() || '',
                 meditation_hours: editReport.meditation_time?.toString() || '',
                 prayer_hours: editReport.prayer_time?.toString() || '',
-                morning_service: editReport.morning_service || '',
-                regular_service: editReport.regular_service || '',
+                morning_service: editReport.morning_service || 'No',
+                regular_service: editReport.regular_service ? (typeof editReport.regular_service === 'string' ? editReport.regular_service.split(',').map(s => s.trim()) : []) : [],
                 sermons_listened: editReport.sermons_listened?.toString() || '',
                 articles_written: editReport.articles_written?.toString() || '',
                 exercise_hours: editReport.exercise_time?.toString() || '',
@@ -120,8 +120,7 @@ const ReportForm = () => {
             'date', 'name', 'country', 'church', 'evangelism_hours',
             'people_reached', 'contacts_received', 'bible_study_sessions', 'bible_study_attendants',
             'unique_attendants', 'newcomers', 'meditation_hours',
-            'prayer_hours', 'morning_service', 'regular_service',
-            'sermons_listened', 'articles_written'
+            'prayer_hours', 'sermons_listened', 'articles_written'
         ];
 
         const weekendRequiredFields = [
@@ -144,6 +143,23 @@ const ReportForm = () => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    const onServiceChange = (serviceName) => {
+        const currentServices = formData.regular_service;
+        if (currentServices.includes(serviceName)) {
+            // Remove service if already selected
+            setFormData({ 
+                ...formData, 
+                regular_service: currentServices.filter(s => s !== serviceName) 
+            });
+        } else {
+            // Add service if not selected
+            setFormData({ 
+                ...formData, 
+                regular_service: [...currentServices, serviceName] 
+            });
+        }
+    };
+
     const onSubmit = async e => {
         e.preventDefault();
         
@@ -164,7 +180,8 @@ const ReportForm = () => {
             evangelism_hours: parseFloat(formData.evangelism_hours) || 0,
             meditation_time: parseFloat(formData.meditation_hours) || 0,
             prayer_time: parseFloat(formData.prayer_hours) || 0,
-            exercise_time: parseFloat(formData.exercise_hours) || 0
+            exercise_time: parseFloat(formData.exercise_hours) || 0,
+            regular_service: Array.isArray(formData.regular_service) ? formData.regular_service.join(', ') : formData.regular_service
         };
 
         // Remove the individual hour fields that were renamed
@@ -507,66 +524,75 @@ const ReportForm = () => {
                             <FaChurch className="text-orange-600" />
                             Service Attendance
                         </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Morning Service Attendance</label>
-                                <select
-                                    name="morning_service"
-                                    value={formData.morning_service}
-                                    onChange={onChange}
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none bg-white"
-                                >
-                                    <option value="">Select</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
-                                </select>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">Regular Service Type(s) - Select all that apply</label>
+                            <div className="space-y-3">
+                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regular_service.includes('Morning Service')}
+                                        onChange={() => onServiceChange('Morning Service')}
+                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-gray-700 font-medium">Morning Service</span>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regular_service.includes('Wednesday Weekly Service')}
+                                        onChange={() => onServiceChange('Wednesday Weekly Service')}
+                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-gray-700 font-medium">Wednesday Weekly Service</span>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regular_service.includes('Friday Prayer Meeting')}
+                                        onChange={() => onServiceChange('Friday Prayer Meeting')}
+                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-gray-700 font-medium">Friday Prayer Meeting</span>
+                                </label>
+                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regular_service.includes('Sunday Service')}
+                                        onChange={() => onServiceChange('Sunday Service')}
+                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-gray-700 font-medium">Sunday Service</span>
+                                </label>
                             </div>
+                            <p className="text-xs text-gray-500 mt-2">You can select multiple services if you attended more than one.</p>
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Service Type</label>
-                                <select
-                                    name="regular_service"
-                                    value={formData.regular_service}
-                                    onChange={onChange}
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none bg-white"
-                                >
-                                    <option value="">Select Service Type</option>
-                                    <option value="Morning Service">Morning Service</option>
-                                    <option value="Wednesday Weekly Service">Wednesday Weekly Service</option>
-                                    <option value="Friday Prayer Meeting">Friday Prayer Meeting</option>
-                                    <option value="Sunday Service">Sunday Service</option>
-                                </select>
-                            </div>
+                        <div className="mt-4">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Sermons or Bible Study Listened To</label>
+                            <input
+                                type="number"
+                                name="sermons_listened"
+                                value={formData.sermons_listened}
+                                onChange={onChange}
+                                placeholder="Input Number"
+                                min="0"
+                                required
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                            />
+                        </div>
 
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Sermons or Bible Study Listened To</label>
-                                <input
-                                    type="number"
-                                    name="sermons_listened"
-                                    value={formData.sermons_listened}
-                                    onChange={onChange}
-                                    placeholder="Input Number"
-                                    min="0"
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Articles Written</label>
-                                <input
-                                    type="number"
-                                    name="articles_written"
-                                    value={formData.articles_written}
-                                    onChange={onChange}
-                                    placeholder="Input Number"
-                                    min="0"
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                />
-                            </div>
+                        <div className="mt-4">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">Articles Written</label>
+                            <input
+                                type="number"
+                                name="articles_written"
+                                value={formData.articles_written}
+                                onChange={onChange}
+                                placeholder="Input Number"
+                                min="0"
+                                required
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                            />
                         </div>
                     </div>
 
