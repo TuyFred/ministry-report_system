@@ -55,15 +55,29 @@ const Analytics = () => {
             };
 
             const response = await axios.get(`${API_URL}/api/reports/export/${type}`, {
-                headers: { 'x-auth-token': token },
+                headers: { 
+                    'x-auth-token': token,
+                    'Accept': type === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                },
                 params: params,
                 responseType: 'blob'
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            // Create blob with explicit MIME type
+            const mimeType = type === 'pdf' 
+                ? 'application/pdf' 
+                : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const blob = new Blob([response.data], { type: mimeType });
+
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `ministry_analytics_${type === 'pdf' ? 'pdf' : 'xlsx'}`);
+            
+            // Generate filename with proper extension
+            const extension = type === 'pdf' ? 'pdf' : 'xlsx';
+            const filename = `ministry_analytics_${timeRange}.${extension}`;
+            link.setAttribute('download', filename);
+            
             document.body.appendChild(link);
             link.click();
             link.remove();

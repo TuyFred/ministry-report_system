@@ -159,16 +159,38 @@ const ViewReports = () => {
             }
 
             const response = await axios.get(`${API_URL}/api/reports/export/${type}`, {
-                headers: { 'x-auth-token': token },
+                headers: { 
+                    'x-auth-token': token,
+                    'Accept': type === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                },
                 params: params,
-                responseType: 'blob' // Important for file download
+                responseType: 'blob'
             });
 
-            // Create download link
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            // Determine proper file extension and MIME type
+            const fileExtension = type === 'pdf' ? 'pdf' : 'xlsx';
+            const mimeType = type === 'pdf' 
+                ? 'application/pdf' 
+                : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+            // Generate filename based on filter
+            let filename = 'ministry_report';
+            if (filter === 'daily') {
+                filename = `ministry_report_daily_${selectedDate}.${fileExtension}`;
+            } else if (filter === 'weekly') {
+                filename = `ministry_report_week_${weekDates.start}.${fileExtension}`;
+            } else if (filter === 'monthly') {
+                const date = new Date(selectedDate);
+                const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                filename = `ministry_report_${monthName.replace(' ', '_')}.${fileExtension}`;
+            }
+
+            // Create download link with proper MIME type
+            const blob = new Blob([response.data], { type: mimeType });
+            const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `ministry_reports_${type === 'pdf' ? 'pdf' : 'xlsx'}`);
+            link.setAttribute('download', filename);
             document.body.appendChild(link);
             link.click();
             link.remove();
