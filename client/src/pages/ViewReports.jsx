@@ -16,6 +16,7 @@ const ViewReports = () => {
 
     const [country, setCountry] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [availableCountries, setAvailableCountries] = useState([]);
     
     // Leader View Mode: 'personal' or 'team'
     const [viewMode, setViewMode] = useState('personal'); 
@@ -29,7 +30,25 @@ const ViewReports = () => {
         if (user?.role === 'leader' && !viewMode) {
             setViewMode('personal');
         }
+        // Fetch available countries for admin
+        if (user?.role === 'admin') {
+            fetchAvailableCountries();
+        }
     }, [user]);
+
+    const fetchAvailableCountries = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/api/reports`, {
+                headers: { 'x-auth-token': token }
+            });
+            // Extract unique countries from all reports
+            const countries = [...new Set(response.data.map(r => r.country).filter(Boolean))];
+            setAvailableCountries(countries.sort());
+        } catch (error) {
+            console.error('Error fetching countries:', error);
+        }
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -289,13 +308,16 @@ const ViewReports = () => {
                         {user?.role === 'admin' && (
                             <div className="flex items-center gap-3">
                                 <label className="font-semibold text-gray-700">Country:</label>
-                                <input
-                                    type="text"
-                                    placeholder="Filter by Country"
+                                <select
                                     value={country}
                                     onChange={(e) => setCountry(e.target.value)}
-                                    className="px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                />
+                                    className="px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none bg-white min-w-[180px]"
+                                >
+                                    <option value="">All Countries</option>
+                                    {availableCountries.map(c => (
+                                        <option key={c} value={c}>{c}</option>
+                                    ))}
+                                </select>
                             </div>
                         )}
 
