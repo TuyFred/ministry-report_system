@@ -15,7 +15,6 @@ const ReportForm = () => {
         country: '',
         church: '',
         evangelism_hours: '',
-        evangelism_minutes: '',
         people_reached: '',
         contacts_received: '',
         bible_study_sessions: '',
@@ -23,15 +22,12 @@ const ReportForm = () => {
         unique_attendants: '',
         newcomers: '',
         meditation_hours: '',
-        meditation_minutes: '',
         prayer_hours: '',
-        prayer_minutes: '',
         morning_service: '',
         regular_service: '',
         sermons_listened: '',
         articles_written: '',
         exercise_hours: '',
-        exercise_minutes: '',
         sermon_reflection: '',
         thanksgiving: '',
         repentance: '',
@@ -59,40 +55,25 @@ const ReportForm = () => {
     // Load edit data if editing
     useEffect(() => {
         if (editReport) {
-            const convertMinutesToHoursAndMinutes = (totalMinutes) => {
-                const hours = Math.floor(totalMinutes / 60);
-                const minutes = totalMinutes % 60;
-                return { hours, minutes };
-            };
-
-            const evangelism = convertMinutesToHoursAndMinutes(editReport.evangelism_hours || 0);
-            const meditation = convertMinutesToHoursAndMinutes(editReport.meditation_time || 0);
-            const prayer = convertMinutesToHoursAndMinutes(editReport.prayer_time || 0);
-            const exercise = convertMinutesToHoursAndMinutes(editReport.exercise_time || 0);
-
             setFormData({
                 date: editReport.date,
                 name: editReport.name || '',
                 country: editReport.country || '',
                 church: editReport.church || '',
-                evangelism_hours: evangelism.hours.toString(),
-                evangelism_minutes: evangelism.minutes.toString(),
+                evangelism_hours: editReport.evangelism_hours?.toString() || '',
                 people_reached: editReport.people_reached?.toString() || '',
                 contacts_received: editReport.contacts_received?.toString() || '',
                 bible_study_sessions: editReport.bible_study_sessions?.toString() || '',
                 bible_study_attendants: editReport.bible_study_attendants?.toString() || '',
                 unique_attendants: editReport.unique_attendants?.toString() || '',
                 newcomers: editReport.newcomers?.toString() || '',
-                meditation_hours: meditation.hours.toString(),
-                meditation_minutes: meditation.minutes.toString(),
-                prayer_hours: prayer.hours.toString(),
-                prayer_minutes: prayer.minutes.toString(),
+                meditation_hours: editReport.meditation_time?.toString() || '',
+                prayer_hours: editReport.prayer_time?.toString() || '',
                 morning_service: editReport.morning_service || '',
                 regular_service: editReport.regular_service || '',
                 sermons_listened: editReport.sermons_listened?.toString() || '',
                 articles_written: editReport.articles_written?.toString() || '',
-                exercise_hours: exercise.hours.toString(),
-                exercise_minutes: exercise.minutes.toString(),
+                exercise_hours: editReport.exercise_time?.toString() || '',
                 sermon_reflection: editReport.sermon_reflection || '',
                 thanksgiving: editReport.thanksgiving || '',
                 repentance: editReport.repentance || '',
@@ -108,16 +89,16 @@ const ReportForm = () => {
     // Check if all required fields are filled - different requirements for weekday vs weekend
     useEffect(() => {
         const weekdayRequiredFields = [
-            'date', 'name', 'country', 'church', 'evangelism_hours', 'evangelism_minutes',
+            'date', 'name', 'country', 'church', 'evangelism_hours',
             'people_reached', 'contacts_received', 'bible_study_sessions', 'bible_study_attendants',
-            'unique_attendants', 'newcomers', 'meditation_hours', 'meditation_minutes',
-            'prayer_hours', 'prayer_minutes', 'morning_service', 'regular_service',
+            'unique_attendants', 'newcomers', 'meditation_hours',
+            'prayer_hours', 'morning_service', 'regular_service',
             'sermons_listened', 'articles_written'
         ];
 
         const weekendRequiredFields = [
             ...weekdayRequiredFields,
-            'exercise_hours', 'exercise_minutes', 'sermon_reflection', 'thanksgiving',
+            'exercise_hours', 'sermon_reflection', 'thanksgiving',
             'repentance', 'prayer_requests', 'reflections', 'other_work', 'tomorrow_tasks'
         ];
 
@@ -143,23 +124,19 @@ const ReportForm = () => {
             return;
         }
 
-        // Convert time fields to total minutes
+        // Convert time fields to hours (keep as hours)
         const dataToSend = {
             ...formData,
-            evangelism_hours: parseInt(formData.evangelism_hours) * 60 + parseInt(formData.evangelism_minutes),
-            meditation_time: parseInt(formData.meditation_hours) * 60 + parseInt(formData.meditation_minutes),
-            prayer_time: parseInt(formData.prayer_hours) * 60 + parseInt(formData.prayer_minutes),
-            exercise_time: parseInt(formData.exercise_hours || 0) * 60 + parseInt(formData.exercise_minutes || 0)
+            evangelism_hours: parseFloat(formData.evangelism_hours) || 0,
+            meditation_time: parseFloat(formData.meditation_hours) || 0,
+            prayer_time: parseFloat(formData.prayer_hours) || 0,
+            exercise_time: parseFloat(formData.exercise_hours) || 0
         };
 
-        // Remove the individual hour/minute fields
-        delete dataToSend.evangelism_minutes;
+        // Remove the individual hour fields that were renamed
         delete dataToSend.meditation_hours;
-        delete dataToSend.meditation_minutes;
         delete dataToSend.prayer_hours;
-        delete dataToSend.prayer_minutes;
         delete dataToSend.exercise_hours;
-        delete dataToSend.exercise_minutes;
 
         try {
             const token = localStorage.getItem('token');
@@ -337,32 +314,18 @@ const ReportForm = () => {
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Evangelism Hours (HH:MM)</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        name="evangelism_hours"
-                                        value={formData.evangelism_hours}
-                                        onChange={onChange}
-                                        placeholder="HH"
-                                        min="0"
-                                        max="23"
-                                        required
-                                        className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
-                                    <span className="text-2xl font-bold text-gray-500">:</span>
-                                    <input
-                                        type="number"
-                                        name="evangelism_minutes"
-                                        value={formData.evangelism_minutes}
-                                        onChange={onChange}
-                                        placeholder="MM"
-                                        min="0"
-                                        max="59"
-                                        required
-                                        className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
-                                </div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Evangelism Hours</label>
+                                <input
+                                    type="number"
+                                    name="evangelism_hours"
+                                    value={formData.evangelism_hours}
+                                    onChange={onChange}
+                                    placeholder="Enter Hours"
+                                    min="0"
+                                    step="0.5"
+                                    required
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                />
                             </div>
 
                             <div>
@@ -468,61 +431,33 @@ const ReportForm = () => {
                         </h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Bible Reading and Meditation (HH:MM)</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        name="meditation_hours"
-                                        value={formData.meditation_hours}
-                                        onChange={onChange}
-                                        placeholder="HH"
-                                        min="0"
-                                        max="23"
-                                        required
-                                        className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
-                                    <span className="text-2xl font-bold text-gray-500">:</span>
-                                    <input
-                                        type="number"
-                                        name="meditation_minutes"
-                                        value={formData.meditation_minutes}
-                                        onChange={onChange}
-                                        placeholder="MM"
-                                        min="0"
-                                        max="59"
-                                        required
-                                        className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
-                                </div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Bible Reading and Meditation (Hours)</label>
+                                <input
+                                    type="number"
+                                    name="meditation_hours"
+                                    value={formData.meditation_hours}
+                                    onChange={onChange}
+                                    placeholder="Enter Hours"
+                                    min="0"
+                                    step="0.5"
+                                    required
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Prayer (HH:MM)</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        name="prayer_hours"
-                                        value={formData.prayer_hours}
-                                        onChange={onChange}
-                                        placeholder="HH"
-                                        min="0"
-                                        max="23"
-                                        required
-                                        className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
-                                    <span className="text-2xl font-bold text-gray-500">:</span>
-                                    <input
-                                        type="number"
-                                        name="prayer_minutes"
-                                        value={formData.prayer_minutes}
-                                        onChange={onChange}
-                                        placeholder="MM"
-                                        min="0"
-                                        max="59"
-                                        required
-                                        className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
-                                </div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Prayer (Hours)</label>
+                                <input
+                                    type="number"
+                                    name="prayer_hours"
+                                    value={formData.prayer_hours}
+                                    onChange={onChange}
+                                    placeholder="Enter Hours"
+                                    min="0"
+                                    step="0.5"
+                                    required
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                />
                             </div>
                         </div>
                     </div>
@@ -550,7 +485,7 @@ const ReportForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Regular Service Attendance</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Service Type</label>
                                 <select
                                     name="regular_service"
                                     value={formData.regular_service}
@@ -558,9 +493,11 @@ const ReportForm = () => {
                                     required
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none bg-white"
                                 >
-                                    <option value="">Select</option>
-                                    <option value="Yes">Yes</option>
-                                    <option value="No">No</option>
+                                    <option value="">Select Service Type</option>
+                                    <option value="Morning Service">Morning Service</option>
+                                    <option value="Wednesday Weekly Service">Wednesday Weekly Service</option>
+                                    <option value="Friday Prayer Meeting">Friday Prayer Meeting</option>
+                                    <option value="Sunday Service">Sunday Service</option>
                                 </select>
                             </div>
 
@@ -604,32 +541,18 @@ const ReportForm = () => {
                                     Physical Health
                                 </h2>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise (HH:MM)</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="number"
-                                            name="exercise_hours"
-                                            value={formData.exercise_hours}
-                                            onChange={onChange}
-                                            placeholder="HH"
-                                            min="0"
-                                            max="23"
-                                            required={isWeekend}
-                                            className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                        />
-                                        <span className="text-2xl font-bold text-gray-500">:</span>
-                                        <input
-                                            type="number"
-                                            name="exercise_minutes"
-                                            value={formData.exercise_minutes}
-                                            onChange={onChange}
-                                            placeholder="MM"
-                                            min="0"
-                                            max="59"
-                                            required={isWeekend}
-                                            className="w-1/2 px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                        />
-                                    </div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise (Hours)</label>
+                                    <input
+                                        type="number"
+                                        name="exercise_hours"
+                                        value={formData.exercise_hours}
+                                        onChange={onChange}
+                                        placeholder="Enter Hours"
+                                        min="0"
+                                        step="0.5"
+                                        required={isWeekend}
+                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    />
                                 </div>
                             </div>
 
