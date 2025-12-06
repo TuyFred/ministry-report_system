@@ -17,6 +17,8 @@ const ViewReports = () => {
     const [country, setCountry] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
     const [availableCountries, setAvailableCountries] = useState([]);
+    const [countrySearch, setCountrySearch] = useState('');
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     
     // Leader View Mode: 'personal' or 'team'
     const [viewMode, setViewMode] = useState('personal'); 
@@ -306,18 +308,62 @@ const ViewReports = () => {
                         </div>
 
                         {user?.role === 'admin' && (
-                            <div className="flex items-center gap-3">
+                            <div className="relative flex items-center gap-3">
                                 <label className="font-semibold text-gray-700">Country:</label>
-                                <select
-                                    value={country}
-                                    onChange={(e) => setCountry(e.target.value)}
-                                    className="px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none bg-white min-w-[180px]"
-                                >
-                                    <option value="">All Countries</option>
-                                    {availableCountries.map(c => (
-                                        <option key={c} value={c}>{c}</option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={countrySearch || country}
+                                        onChange={(e) => {
+                                            setCountrySearch(e.target.value);
+                                            setShowCountryDropdown(true);
+                                        }}
+                                        onFocus={() => setShowCountryDropdown(true)}
+                                        placeholder="Search or select country..."
+                                        className="px-4 py-2 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none min-w-[220px]"
+                                    />
+                                    
+                                    {showCountryDropdown && (
+                                        <>
+                                            <div 
+                                                className="fixed inset-0 z-10" 
+                                                onClick={() => setShowCountryDropdown(false)}
+                                            ></div>
+                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto bg-white border-2 border-gray-300 rounded-xl shadow-lg">
+                                                <div 
+                                                    className="px-4 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 font-medium text-indigo-600"
+                                                    onClick={() => {
+                                                        setCountry('');
+                                                        setCountrySearch('');
+                                                        setShowCountryDropdown(false);
+                                                    }}
+                                                >
+                                                    All Countries
+                                                </div>
+                                                {availableCountries
+                                                    .filter(c => c.toLowerCase().includes(countrySearch.toLowerCase()))
+                                                    .map(c => (
+                                                        <div
+                                                            key={c}
+                                                            className="px-4 py-2 hover:bg-indigo-50 cursor-pointer"
+                                                            onClick={() => {
+                                                                setCountry(c);
+                                                                setCountrySearch(c);
+                                                                setShowCountryDropdown(false);
+                                                            }}
+                                                        >
+                                                            {c}
+                                                        </div>
+                                                    ))}
+                                                {availableCountries.filter(c => c.toLowerCase().includes(countrySearch.toLowerCase())).length === 0 && (
+                                                    <div className="px-4 py-2 text-gray-500 text-sm">
+                                                        No countries found
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         )}
 
