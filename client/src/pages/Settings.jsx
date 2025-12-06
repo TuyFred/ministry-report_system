@@ -48,6 +48,9 @@ const Settings = () => {
             // Refresh user data from server to get the new profile image
             await refreshUser();
             setMessage({ type: 'success', text: 'Profile image updated successfully!' });
+            
+            // Clear message after 3 seconds
+            setTimeout(() => setMessage({ type: '', text: '' }), 3000);
         } catch (err) {
             console.error(err);
             setMessage({ type: 'error', text: 'Failed to upload image.' });
