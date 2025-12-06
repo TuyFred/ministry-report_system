@@ -15,6 +15,20 @@ exports.createReport = async (req, res) => {
             reflections, thanksgiving, repentance, prayer_requests, other_work, tomorrow_tasks
         } = req.body;
 
+        // Check if a report already exists for this user on this date
+        const existingReport = await Report.findOne({
+            where: {
+                user_id: req.user.id,
+                date: date
+            }
+        });
+
+        if (existingReport) {
+            return res.status(400).json({ 
+                msg: 'You have already submitted a report for this date. Please edit the existing report or choose a different date.' 
+            });
+        }
+
         const newReport = await Report.create({
             user_id: req.user.id,
             date, name, country, church, evangelism_hours, people_reached, contacts_received,

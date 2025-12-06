@@ -41,14 +41,42 @@ const ReportForm = () => {
     const [countrySearch, setCountrySearch] = useState('');
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [isWeekend, setIsWeekend] = useState(false);
+    const [dateWarning, setDateWarning] = useState('');
 
-    // Check if selected date is weekend (Saturday or Sunday)
+    // Check if report exists for selected date
+    const checkExistingReport = async (selectedDate) => {
+        if (editReport) return; // Skip check if editing existing report
+        
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/api/reports`, {
+                headers: { 'x-auth-token': token },
+                params: {
+                    startDate: selectedDate,
+                    endDate: selectedDate
+                }
+            });
+            
+            if (response.data && response.data.length > 0) {
+                setDateWarning('⚠️ You already have a report for this date. Please choose a different date or edit your existing report.');
+            } else {
+                setDateWarning('');
+            }
+        } catch (error) {
+            console.error('Error checking existing report:', error);
+        }
+    };
+
+    // Check if selected date is weekend (Saturday or Sunday) and check for existing reports
     useEffect(() => {
         if (formData.date) {
             const selectedDate = new Date(formData.date + 'T00:00:00');
             const dayOfWeek = selectedDate.getDay();
             // 0 = Sunday, 6 = Saturday
             setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
+            
+            // Check if report exists for this date
+            checkExistingReport(formData.date);
         }
     }, [formData.date]);
 
@@ -118,6 +146,12 @@ const ReportForm = () => {
 
     const onSubmit = async e => {
         e.preventDefault();
+        
+        // Prevent submission if there's a date warning (duplicate report)
+        if (dateWarning && !editReport) {
+            alert('You already have a report for this date. Please edit your existing report or choose a different date.');
+            return;
+        }
         
         if (!isFormValid) {
             alert('Please fill all required fields');
@@ -235,6 +269,11 @@ const ReportForm = () => {
                             required
                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg"
                         />
+                        {dateWarning && (
+                            <div className="mt-3 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded">
+                                <p className="text-sm font-medium">{dateWarning}</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Basic Information */}
