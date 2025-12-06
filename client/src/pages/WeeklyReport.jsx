@@ -85,19 +85,15 @@ const WeeklyReport = () => {
         const expectedReports = 7; // 7 days in a week
 
         const totals = reportsList.reduce((acc, report) => {
-            // Parse time values (format: "HH:MM")
-            const parseTime = (timeStr) => {
-                if (!timeStr) return 0;
-                // Handle if it's already a number
-                if (typeof timeStr === 'number') return timeStr;
-                // Handle if it's not a string
-                if (typeof timeStr !== 'string') return 0;
-                // Parse HH:MM format
-                const parts = timeStr.toString().split(':');
-                if (parts.length !== 2) return 0;
-                const [hours, minutes] = parts.map(Number);
-                if (isNaN(hours) || isNaN(minutes)) return 0;
-                return hours + (minutes / 60);
+            // Parse time values (stored as hours)
+            const parseTime = (timeValue) => {
+                if (!timeValue) return 0;
+                // Handle if it's already a number (hours)
+                if (typeof timeValue === 'number') return timeValue;
+                // Handle if it's a string number
+                const parsed = parseFloat(timeValue);
+                if (isNaN(parsed)) return 0;
+                return parsed;
             };
 
             return {
@@ -113,8 +109,8 @@ const WeeklyReport = () => {
                 totalExerciseTime: acc.totalExerciseTime + parseTime(report.exercise_time),
                 totalArticles: acc.totalArticles + (report.articles_written || 0),
                 totalSermons: acc.totalSermons + (report.sermons_listened || 0),
-                morningServiceAttendance: acc.morningServiceAttendance + (report.morning_service === 'Yes' ? 1 : 0),
-                regularServiceAttendance: acc.regularServiceAttendance + (report.regular_service === 'Yes' ? 1 : 0)
+                morningServiceAttendance: acc.morningServiceAttendance + (report.morning_service && report.morning_service !== '' ? 1 : 0),
+                regularServiceAttendance: acc.regularServiceAttendance + (report.regular_service && report.regular_service !== '' ? 1 : 0)
             };
         }, {
             totalEvangelismHours: 0,
