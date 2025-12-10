@@ -34,18 +34,17 @@ app.use('/uploads', express.static('uploads'));
 app.get('/', (req, res) => res.send('Ministry Reporting System API'));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Auth routes (no maintenance check for login)
+// Apply maintenance mode check FIRST (before auth, checks token manually)
+app.use('/api', checkMaintenanceMode);
+
+// Auth routes
 app.use('/api/auth', require('./routes/authRoutes'));
 
-// Maintenance routes (with auth but before maintenance check)
+// Protected routes (require auth)
 app.use('/api/maintenance', auth, require('./routes/maintenanceRoutes'));
-
-// Apply maintenance mode check to all other routes
-app.use(auth, checkMaintenanceMode);
-
-app.use('/api/reports', require('./routes/reportRoutes'));
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/backup', require('./routes/backupRoutes'));
+app.use('/api/reports', auth, require('./routes/reportRoutes'));
+app.use('/api/users', auth, require('./routes/userRoutes'));
+app.use('/api/backup', auth, require('./routes/backupRoutes'));
 
 // 2. Connect to DB THEN start server
 const PORT = process.env.PORT || 5000;

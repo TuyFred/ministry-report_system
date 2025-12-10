@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Maintenance mode middleware
+// Maintenance mode middleware - runs BEFORE auth
 const checkMaintenanceMode = (req, res, next) => {
     try {
         const maintenanceFilePath = path.join(__dirname, '../maintenance.json');
@@ -20,13 +20,25 @@ const checkMaintenanceMode = (req, res, next) => {
             return next();
         }
         
-        // If maintenance mode is on, only allow admin access
-        // Check if user is authenticated and is admin
-        if (req.user && req.user.role === 'admin') {
-            return next();
+        // If maintenance mode is on, check if request has admin token
+        // Extract token from header
+        const token = req.header('x-auth-token');
+        
+        if (token) {
+            try {
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                
+                // If user is admin, allow access
+                if (decoded.user && decoded.user.role === 'admin') {
+                    return next();
+                }
+            } catch (err) {
+                // Invalid token, continue to block
+            }
         }
         
-        // Block all other users
+        // Block all other users (including non-authenticated)
         return res.status(503).json({ 
             msg: 'System is currently under maintenance. Please try again later.',
             maintenanceMode: true
