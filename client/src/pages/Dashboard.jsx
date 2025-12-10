@@ -123,10 +123,8 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            {/* Export Reports Section */}
-            {(user?.role === 'member' || user?.role === 'leader') && (
-                <ExportReports />
-            )}
+            {/* Export Reports Section - Available for all roles */}
+            <ExportReports />
 
             {/* Reports Table */}
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
