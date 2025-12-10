@@ -277,7 +277,15 @@ const Members = () => {
                         <div className="flex items-center">
                             <div className="h-8 w-8 flex-shrink-0 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold mr-3 overflow-hidden">
                                 {member.profile_image ? (
-                                    <img src={`${API_URL}/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                                    <img 
+                                        src={`${API_URL}/${member.profile_image}?t=${Date.now()}`}
+                                        alt="Profile" 
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.parentElement.textContent = member.fullname.charAt(0);
+                                        }}
+                                    />
                                 ) : (
                                     member.fullname.charAt(0)
                                 )}
@@ -322,7 +330,15 @@ const Members = () => {
                             <div className="flex items-center gap-3">
                                 <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold overflow-hidden">
                                     {member.profile_image ? (
-                                        <img src={`${API_URL}/${member.profile_image}`} alt="Profile" className="h-full w-full object-cover" />
+                                        <img 
+                                            src={`${API_URL}/${member.profile_image}?t=${Date.now()}`}
+                                            alt="Profile" 
+                                            className="h-full w-full object-cover"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.textContent = member.fullname.charAt(0);
+                                            }}
+                                        />
                                     ) : (
                                         member.fullname.charAt(0)
                                     )}

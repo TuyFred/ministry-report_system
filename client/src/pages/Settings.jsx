@@ -145,15 +145,19 @@ const Settings = () => {
                             <label className="block relative w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl transition-transform transform group-hover:scale-105">
                                 {user?.profile_image ? (
                                     <img 
-                                        src={`${API_URL}/${user.profile_image}`} 
+                                        src={`${API_URL}/${user.profile_image}?t=${Date.now()}`}
                                         alt="Profile" 
                                         className="w-full h-full object-cover transition-opacity group-hover:opacity-75"
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                            e.target.parentElement.querySelector('.fallback-icon')?.classList.remove('hidden');
+                                        }}
                                     />
-                                ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-300">
-                                        <FaUser className="text-6xl" />
-                                    </div>
-                                )}
+                                ) : null}
+                                
+                                <div className={`w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-300 fallback-icon ${user?.profile_image ? 'hidden' : ''}`}>
+                                    <FaUser className="text-6xl" />
+                                </div>
                                 
                                 {/* Overlay on hover */}
                                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">

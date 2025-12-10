@@ -38,7 +38,7 @@ Start-Sleep -Seconds 3
 
 # Step 4: Set password
 Write-Host "Step 4: Setting new password..." -ForegroundColor Yellow
-$result = psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'fred123';"
+psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'fred123';" | Out-Null
 if ($LASTEXITCODE -eq 0) {
     Write-Host "[OK] Password set to 'fred123'" -ForegroundColor Green
 } else {
