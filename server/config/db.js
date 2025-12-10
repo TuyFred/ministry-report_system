@@ -47,7 +47,9 @@ const connectDB = async () => {
         await sequelize.authenticate();
         const dbType = process.env.DATABASE_URL ? 'Production (Render)' : 'Local';
         console.log(`PostgreSQL Connected (${dbType})`);
-        await sequelize.sync();
+        
+        // Use alter: true to safely add new columns without dropping tables
+        await sequelize.sync({ alter: true });
         console.log('Database Synced');
     } catch (err) {
         console.error('Unable to connect to database:', err.message);
