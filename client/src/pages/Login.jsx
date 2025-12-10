@@ -2,6 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { FaChurch, FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import axios from 'axios';
 
 const Login = () => {
     const location = useLocation();
@@ -13,10 +14,26 @@ const Login = () => {
     const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
     const { login } = useContext(AuthContext);
     const navigate = useNavigate();
 
     const { email, password } = formData;
+
+    // Check maintenance mode on component mount
+    useEffect(() => {
+        const checkMaintenance = async () => {
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                await axios.get(`${apiUrl}/api/auth/check`);
+            } catch (err) {
+                if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
+                    setMaintenanceMode(true);
+                }
+            }
+        };
+        checkMaintenance();
+    }, []);
 
     // Clear success message after 5 seconds
     useEffect(() => {
@@ -41,11 +58,22 @@ const Login = () => {
             navigate('/dashboard');
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.msg || 'Invalid email or password');
+            if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
+                setMaintenanceMode(true);
+                setError('System is currently under maintenance. Only administrators can log in.');
+            } else {
+                setError(err.response?.data?.msg || 'Invalid email or password');
+            }
         } finally {
             setLoading(false);
         }
     };
+
+    // If maintenance mode, show maintenance page
+    if (maintenanceMode) {
+        navigate('/maintenance');
+        return null;
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">

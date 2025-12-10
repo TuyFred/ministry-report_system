@@ -3,6 +3,11 @@ const router = express.Router();
 const { register, registerAdmin, login, getMe, forgotPassword, resetPassword, changePassword, createAdmin } = require('../controllers/authController');
 const auth = require('../middleware/auth');
 
+// Simple health check route (will be blocked by maintenance middleware)
+router.get('/check', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 router.post('/register', register);
 router.post('/register-admin', registerAdmin);
 router.post('/create-admin', auth, createAdmin);

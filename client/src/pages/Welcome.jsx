@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { FaChurch, FaUsers, FaGlobe, FaFileAlt, FaArrowRight, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import axios from 'axios';
 
 const Welcome = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const navigate = useNavigate();
     
     const slides = [
         { 
@@ -27,6 +29,21 @@ const Welcome = () => {
             subtitle: 'Walk the path of faith towards the magnificent gates of paradise' 
         }
     ];
+
+    // Check maintenance mode on component mount
+    useEffect(() => {
+        const checkMaintenance = async () => {
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                await axios.get(`${apiUrl}/api/auth/check`);
+            } catch (err) {
+                if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
+                    navigate('/maintenance');
+                }
+            }
+        };
+        checkMaintenance();
+    }, [navigate]);
 
     useEffect(() => {
         const timer = setInterval(() => {
