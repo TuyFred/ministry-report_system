@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { FaChurch, FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaChurch, FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
 import axios from 'axios';
 
 const Login = () => {
@@ -20,15 +20,16 @@ const Login = () => {
 
     const { email, password } = formData;
 
-    // Check maintenance mode on component mount
+    // Check maintenance mode on component mount - but don't block login form
     useEffect(() => {
         const checkMaintenance = async () => {
             try {
                 const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
                 await axios.get(`${apiUrl}/api/auth/check`);
+                setMaintenanceMode(false); // System is accessible
             } catch (err) {
                 if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
-                    setMaintenanceMode(true);
+                    setMaintenanceMode(true); // System in maintenance
                 }
             }
         };
@@ -54,13 +55,14 @@ const Login = () => {
         setLoading(true);
         
         try {
-            await login(email, password);
+            const result = await login(email, password);
+            // If login successful, navigate to dashboard
             navigate('/dashboard');
         } catch (err) {
             console.error(err);
             if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
-                setMaintenanceMode(true);
-                setError('System is currently under maintenance. Only administrators can log in.');
+                // Show error but don't redirect - admin might be trying to login
+                setError('⚠️ System is under maintenance. Only administrators can access the system.');
             } else {
                 setError(err.response?.data?.msg || 'Invalid email or password');
             }
@@ -68,12 +70,6 @@ const Login = () => {
             setLoading(false);
         }
     };
-
-    // If maintenance mode, show maintenance page
-    if (maintenanceMode) {
-        navigate('/maintenance');
-        return null;
-    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -97,6 +93,19 @@ const Login = () => {
 
                 {/* Login Form */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
+                    {/* Maintenance Warning Banner */}
+                    {maintenanceMode && (
+                        <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-400 rounded-lg">
+                            <div className="flex items-center gap-2 text-orange-800 font-semibold mb-2">
+                                <FaExclamationTriangle className="text-orange-600" />
+                                System Under Maintenance
+                            </div>
+                            <p className="text-sm text-orange-700">
+                                Access is restricted. Only administrators can log in during maintenance.
+                            </p>
+                        </div>
+                    )}
+
                     {successMessage && (
                         <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
                             ✓ {successMessage}

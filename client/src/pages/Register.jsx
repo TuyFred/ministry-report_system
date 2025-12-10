@@ -1,7 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaChurch, FaUser, FaEnvelope, FaLock, FaGlobe, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import axios from 'axios';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -22,6 +23,22 @@ const Register = () => {
     const navigate = useNavigate();
 
     const { fullname, email, password, confirmPassword, role, country, contact, address } = formData;
+
+    // Check maintenance mode and block registration
+    useEffect(() => {
+        const checkMaintenance = async () => {
+            try {
+                const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+                await axios.get(`${apiUrl}/api/auth/check`);
+            } catch (err) {
+                if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
+                    // Redirect to maintenance page - registration not allowed
+                    navigate('/maintenance');
+                }
+            }
+        };
+        checkMaintenance();
+    }, [navigate]);
 
     const onChange = e => {
         setError('');
