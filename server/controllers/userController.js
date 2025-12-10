@@ -186,3 +186,42 @@ exports.updateUser = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+// Admin reset user password
+exports.adminResetPassword = async (req, res) => {
+    try {
+        const { userId, newPassword } = req.body;
+        const requestingUser = req.user;
+
+        // Only admin can reset passwords
+        if (requestingUser.role !== 'admin') {
+            return res.status(403).json({ msg: 'Not authorized. Only admins can reset passwords.' });
+        }
+
+        if (!userId || !newPassword) {
+            return res.status(400).json({ msg: 'User ID and new password are required' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ msg: 'Password must be at least 6 characters' });
+        }
+
+        const user = await User.findByPk(userId);
+        if (!user) {
+            return res.status(404).json({ msg: 'User not found' });
+        }
+
+        // Hash new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        user.password = hashedPassword;
+        await user.save();
+
+        res.json({ msg: `Password reset successfully for ${user.fullname}` });
+
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};

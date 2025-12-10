@@ -60,9 +60,13 @@ const Navbar = ({ toggleSidebar }) => {
                         <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-indigo-100 hover:border-indigo-300 transition-colors shadow-sm">
                             {user?.profile_image ? (
                                 <img 
-                                    src={`${API_URL}/${user.profile_image}`} 
+                                    src={`${API_URL}/${user.profile_image}?t=${Date.now()}`}
                                     alt="Profile" 
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                        e.target.parentElement.innerHTML = '<div class="w-full h-full bg-indigo-50 flex items-center justify-center text-indigo-300"><svg class="h-full w-full" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg></div>';
+                                    }}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-indigo-50 flex items-center justify-center text-indigo-300">
@@ -79,9 +83,13 @@ const Navbar = ({ toggleSidebar }) => {
                                 <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white shadow-md">
                                     {user?.profile_image ? (
                                         <img 
-                                            src={`${API_URL}/${user.profile_image}`} 
+                                            src={`${API_URL}/${user.profile_image}?t=${Date.now()}`}
                                             alt="Profile" 
                                             className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.target.style.display = 'none';
+                                                e.target.parentElement.innerHTML = '<div class="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-400"><svg class="text-3xl" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg></div>';
+                                            }}
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-indigo-100 flex items-center justify-center text-indigo-400">

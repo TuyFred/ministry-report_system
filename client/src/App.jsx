@@ -14,6 +14,7 @@ import MonthlyReport from './pages/MonthlyReport';
 import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
 import Members from './pages/Members';
+import ResetPasswordAdmin from './pages/ResetPasswordAdmin';
 import Layout from './components/layout/Layout';
 
 const PrivateRoute = ({ children }) => {
@@ -82,6 +83,11 @@ function App() {
           <Route path="/analytics" element={
             <PrivateRoute>
               <Analytics />
+            </PrivateRoute>
+          } />
+          <Route path="/reset-password-admin" element={
+            <PrivateRoute>
+              <ResetPasswordAdmin />
             </PrivateRoute>
           } />
         </Routes>

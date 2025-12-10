@@ -19,7 +19,6 @@ const ReportForm = () => {
         contacts_received: '',
         bible_study_sessions: '',
         bible_study_attendants: '',
-        unique_attendants: '',
         newcomers: '',
         meditation_hours: '',
         prayer_hours: '',
@@ -34,7 +33,8 @@ const ReportForm = () => {
         prayer_requests: '',
         reflections: '',
         other_work: '',
-        tomorrow_tasks: ''
+        tomorrow_tasks: '',
+        other_activities: ''
     });
 
     const [isFormValid, setIsFormValid] = useState(false);
@@ -93,7 +93,6 @@ const ReportForm = () => {
                 contacts_received: editReport.contacts_received?.toString() || '',
                 bible_study_sessions: editReport.bible_study_sessions?.toString() || '',
                 bible_study_attendants: editReport.bible_study_attendants?.toString() || '',
-                unique_attendants: editReport.unique_attendants?.toString() || '',
                 newcomers: editReport.newcomers?.toString() || '',
                 meditation_hours: editReport.meditation_time?.toString() || '',
                 prayer_hours: editReport.prayer_time?.toString() || '',
@@ -108,7 +107,8 @@ const ReportForm = () => {
                 prayer_requests: editReport.prayer_requests || '',
                 reflections: editReport.reflections || '',
                 other_work: editReport.other_work || '',
-                tomorrow_tasks: editReport.tomorrow_tasks || ''
+                tomorrow_tasks: editReport.tomorrow_tasks || '',
+                other_activities: editReport.other_activities || ''
             });
             setCountrySearch(editReport.country || '');
         }
@@ -119,7 +119,7 @@ const ReportForm = () => {
         const weekdayRequiredFields = [
             'date', 'name', 'country', 'church', 'evangelism_hours',
             'people_reached', 'contacts_received', 'bible_study_sessions', 'bible_study_attendants',
-            'unique_attendants', 'newcomers', 'meditation_hours',
+            'newcomers', 'meditation_hours',
             'prayer_hours', 'sermons_listened', 'articles_written'
         ];
 
@@ -462,20 +462,6 @@ const ReportForm = () => {
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Unique Bible Study Attendants</label>
-                                <input
-                                    type="number"
-                                    name="unique_attendants"
-                                    value={formData.unique_attendants}
-                                    onChange={onChange}
-                                    placeholder="Input Number"
-                                    min="0"
-                                    required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                />
-                            </div>
                         </div>
                     </div>
 
@@ -527,6 +513,15 @@ const ReportForm = () => {
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">Regular Service Type(s) - Select all that apply</label>
                             <div className="space-y-3">
+                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.regular_service.includes('No Service Attended')}
+                                        onChange={() => onServiceChange('No Service Attended')}
+                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                    />
+                                    <span className="text-gray-700 font-medium">No Service Attended</span>
+                                </label>
                                 <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
@@ -593,6 +588,28 @@ const ReportForm = () => {
                                 required
                                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                             />
+                        </div>
+                    </div>
+
+                    {/* Other Activities - Optional for all days */}
+                    <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <FaPen className="text-green-600" />
+                            Other Activities (Optional)
+                        </h2>
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Any other ministry or personal activities for today
+                            </label>
+                            <textarea
+                                name="other_activities"
+                                value={formData.other_activities}
+                                onChange={onChange}
+                                rows="4"
+                                placeholder="Describe any other activities, events, or tasks you did today (optional)..."
+                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                            ></textarea>
+                            <p className="text-xs text-gray-500 mt-2">This field is optional - fill it only if you have additional activities to report.</p>
                         </div>
                     </div>
 

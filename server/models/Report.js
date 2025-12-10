@@ -98,6 +98,9 @@ const Report = sequelize.define('Report', {
     },
     tomorrow_tasks: {
         type: DataTypes.TEXT
+    },
+    other_activities: {
+        type: DataTypes.TEXT
     }
 }, {
     timestamps: true
