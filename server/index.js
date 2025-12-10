@@ -34,6 +34,8 @@ app.get('/favicon.ico', (req, res) => res.status(204).end());
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/maintenance', require('./routes/maintenanceRoutes'));
+app.use('/api/backup', require('./routes/backupRoutes'));
 
 // 2. Connect to DB THEN start server
 const PORT = process.env.PORT || 5000;

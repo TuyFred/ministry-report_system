@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FaTachometerAlt, FaFileAlt, FaPlus, FaUsers, FaChartBar, FaCog, FaChurch, FaEye, FaCalendarWeek, FaCalendarAlt, FaKey } from 'react-icons/fa';
+import { FaTachometerAlt, FaFileAlt, FaPlus, FaUsers, FaChartBar, FaCog, FaChurch, FaEye, FaCalendarWeek, FaCalendarAlt, FaKey, FaTools, FaDatabase } from 'react-icons/fa';
 import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 
@@ -18,6 +18,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { name: 'Members', path: '/members', icon: <FaUsers />, roles: ['admin', 'leader'] },
         { name: 'Analytics', path: '/analytics', icon: <FaChartBar />, roles: ['admin', 'leader'] },
         { name: 'Reset Password', path: '/reset-password-admin', icon: <FaKey />, roles: ['admin'] },
+        { name: 'Maintenance Mode', path: '/maintenance-mode', icon: <FaTools />, roles: ['admin'] },
+        { name: 'System Backup', path: '/system-backup', icon: <FaDatabase />, roles: ['admin'] },
         { name: 'Settings', path: '/settings', icon: <FaCog />, roles: ['admin', 'leader', 'member'] },
     ];
 

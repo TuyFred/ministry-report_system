@@ -15,6 +15,8 @@ import Settings from './pages/Settings';
 import Analytics from './pages/Analytics';
 import Members from './pages/Members';
 import ResetPasswordAdmin from './pages/ResetPasswordAdmin';
+import MaintenanceMode from './pages/MaintenanceMode';
+import SystemBackup from './pages/SystemBackup';
 import Layout from './components/layout/Layout';
 
 const PrivateRoute = ({ children }) => {
@@ -88,6 +90,16 @@ function App() {
           <Route path="/reset-password-admin" element={
             <PrivateRoute>
               <ResetPasswordAdmin />
+            </PrivateRoute>
+          } />
+          <Route path="/maintenance-mode" element={
+            <PrivateRoute>
+              <MaintenanceMode />
+            </PrivateRoute>
+          } />
+          <Route path="/system-backup" element={
+            <PrivateRoute>
+              <SystemBackup />
             </PrivateRoute>
           } />
         </Routes>

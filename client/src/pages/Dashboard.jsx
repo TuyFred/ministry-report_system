@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe } from 'react-icons/fa';
+import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
 import ExportReports from '../components/ExportReports';
 
@@ -10,6 +10,8 @@ const Dashboard = () => {
     const { user } = useContext(AuthContext);
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const reportsPerPage = 5;
     const [stats, setStats] = useState({
         totalReports: 0,
         totalHours: 0,
@@ -38,6 +40,15 @@ const Dashboard = () => {
         };
         fetchReports();
     }, []);
+
+    // Pagination calculations
+    const indexOfLastReport = currentPage * reportsPerPage;
+    const indexOfFirstReport = indexOfLastReport - reportsPerPage;
+    const totalPages = Math.ceil(reports.length / reportsPerPage);
+    
+    const getCurrentPageReports = () => {
+        return reports.slice(indexOfFirstReport, indexOfLastReport);
+    };
 
     return (
         <div className="space-y-6 p-6">
@@ -168,7 +179,7 @@ const Dashboard = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {reports.map(report => (
+                                    {getCurrentPageReports().map(report => (
                                         <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                                 {new Date(report.date).toLocaleDateString()}
@@ -201,7 +212,7 @@ const Dashboard = () => {
 
                         {/* Mobile Cards */}
                         <div className="md:hidden space-y-4 p-4">
-                            {reports.map(report => (
+                            {getCurrentPageReports().map(report => (
                                 <div key={report.id} className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
@@ -231,6 +242,44 @@ const Dashboard = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Pagination */}
+                        {reports.length > reportsPerPage && (
+                            <div className="p-4 border-t border-gray-200 flex items-center justify-between">
+                                <div className="text-sm text-gray-600">
+                                    Showing {indexOfFirstReport + 1} to {Math.min(indexOfLastReport, reports.length)} of {reports.length} reports
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                                            currentPage === 1
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                                        }`}
+                                    >
+                                        <FaChevronLeft className="text-xs" />
+                                        Previous
+                                    </button>
+                                    <span className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium">
+                                        {currentPage}
+                                    </span>
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                        disabled={currentPage === totalPages}
+                                        className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
+                                            currentPage === totalPages
+                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                                        }`}
+                                    >
+                                        Next
+                                        <FaChevronRight className="text-xs" />
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
