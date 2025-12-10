@@ -47,9 +47,10 @@ const Dashboard = () => {
                     <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                         {user?.profile_image ? (
                             <img 
-                                src={`${API_URL}/${user.profile_image}?t=${Date.now()}`}
+                                src={`${API_URL}/${user.profile_image}`}
                                 alt="Profile" 
                                 className="w-full h-full object-cover"
+                                key={user.id}
                                 onError={(e) => {
                                     e.target.style.display = 'none';
                                     e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-300"><svg class="text-3xl" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg></div>';

@@ -145,9 +145,10 @@ const Settings = () => {
                             <label className="block relative w-40 h-40 rounded-full overflow-hidden border-4 border-white shadow-2xl transition-transform transform group-hover:scale-105">
                                 {user?.profile_image ? (
                                     <img 
-                                        src={`${API_URL}/${user.profile_image}?t=${Date.now()}`}
+                                        src={`${API_URL}/${user.profile_image}`}
                                         alt="Profile" 
                                         className="w-full h-full object-cover transition-opacity group-hover:opacity-75"
+                                        key={user.id}
                                         onError={(e) => {
                                             e.target.style.display = 'none';
                                             e.target.parentElement.querySelector('.fallback-icon')?.classList.remove('hidden');
