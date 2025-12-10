@@ -4,6 +4,12 @@ const path = require('path');
 // Maintenance mode middleware - runs BEFORE auth
 const checkMaintenanceMode = (req, res, next) => {
     try {
+        // Allow login and check endpoints even during maintenance
+        const allowedPaths = ['/api/auth/login', '/api/auth/check'];
+        if (allowedPaths.includes(req.path)) {
+            return next();
+        }
+
         const maintenanceFilePath = path.join(__dirname, '../maintenance.json');
         
         // If maintenance file doesn't exist, allow access

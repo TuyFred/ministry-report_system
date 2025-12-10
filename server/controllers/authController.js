@@ -146,6 +146,25 @@ exports.login = async (req, res) => {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
 
+        // Check if system is in maintenance mode
+        const fs = require('fs');
+        const path = require('path');
+        const maintenanceFilePath = path.join(__dirname, '../maintenance.json');
+        
+        if (fs.existsSync(maintenanceFilePath)) {
+            const data = fs.readFileSync(maintenanceFilePath, 'utf8');
+            const maintenanceData = JSON.parse(data);
+            
+            // If maintenance is on and user is not admin, block login
+            if (maintenanceData.isMaintenanceMode && user.role !== 'admin') {
+                console.log('Login blocked during maintenance for non-admin:', email);
+                return res.status(503).json({ 
+                    msg: 'System is under maintenance. Only administrators can access.',
+                    maintenanceMode: true 
+                });
+            }
+        }
+
         console.log('Login successful for user:', email);
 
         // Create token
