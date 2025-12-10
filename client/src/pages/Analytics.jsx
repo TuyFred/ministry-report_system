@@ -42,14 +42,16 @@ const Analytics = () => {
         try {
             const token = localStorage.getItem('token');
             
-            // Fetch members
+            // Fetch members (filtered by country for leaders)
             const membersRes = await axios.get(`${API_URL}/api/users`, {
                 headers: { 'x-auth-token': token }
             });
             setMembers(membersRes.data);
             
-            // Fetch all reports
-            const reportsRes = await axios.get(`${API_URL}/api/reports`);
+            // Fetch all reports (filtered by country for leaders)
+            const reportsRes = await axios.get(`${API_URL}/api/reports`, {
+                headers: { 'x-auth-token': token }
+            });
             setReports(reportsRes.data);
         } catch (error) {
             console.error('Error fetching members and reports:', error);

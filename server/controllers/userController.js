@@ -53,8 +53,8 @@ exports.getUsers = async (req, res) => {
         let whereClause = {};
 
         if (requestingUser.role === 'leader') {
+            // Leader sees all members in their country (including other leaders)
             whereClause.country = requestingUser.country;
-            whereClause.role = 'member';
         } else if (requestingUser.role === 'member') {
             return res.status(403).json({ msg: 'Not authorized' });
         }
