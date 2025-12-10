@@ -2,20 +2,16 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight, FaTrophy, FaExclamationTriangle } from 'react-icons/fa';
+import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
 import ExportReports from '../components/ExportReports';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
     const [reports, setReports] = useState([]);
-    const [members, setMembers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
     const reportsPerPage = 5;
-    const [performersPage, setPerformersPage] = useState(1);
-    const [needsAttentionPage, setNeedsAttentionPage] = useState(1);
-    const performersPerPage = 5;
     const [stats, setStats] = useState({
         totalReports: 0,
         totalHours: 0,
@@ -25,19 +21,9 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const token = localStorage.getItem('token');
-                
                 // Fetch reports
                 const reportsRes = await axios.get(`${API_URL}/api/reports`);
                 setReports(reportsRes.data);
-                
-                // Fetch members if admin or leader
-                if (user?.role === 'admin' || user?.role === 'leader') {
-                    const membersRes = await axios.get(`${API_URL}/api/users`, {
-                        headers: { 'x-auth-token': token }
-                    });
-                    setMembers(membersRes.data);
-                }
                 
                 // Calculate stats
                 const totalHours = reportsRes.data.reduce((sum, r) => sum + (r.evangelism_hours || 0), 0);
@@ -54,7 +40,7 @@ const Dashboard = () => {
             }
         };
         fetchData();
-    }, [user]);
+    }, []);
 
     // Pagination calculations
     const indexOfLastReport = currentPage * reportsPerPage;
@@ -64,63 +50,6 @@ const Dashboard = () => {
     const getCurrentPageReports = () => {
         return reports.slice(indexOfFirstReport, indexOfLastReport);
     };
-
-    // Calculate member performance
-    const getMemberStats = () => {
-        const memberMap = new Map();
-        
-        members.forEach(member => {
-            memberMap.set(member.id, {
-                ...member,
-                reportCount: 0,
-                lastReportDate: null
-            });
-        });
-        
-        reports.forEach(report => {
-            if (report.userId && memberMap.has(report.userId)) {
-                const memberData = memberMap.get(report.userId);
-                memberData.reportCount += 1;
-                const reportDate = new Date(report.date);
-                if (!memberData.lastReportDate || reportDate > memberData.lastReportDate) {
-                    memberData.lastReportDate = reportDate;
-                }
-            }
-        });
-        
-        return Array.from(memberMap.values());
-    };
-    
-    const memberStats = getMemberStats();
-    
-    // Top performers (sorted by report count)
-    const topPerformers = memberStats
-        .filter(m => m.reportCount > 0)
-        .sort((a, b) => b.reportCount - a.reportCount);
-    
-    // Needs attention (members with no reports or not reported in last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const needsAttention = memberStats
-        .filter(m => m.reportCount === 0 || !m.lastReportDate || m.lastReportDate < sevenDaysAgo)
-        .sort((a, b) => {
-            if (a.reportCount === 0 && b.reportCount > 0) return -1;
-            if (a.reportCount > 0 && b.reportCount === 0) return 1;
-            return (a.lastReportDate || new Date(0)) - (b.lastReportDate || new Date(0));
-        });
-    
-    // Pagination for performers
-    const performersIndexOfLast = performersPage * performersPerPage;
-    const performersIndexOfFirst = performersIndexOfLast - performersPerPage;
-    const performersTotalPages = Math.ceil(topPerformers.length / performersPerPage);
-    const currentPerformers = topPerformers.slice(performersIndexOfFirst, performersIndexOfLast);
-    
-    // Pagination for needs attention
-    const needsAttentionIndexOfLast = needsAttentionPage * performersPerPage;
-    const needsAttentionIndexOfFirst = needsAttentionIndexOfLast - performersPerPage;
-    const needsAttentionTotalPages = Math.ceil(needsAttention.length / performersPerPage);
-    const currentNeedsAttention = needsAttention.slice(needsAttentionIndexOfFirst, needsAttentionIndexOfLast);
 
     return (
         <div className="space-y-6 p-6">
@@ -208,203 +137,6 @@ const Dashboard = () => {
 
             {/* Export Reports Section - Available for all roles */}
             <ExportReports />
-
-            {/* Top Performers Section - Only for Admin/Leader */}
-            {(user?.role === 'admin' || user?.role === 'leader') && topPerformers.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-amber-50">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <FaTrophy className="text-yellow-600" />
-                            Top Performers (Daily Reporting Champions)
-                        </h2>
-                        <p className="text-sm text-gray-600 mt-1">Members who consistently submit reports daily perform best!</p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gradient-to-r from-yellow-100 to-amber-100">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Rank</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Member</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Country</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Reports</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Report</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {currentPerformers.map((member, index) => (
-                                    <tr key={member.id} className="hover:bg-yellow-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                {performersIndexOfFirst + index + 1 === 1 && <span className="text-2xl">🥇</span>}
-                                                {performersIndexOfFirst + index + 1 === 2 && <span className="text-2xl">🥈</span>}
-                                                {performersIndexOfFirst + index + 1 === 3 && <span className="text-2xl">🥉</span>}
-                                                <span className="font-bold text-gray-700">#{performersIndexOfFirst + index + 1}</span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold">
-                                                    {member.fullname.charAt(0)}
-                                                </div>
-                                                <div className="font-medium text-gray-900">{member.fullname}</div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{member.country}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-bold">
-                                                {member.reportCount} reports
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {member.lastReportDate ? new Date(member.lastReportDate).toLocaleDateString() : 'Never'}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination for Top Performers */}
-                    {topPerformers.length > performersPerPage && (
-                        <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-yellow-50">
-                            <div className="text-sm text-gray-600">
-                                Showing {performersIndexOfFirst + 1} to {Math.min(performersIndexOfLast, topPerformers.length)} of {topPerformers.length} members
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setPerformersPage(prev => Math.max(prev - 1, 1))}
-                                    disabled={performersPage === 1}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                                        performersPage === 1
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                    }`}
-                                >
-                                    <FaChevronLeft className="text-xs" />
-                                    Previous
-                                </button>
-                                <span className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium">
-                                    {performersPage}
-                                </span>
-                                <button
-                                    onClick={() => setPerformersPage(prev => Math.min(prev + 1, performersTotalPages))}
-                                    disabled={performersPage === performersTotalPages}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                                        performersPage === performersTotalPages
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                                    }`}
-                                >
-                                    Next
-                                    <FaChevronRight className="text-xs" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Needs Attention Section - Only for Admin/Leader */}
-            {(user?.role === 'admin' || user?.role === 'leader') && needsAttention.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-                    <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
-                        <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                            <FaExclamationTriangle className="text-red-600" />
-                            Needs Attention (Missing Daily Reports)
-                        </h2>
-                        <p className="text-sm text-gray-600 mt-1">Members who missed reporting - encourage daily submission for better performance</p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gradient-to-r from-red-100 to-orange-100">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Member</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Country</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Total Reports</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Last Report</th>
-                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {currentNeedsAttention.map(member => (
-                                    <tr key={member.id} className="hover:bg-red-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center text-white font-bold">
-                                                    {member.fullname.charAt(0)}
-                                                </div>
-                                                <div className="font-medium text-gray-900">{member.fullname}</div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{member.country}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                                member.reportCount === 0 
-                                                    ? 'bg-red-100 text-red-800' 
-                                                    : 'bg-orange-100 text-orange-800'
-                                            }`}>
-                                                {member.reportCount} reports
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {member.lastReportDate ? new Date(member.lastReportDate).toLocaleDateString() : 'Never'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                                member.reportCount === 0
-                                                    ? 'bg-red-100 text-red-800'
-                                                    : 'bg-orange-100 text-orange-800'
-                                            }`}>
-                                                {member.reportCount === 0 ? 'No Reports' : 'Inactive'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Pagination for Needs Attention */}
-                    {needsAttention.length > performersPerPage && (
-                        <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-red-50">
-                            <div className="text-sm text-gray-600">
-                                Showing {needsAttentionIndexOfFirst + 1} to {Math.min(needsAttentionIndexOfLast, needsAttention.length)} of {needsAttention.length} members
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setNeedsAttentionPage(prev => Math.max(prev - 1, 1))}
-                                    disabled={needsAttentionPage === 1}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                                        needsAttentionPage === 1
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                    }`}
-                                >
-                                    <FaChevronLeft className="text-xs" />
-                                    Previous
-                                </button>
-                                <span className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium">
-                                    {needsAttentionPage}
-                                </span>
-                                <button
-                                    onClick={() => setNeedsAttentionPage(prev => Math.min(prev + 1, needsAttentionTotalPages))}
-                                    disabled={needsAttentionPage === needsAttentionTotalPages}
-                                    className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                                        needsAttentionPage === needsAttentionTotalPages
-                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                            : 'bg-red-100 text-red-700 hover:bg-red-200'
-                                    }`}
-                                >
-                                    Next
-                                    <FaChevronRight className="text-xs" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
 
             {/* Reports Table */}
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
