@@ -4,6 +4,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { connectDB } = require('./config/db');
+const auth = require('./middleware/auth');
+const checkMaintenanceMode = require('./middleware/maintenance');
 
 const app = express();
 
@@ -31,10 +33,18 @@ app.use('/uploads', express.static('uploads'));
 // Routes
 app.get('/', (req, res) => res.send('Ministry Reporting System API'));
 app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+// Auth routes (no maintenance check for login)
 app.use('/api/auth', require('./routes/authRoutes'));
+
+// Maintenance routes (with auth but before maintenance check)
+app.use('/api/maintenance', auth, require('./routes/maintenanceRoutes'));
+
+// Apply maintenance mode check to all other routes
+app.use(auth, checkMaintenanceMode);
+
 app.use('/api/reports', require('./routes/reportRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/maintenance', require('./routes/maintenanceRoutes'));
 app.use('/api/backup', require('./routes/backupRoutes'));
 
 // 2. Connect to DB THEN start server

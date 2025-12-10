@@ -17,7 +17,24 @@ import Members from './pages/Members';
 import ResetPasswordAdmin from './pages/ResetPasswordAdmin';
 import MaintenanceMode from './pages/MaintenanceMode';
 import SystemBackup from './pages/SystemBackup';
+import MaintenancePage from './pages/MaintenancePage';
 import Layout from './components/layout/Layout';
+import axios from 'axios';
+
+// Setup axios interceptor for maintenance mode
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 503 && error.response?.data?.maintenanceMode) {
+      // Check if user is admin
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role !== 'admin') {
+        window.location.href = '/maintenance';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 const PrivateRoute = ({ children }) => {
   const { user, loading } = React.useContext(AuthContext);
@@ -42,6 +59,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/dashboard" element={
             <PrivateRoute>
               <Dashboard />
