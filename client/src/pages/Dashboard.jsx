@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
-import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight, FaDatabase, FaTools } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
 import ExportReports from '../components/ExportReports';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [currentPage, setCurrentPage] = useState(1);
@@ -17,6 +18,8 @@ const Dashboard = () => {
         totalHours: 0,
         totalReached: 0
     });
+    const [backupLoading, setBackupLoading] = useState(false);
+    const [backupMessage, setBackupMessage] = useState('');
 
     useEffect(() => {
         const fetchReports = async () => {
@@ -40,6 +43,30 @@ const Dashboard = () => {
         };
         fetchReports();
     }, []);
+
+    const handleQuickBackup = async () => {
+        setBackupLoading(true);
+        setBackupMessage('');
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(
+                `${API_URL}/api/backup/create`,
+                {},
+                { headers: { 'x-auth-token': token } }
+            );
+            setBackupMessage('✅ Backup created successfully!');
+            if (response.data.downloadUrl) {
+                window.location.href = `${API_URL}${response.data.downloadUrl}`;
+            }
+            setTimeout(() => setBackupMessage(''), 5000);
+        } catch (error) {
+            console.error('Error creating backup:', error);
+            setBackupMessage('❌ Failed to create backup');
+            setTimeout(() => setBackupMessage(''), 5000);
+        } finally {
+            setBackupLoading(false);
+        }
+    };
 
     // Pagination calculations
     const indexOfLastReport = currentPage * reportsPerPage;
@@ -94,6 +121,43 @@ const Dashboard = () => {
                     </Link>
                 )}
             </div>
+
+            {/* Admin Quick Actions - Backup Message */}
+            {user?.role === 'admin' && backupMessage && (
+                <div className={`p-4 rounded-xl font-semibold ${
+                    backupMessage.includes('✅') 
+                        ? 'bg-green-100 text-green-800 border-2 border-green-300' 
+                        : 'bg-red-100 text-red-800 border-2 border-red-300'
+                }`}>
+                    {backupMessage}
+                </div>
+            )}
+
+            {/* Admin Quick Actions */}
+            {user?.role === 'admin' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                        onClick={handleQuickBackup}
+                        disabled={backupLoading}
+                        className={`p-4 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 ${
+                            backupLoading
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl'
+                        }`}
+                    >
+                        <FaDatabase className="text-xl" />
+                        {backupLoading ? 'Creating Backup...' : 'Quick Backup Database'}
+                    </button>
+                    
+                    <button
+                        onClick={() => navigate('/maintenance-mode')}
+                        className="p-4 bg-gradient-to-r from-orange-600 to-yellow-600 text-white rounded-xl font-semibold hover:from-orange-700 hover:to-yellow-700 transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                    >
+                        <FaTools className="text-xl" />
+                        Maintenance Mode
+                    </button>
+                </div>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

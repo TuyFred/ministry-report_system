@@ -62,7 +62,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 </div>
             </div>
 
-            <nav className="mt-5 px-3">
+            <nav className="mt-5 px-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
                 {visibleLinks.map((link) => (
                     <Link
                         key={link.path}
