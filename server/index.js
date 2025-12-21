@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { connectDB } = require('./config/db');
 const auth = require('./middleware/auth');
 const checkMaintenanceMode = require('./middleware/maintenance');
@@ -28,7 +29,9 @@ app.use(cors({
     exposedHeaders: ['Content-Disposition']
 }));
 app.use(express.json());
-app.use('/uploads', express.static('uploads'));
+
+// Serve uploaded files from a stable absolute path (repo-root/uploads)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // Routes
 app.get('/', (req, res) => res.send('Ministry Reporting System API'));

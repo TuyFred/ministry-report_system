@@ -680,9 +680,9 @@ const Analytics = () => {
                                 </div>
                             </div>
                     </div>
-                </div>
+                )}
 
-                {/* Needs Attention Section */
+                {/* Needs Attention Section */}
                 {needsAttention.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
                         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
@@ -781,7 +781,7 @@ const Analytics = () => {
                     </div>
                 )}
 
-                {/* Performance Guide */
+                {/* Performance Guide */}
                 <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl shadow-lg p-6 mt-6 border-2 border-indigo-200">
                     <h3 className="font-bold text-lg text-gray-800 mb-3">📊 Performance Rating Guide</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

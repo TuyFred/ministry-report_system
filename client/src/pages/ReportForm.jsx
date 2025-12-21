@@ -469,7 +469,7 @@ const ReportForm = () => {
                     <div className="bg-white rounded-2xl shadow-lg p-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <FaPray className="text-purple-600" />
-                            Spiritual Disciplines
+                            Personal Spiritual Discipline
                         </h2>
                         <div className="space-y-4">
                             <div>
@@ -642,7 +642,7 @@ const ReportForm = () => {
                             <div className="bg-white rounded-2xl shadow-lg p-6">
                                 <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                                     <FaPen className="text-pink-600" />
-                                    Reflections and Prayer
+                                    Reflection Thanksgiving and Prayer (Week)
                                 </h2>
                                 <div className="space-y-4">
                                     <div>
@@ -698,33 +698,33 @@ const ReportForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Overall Reflection and Evaluation on the Day</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Overall Reflection and Evaluation on the Week</label>
                                         <textarea
                                             name="reflections"
                                             value={formData.reflections}
                                             onChange={onChange}
                                             rows="4"
-                                            placeholder="Reflect on your day..."
+                                            placeholder="Reflect on your week..."
                                             required={isWeekend}
                                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Other Work Done Today (e.g., departmental work, attended training, church cleaning...)</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Other Work Done During the Week (e.g., departmental work, attended training, church cleaning...)</label>
                                         <textarea
                                             name="other_work"
                                             value={formData.other_work}
                                             onChange={onChange}
                                             rows="4"
-                                            placeholder="Describe other activities..."
+                                            placeholder="Describe other work done during the week..."
                                             required={isWeekend}
                                             className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">3 Things Must Do Tomorrow</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">3 Things Must Do Tomorrow / Plan for Next Week</label>
                                         <textarea
                                             name="tomorrow_tasks"
                                             value={formData.tomorrow_tasks}

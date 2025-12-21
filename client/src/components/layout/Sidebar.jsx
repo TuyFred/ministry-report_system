@@ -29,14 +29,14 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     const visibleLinks = links.filter(link => link.roles.includes(user?.role));
 
     return (
-        <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="flex items-center justify-center h-16 bg-gray-900 border-b border-gray-700">
+        <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="flex items-center justify-center h-14 bg-gray-900 border-b border-gray-700 flex-shrink-0">
                 <FaChurch className="text-indigo-400 text-2xl mr-2" />
                 <span className="text-2xl font-bold">MRS</span>
             </div>
             
             {/* User Info */}
-            <div className="px-4 py-4 bg-gray-800 bg-opacity-50 border-b border-gray-700 flex items-center gap-3">
+            <div className="px-4 py-3 bg-gray-800 bg-opacity-50 border-b border-gray-700 flex items-center gap-3 flex-shrink-0">
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border-2 border-gray-600">
                     {user?.profile_image ? (
                         <img 
@@ -46,7 +46,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                             key={user.id}
                             onError={(e) => {
                                 e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-800"><svg class="text-lg" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg></div>';
+                                const parent = e.target?.parentElement;
+                                if (parent) {
+                                    parent.innerHTML = '<div class="w-full h-full flex items-center justify-center text-gray-400 bg-gray-800"><svg class="text-lg" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg></div>';
+                                }
                             }}
                         />
                     ) : (
@@ -62,12 +65,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 </div>
             </div>
 
-            <nav className="mt-5 px-3 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+            <nav className="flex-1 mt-3 px-3 overflow-y-auto no-scrollbar">
                 {visibleLinks.map((link) => (
                     <Link
                         key={link.path}
                         to={link.path}
-                        className={`group flex items-center px-3 py-3 text-sm font-medium rounded-lg mb-2 transition-all ${
+                        className={`group flex items-center px-3 py-2 text-sm font-medium rounded-lg mb-1 transition-all ${
                             isActive(link.path) 
                                 ? 'bg-indigo-600 text-white shadow-lg' 
                                 : 'text-gray-300 hover:bg-gray-700 hover:text-white'
@@ -83,7 +86,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </nav>
 
             {/* Footer */}
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-900 border-t border-gray-700">
+            <div className="p-3 bg-gray-900 border-t border-gray-700 flex-shrink-0">
                 <p className="text-xs text-gray-500 text-center">Ministry Report System</p>
                 <p className="text-xs text-gray-600 text-center mt-1">© 2025 All Rights Reserved</p>
             </div>

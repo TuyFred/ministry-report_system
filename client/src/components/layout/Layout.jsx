@@ -10,9 +10,9 @@ const Layout = ({ children }) => {
     return (
         <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
             <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
-            <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 <Navbar toggleSidebar={toggleSidebar} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto no-scrollbar min-w-0">
                     {children}
                 </main>
             </div>

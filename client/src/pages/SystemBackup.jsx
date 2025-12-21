@@ -53,7 +53,7 @@ const SystemBackup = () => {
 
             // Auto-download the backup
             if (response.data.downloadUrl) {
-                window.location.href = `${API_URL}${response.data.downloadUrl}`;
+                window.location.href = `${API_URL}${response.data.downloadUrl}?token=${token}`;
             }
 
             setTimeout(() => setMessage({ type: '', text: '' }), 5000);

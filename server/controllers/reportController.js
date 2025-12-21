@@ -41,7 +41,7 @@ exports.createReport = async (req, res) => {
         if (req.files) {
             const attachments = req.files.map(file => ({
                 report_id: newReport.id,
-                file_url: file.path,
+                file_url: `uploads/${file.filename}`,
                 file_type: file.mimetype
             }));
             await Attachment.bulkCreate(attachments);

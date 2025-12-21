@@ -61,58 +61,59 @@ const createBackup = async (req, res) => {
         const filename = `backup_${timestamp}.sql`;
         const filePath = path.join(backupDir, filename);
 
-        // Get database configuration from environment
+        // Get database configuration from environment (optional).
+        // In production (Render/Supabase), apps often only have DATABASE_URL, not DB_NAME/DB_USER.
         const dbName = process.env.DB_NAME;
         const dbUser = process.env.DB_USER;
-        const dbPassword = process.env.DB_PASSWORD;
+        const dbPassword = process.env.DB_PASSWORD || process.env.DB_PASS;
         const dbHost = process.env.DB_HOST || 'localhost';
         const dbPort = process.env.DB_PORT || 5432;
 
-        if (!dbName || !dbUser) {
-            return res.status(500).json({ msg: 'Database configuration not found' });
+        const canUsePgDump = Boolean(dbName && dbUser);
+
+        if (canUsePgDump) {
+            // For PostgreSQL using pg_dump (plain format since we use .sql extension)
+            const command = `PGPASSWORD="${dbPassword || ''}" pg_dump -h ${dbHost} -p ${dbPort} -U ${dbUser} -F p -b -v -f "${filePath}" ${dbName}`;
+
+            try {
+                await execPromise(command);
+                return res.json({
+                    msg: 'Backup created successfully',
+                    filename,
+                    downloadUrl: `/api/backup/download/${filename}`
+                });
+            } catch (cmdError) {
+                console.error('Error executing pg_dump backup command; falling back to JSON backup:', cmdError);
+            }
         }
 
-        // For PostgreSQL using pg_dump
-        const command = `PGPASSWORD="${dbPassword}" pg_dump -h ${dbHost} -p ${dbPort} -U ${dbUser} -F c -b -v -f "${filePath}" ${dbName}`;
+        // Fallback: Create a JSON backup of Sequelize models (works with DATABASE_URL-only setups)
+        const User = require('../models/User');
+        const Report = require('../models/Report');
+        const Attachment = require('../models/Attachment');
 
-        try {
-            // Execute backup command
-            await execPromise(command);
+        const [users, reports, attachments] = await Promise.all([
+            User.findAll(),
+            Report.findAll(),
+            Attachment.findAll()
+        ]);
 
-            res.json({
-                msg: 'Backup created successfully',
-                filename,
-                downloadUrl: `/api/backup/download/${filename}`
-            });
-        } catch (cmdError) {
-            console.error('Error executing backup command:', cmdError);
-            
-            // Fallback: Create a JSON backup of Sequelize models
-            const User = require('../models/User');
-            const Report = require('../models/Report');
-            const Attachment = require('../models/Attachment');
+        const backupData = {
+            timestamp: new Date().toISOString(),
+            users: users.map(u => u.toJSON()),
+            reports: reports.map(r => r.toJSON()),
+            attachments: attachments.map(a => a.toJSON())
+        };
 
-            const users = await User.findAll();
-            const reports = await Report.findAll();
-            const attachments = await Attachment.findAll();
+        const jsonFilename = `backup_${timestamp}.json`;
+        const jsonFilePath = path.join(backupDir, jsonFilename);
+        fs.writeFileSync(jsonFilePath, JSON.stringify(backupData, null, 2));
 
-            const backupData = {
-                timestamp: new Date().toISOString(),
-                users: users.map(u => u.toJSON()),
-                reports: reports.map(r => r.toJSON()),
-                attachments: attachments.map(a => a.toJSON())
-            };
-
-            const jsonFilename = `backup_${timestamp}.json`;
-            const jsonFilePath = path.join(backupDir, jsonFilename);
-            fs.writeFileSync(jsonFilePath, JSON.stringify(backupData, null, 2));
-
-            res.json({
-                msg: 'Backup created successfully (JSON format)',
-                filename: jsonFilename,
-                downloadUrl: `/api/backup/download/${jsonFilename}`
-            });
-        }
+        return res.json({
+            msg: 'Backup created successfully (JSON format)',
+            filename: jsonFilename,
+            downloadUrl: `/api/backup/download/${jsonFilename}`
+        });
     } catch (error) {
         console.error('Error creating backup:', error);
         res.status(500).json({ msg: 'Failed to create backup', error: error.message });

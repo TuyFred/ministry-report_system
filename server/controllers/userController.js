@@ -108,11 +108,9 @@ exports.updateProfileImage = async (req, res) => {
         const user = await User.findByPk(req.user.id);
         if (!user) return res.status(404).json({ msg: 'User not found' });
 
-        // Update profile image path
-        // We store the relative path or full URL. Let's store the relative path.
-        // Windows paths might use backslashes, we should normalize to forward slashes for URLs
-        const imagePath = req.file.path.replace(/\\/g, '/');
-        
+        // Store a stable URL path (independent of server working directory)
+        const imagePath = `uploads/${req.file.filename}`;
+
         user.profile_image = imagePath;
         await user.save();
 

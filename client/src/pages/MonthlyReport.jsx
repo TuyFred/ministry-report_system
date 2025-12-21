@@ -10,6 +10,13 @@ const MonthlyReport = () => {
     const [loading, setLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [monthDates, setMonthDates] = useState({ start: '', end: '', month: '', year: '' });
+    const parseTime = (timeValue) => {
+        if (!timeValue) return 0;
+        if (typeof timeValue === 'number') return timeValue;
+        const parsed = parseFloat(timeValue);
+        if (isNaN(parsed)) return 0;
+        return parsed;
+    };
     const [summary, setSummary] = useState({
         totalReports: 0,
         totalEvangelismHours: 0,
@@ -83,16 +90,6 @@ const MonthlyReport = () => {
     const calculateSummary = (reportsList) => {
         const totalReports = reportsList.length;
         const daysInMonth = new Date(monthDates.year, new Date(monthDates.start).getMonth() + 1, 0).getDate();
-
-        const parseTime = (timeValue) => {
-            if (!timeValue) return 0;
-            // Handle if it's already a number (hours)
-            if (typeof timeValue === 'number') return timeValue;
-            // Handle if it's a string number
-            const parsed = parseFloat(timeValue);
-            if (isNaN(parsed)) return 0;
-            return parsed;
-        };
 
         const totals = reportsList.reduce((acc, report) => {
             return {
@@ -245,7 +242,7 @@ const MonthlyReport = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">

@@ -52,7 +52,7 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="space-y-6 p-6">
+        <div className="space-y-6 p-4 sm:p-6">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex items-center gap-5">
@@ -65,7 +65,10 @@ const Dashboard = () => {
                                 key={user.id}
                                 onError={(e) => {
                                     e.target.style.display = 'none';
-                                    e.target.parentElement.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-300"><svg class="text-3xl" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg></div>';
+                                    const parent = e.target?.parentElement;
+                                    if (parent) {
+                                        parent.innerHTML = '<div class="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-300"><svg class="text-3xl" fill="currentColor" viewBox="0 0 20 20"><path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path></svg></div>';
+                                    }
                                 }}
                             />
                         ) : (
@@ -75,13 +78,13 @@ const Dashboard = () => {
                         )}
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight break-words">
                             Welcome back, {user?.fullname}!
                         </h1>
                         <p className="text-gray-600 mt-1 flex items-center gap-2">
                             <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 rounded text-sm font-semibold capitalize">{user?.role}</span>
                             <span className="text-gray-400">•</span>
-                            <span className="font-medium">{user?.country}</span>
+                            <span className="font-medium break-words">{user?.country}</span>
                         </p>
                     </div>
                 </div>
