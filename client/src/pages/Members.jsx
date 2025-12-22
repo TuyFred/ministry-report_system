@@ -149,7 +149,7 @@ const Members = () => {
               onClick={openAddModal}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center gap-2"
             >
-              <FaUserPlus /> Add Member
+              <FaUserPlus /> Add User
             </button>
           )}
         </div>
@@ -217,14 +217,14 @@ const Members = () => {
                         </div>
                     )}
                     
-                    {user.role === 'admin' && (
+                    {(user.role === 'admin' || (user.role === 'leader' && !editingUser)) && (
                         <div className="col-span-1">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                             <select className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500" 
                                 value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})}>
-                                <option value="member">Member</option>
-                                <option value="leader">Leader</option>
-                                <option value="admin">Admin</option>
+                          <option value="member">Member</option>
+                          <option value="leader">Leader</option>
+                          {user.role === 'admin' && <option value="admin">Admin</option>}
                             </select>
                         </div>
                     )}
@@ -306,7 +306,7 @@ const Members = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{member.country}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        {user.role === 'admin' && (
+                        {(user.role === 'admin' || (user.role === 'leader' && member.role === 'member')) && (
                             <div className="flex gap-3">
                                 <button onClick={() => startEdit(member)} className="text-indigo-600 hover:text-indigo-900" title="Edit">
                                     <FaEdit />
@@ -363,7 +363,7 @@ const Members = () => {
                             <div className="text-sm text-gray-600">
                                 <span className="font-medium">Country:</span> {member.country}
                             </div>
-                            {user.role === 'admin' && (
+                            {(user.role === 'admin' || (user.role === 'leader' && member.role === 'member')) && (
                                 <div className="flex gap-3">
                                     <button onClick={() => startEdit(member)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors" title="Edit">
                                         <FaEdit />

@@ -12,10 +12,35 @@ exports.createUser = async (req, res) => {
         if (requestingUser.role === 'admin') {
             // Admin can create any role, including other admins
         } else if (requestingUser.role === 'leader') {
-            if (role !== 'member') return res.status(403).json({ msg: 'Leaders can only create members' });
-            if (country !== requestingUser.country) return res.status(403).json({ msg: 'Cannot create member in another country' });
+            if (!['member', 'leader'].includes(role)) {
+                return res.status(403).json({ msg: 'Leaders can only create members or leaders' });
+            }
+            if (country !== requestingUser.country) {
+                return res.status(403).json({ msg: 'Cannot create users in another country' });
+            }
+
+            // Keep the leader-per-country limit consistent
+            if (role === 'leader') {
+                const leaderCount = await User.count({
+                    where: {
+                        role: 'leader',
+                        country: requestingUser.country
+                    }
+                });
+
+                if (leaderCount >= 2) {
+                    return res.status(400).json({
+                        msg: `Cannot assign more leaders. ${requestingUser.country} already has 2 leaders. Please remove an existing leader first.`
+                    });
+                }
+            }
         } else {
             return res.status(403).json({ msg: 'Not authorized to create users' });
+        }
+
+        // Extra safety: leaders should never be able to create admins
+        if (requestingUser.role !== 'admin' && role === 'admin') {
+            return res.status(403).json({ msg: 'Not authorized to create admins' });
         }
 
         // Check if user exists
