@@ -4,7 +4,7 @@ import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 import { FaBars, FaUserCircle, FaChurch, FaSignOutAlt } from 'react-icons/fa';
 
-const Navbar = ({ toggleSidebar }) => {
+const Navbar = ({ toggleSidebar, showSidebarToggle = true }) => {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
     const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -39,9 +39,11 @@ const Navbar = ({ toggleSidebar }) => {
     return (
         <nav className="bg-white shadow-md h-16 flex items-center justify-between px-4 lg:px-6">
             <div className="flex items-center gap-4">
-                <button onClick={toggleSidebar} className="text-gray-600 hover:text-indigo-600 focus:outline-none lg:hidden">
-                    <FaBars className="h-6 w-6" />
-                </button>
+                {showSidebarToggle && (
+                    <button onClick={toggleSidebar} className="text-gray-600 hover:text-indigo-600 focus:outline-none lg:hidden">
+                        <FaBars className="h-6 w-6" />
+                    </button>
+                )}
                 <div className="flex items-center gap-2">
                     <FaChurch className="text-indigo-600 text-2xl" />
                     <span className="text-xl font-bold text-gray-800">Ministry Reports</span>

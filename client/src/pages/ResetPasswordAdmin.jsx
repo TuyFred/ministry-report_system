@@ -141,7 +141,7 @@ const ResetPasswordAdmin = () => {
 
                     {/* Users List */}
                     {searchTerm && (
-                        <div className="mb-6 max-h-64 overflow-y-auto border-2 border-gray-200 rounded-xl">
+                        <div className="mb-6 max-h-64 overflow-y-auto no-scrollbar border-2 border-gray-200 rounded-xl">
                             {filteredUsers.length > 0 ? (
                                 filteredUsers.map(u => (
                                     <div

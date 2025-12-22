@@ -351,7 +351,7 @@ const ViewReports = () => {
                                                 className="fixed inset-0 z-10" 
                                                 onClick={() => setShowCountryDropdown(false)}
                                             ></div>
-                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto bg-white border-2 border-gray-300 rounded-xl shadow-lg">
+                                            <div className="absolute z-20 mt-1 w-full max-h-60 overflow-auto no-scrollbar bg-white border-2 border-gray-300 rounded-xl shadow-lg">
                                                 <div 
                                                     className="px-4 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-200 font-medium text-indigo-600"
                                                     onClick={() => {

@@ -27,6 +27,7 @@ const ReportForm = () => {
         sermons_listened: '',
         articles_written: '',
         exercise_hours: '',
+        exercise_minutes: '',
         sermon_reflection: '',
         thanksgiving: '',
         repentance: '',
@@ -83,6 +84,18 @@ const ReportForm = () => {
     // Load edit data if editing
     useEffect(() => {
         if (editReport) {
+            const exerciseTime = Number(editReport.exercise_time);
+            let exerciseHours = '';
+            let exerciseMinutes = '';
+            if (!Number.isNaN(exerciseTime)) {
+                const wholeHours = Math.max(0, Math.floor(exerciseTime));
+                const minutes = Math.max(0, Math.round((exerciseTime - wholeHours) * 60));
+                const normalizedMinutes = minutes >= 60 ? 0 : minutes;
+                const normalizedHours = minutes >= 60 ? wholeHours + 1 : wholeHours;
+                exerciseHours = normalizedHours.toString();
+                exerciseMinutes = normalizedMinutes.toString();
+            }
+
             setFormData({
                 date: editReport.date,
                 name: editReport.name || '',
@@ -100,7 +113,8 @@ const ReportForm = () => {
                 regular_service: editReport.regular_service ? (typeof editReport.regular_service === 'string' ? editReport.regular_service.split(',').map(s => s.trim()) : []) : [],
                 sermons_listened: editReport.sermons_listened?.toString() || '',
                 articles_written: editReport.articles_written?.toString() || '',
-                exercise_hours: editReport.exercise_time?.toString() || '',
+                exercise_hours: exerciseHours,
+                exercise_minutes: exerciseMinutes,
                 sermon_reflection: editReport.sermon_reflection || '',
                 thanksgiving: editReport.thanksgiving || '',
                 repentance: editReport.repentance || '',
@@ -125,18 +139,22 @@ const ReportForm = () => {
 
         const weekendRequiredFields = [
             ...weekdayRequiredFields,
-            'exercise_hours', 'sermon_reflection', 'thanksgiving',
+            'sermon_reflection', 'thanksgiving',
             'repentance', 'prayer_requests', 'reflections', 'other_work', 'tomorrow_tasks'
         ];
 
         const requiredFields = isWeekend ? weekendRequiredFields : weekdayRequiredFields;
 
-        const allFilled = requiredFields.every(field => {
+        const allRequiredFilled = requiredFields.every(field => {
             const value = formData[field];
             return value !== '' && value !== null && value !== undefined;
         });
 
-        setIsFormValid(allFilled);
+        const hasExerciseDuration = !isWeekend
+            ? true
+            : (formData.exercise_hours !== '' || formData.exercise_minutes !== '');
+
+        setIsFormValid(allRequiredFilled && hasExerciseDuration);
     }, [formData, isWeekend]);
 
     const onChange = e => {
@@ -174,13 +192,18 @@ const ReportForm = () => {
             return;
         }
 
+        const exerciseHours = parseInt(formData.exercise_hours, 10) || 0;
+        const exerciseMinutesRaw = parseInt(formData.exercise_minutes, 10) || 0;
+        const exerciseMinutes = Math.max(0, Math.min(59, exerciseMinutesRaw));
+        const exerciseTotalHours = exerciseHours + (exerciseMinutes / 60);
+
         // Convert time fields to hours (keep as hours)
         const dataToSend = {
             ...formData,
             evangelism_hours: parseFloat(formData.evangelism_hours) || 0,
             meditation_time: parseFloat(formData.meditation_hours) || 0,
             prayer_time: parseFloat(formData.prayer_hours) || 0,
-            exercise_time: parseFloat(formData.exercise_hours) || 0,
+            exercise_time: exerciseTotalHours || 0,
             regular_service: Array.isArray(formData.regular_service) ? formData.regular_service.join(', ') : formData.regular_service
         };
 
@@ -188,6 +211,7 @@ const ReportForm = () => {
         delete dataToSend.meditation_hours;
         delete dataToSend.prayer_hours;
         delete dataToSend.exercise_hours;
+        delete dataToSend.exercise_minutes;
 
         try {
             const token = localStorage.getItem('token');
@@ -257,7 +281,7 @@ const ReportForm = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4 overflow-y-auto">
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
             <div className="max-w-5xl mx-auto pb-8">
                 {/* Header */}
                 <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 sticky top-0 z-10">
@@ -332,7 +356,7 @@ const ReportForm = () => {
                                         />
                                     </div>
                                     {showCountryDropdown && filteredCountries.length > 0 && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                        <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto no-scrollbar">
                                             {filteredCountries.map(country => (
                                                 <div
                                                     key={country}
@@ -623,18 +647,41 @@ const ReportForm = () => {
                                     Physical Health
                                 </h2>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise (Hours)</label>
-                                    <input
-                                        type="number"
-                                        name="exercise_hours"
-                                        value={formData.exercise_hours}
-                                        onChange={onChange}
-                                        placeholder="Enter Hours"
-                                        min="0"
-                                        step="0.5"
-                                        required={isWeekend}
-                                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                    />
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise Duration</label>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-2">Hours</label>
+                                            <input
+                                                type="number"
+                                                name="exercise_hours"
+                                                value={formData.exercise_hours}
+                                                onChange={onChange}
+                                                placeholder="0"
+                                                min="0"
+                                                step="1"
+                                                inputMode="numeric"
+                                                required={false}
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-2">Minutes</label>
+                                            <input
+                                                type="number"
+                                                name="exercise_minutes"
+                                                value={formData.exercise_minutes}
+                                                onChange={onChange}
+                                                placeholder="0"
+                                                min="0"
+                                                max="59"
+                                                step="1"
+                                                inputMode="numeric"
+                                                required={false}
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-2">You can fill hours, minutes, or both.</p>
                                 </div>
                             </div>
 
