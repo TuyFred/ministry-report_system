@@ -12,7 +12,7 @@ exports.createReport = async (req, res) => {
             date, name, country, church, evangelism_hours, people_reached, contacts_received,
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
             meditation_time, prayer_time, morning_service, regular_service, sermons_listened, articles_written, exercise_time,
-            reflections, thanksgiving, repentance, prayer_requests, other_work, tomorrow_tasks
+            reflections, thanksgiving, repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         } = req.body;
 
         // Check if a report already exists for this user on this date
@@ -34,7 +34,7 @@ exports.createReport = async (req, res) => {
             date, name, country, church, evangelism_hours, people_reached, contacts_received,
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
             meditation_time, prayer_time, morning_service, regular_service, sermons_listened, articles_written, exercise_time,
-            reflections, thanksgiving, repentance, prayer_requests, other_work, tomorrow_tasks
+            reflections, thanksgiving, repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         });
 
         // Handle Attachments
@@ -168,7 +168,7 @@ exports.updateReport = async (req, res) => {
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
             meditation_time, prayer_time, morning_service, regular_service, sermons_listened, 
             articles_written, exercise_time, sermon_reflection, reflections, thanksgiving, 
-            repentance, prayer_requests, other_work, tomorrow_tasks
+            repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         } = req.body;
 
         // If changing the report date, prevent duplicates for the same report owner
@@ -193,7 +193,7 @@ exports.updateReport = async (req, res) => {
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
             meditation_time, prayer_time, morning_service, regular_service, sermons_listened, 
             articles_written, exercise_time, sermon_reflection, reflections, thanksgiving, 
-            repentance, prayer_requests, other_work, tomorrow_tasks
+            repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         });
 
         res.json(report);
