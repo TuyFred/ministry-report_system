@@ -59,6 +59,12 @@ The frontend automatically detects production environment and uses the Render ba
 - Root Directory: `server`
 - Node Version: 22.x or higher
 
+**Persistent Profile Images / Uploads (Important)**:
+- Render free instances can lose files stored on the container filesystem after restarts or redeploys.
+- To keep profile images stable, add a **Persistent Disk** to your Render Web Service and set:
+   - `UPLOAD_DIR=/var/data/uploads`
+- The app serves files at `/uploads/...`, so the UI will continue to load images across logins.
+
 ---
 
 ## 🔧 Setup Steps

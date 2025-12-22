@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const { Op } = require('sequelize');
 
 // Create a new user (Admin creates Leader, Leader creates Member)
 exports.createUser = async (req, res) => {
@@ -55,6 +56,8 @@ exports.getUsers = async (req, res) => {
         if (requestingUser.role === 'leader') {
             // Leader sees all members in their country (including other leaders)
             whereClause.country = requestingUser.country;
+            // Leaders should not see admins
+            whereClause.role = { [Op.ne]: 'admin' };
         } else if (requestingUser.role === 'member') {
             return res.status(403).json({ msg: 'Not authorized' });
         }

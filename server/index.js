@@ -30,8 +30,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Serve uploaded files from a stable absolute path (repo-root/uploads)
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+// Serve uploaded files from a stable absolute path.
+// In production (e.g., Render), set UPLOAD_DIR to a persistent disk mount path.
+const uploadsDir = process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : path.join(__dirname, '..', 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 // Routes
 app.get('/', (req, res) => res.send('Ministry Reporting System API'));

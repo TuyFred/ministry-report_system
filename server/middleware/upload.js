@@ -3,7 +3,11 @@ const path = require('path');
 const fs = require('fs');
 
 // Ensure uploads directory exists
-const uploadDir = path.join(__dirname, '..', '..', 'uploads');
+// In production (e.g., Render), set UPLOAD_DIR to a persistent disk mount path
+// so uploaded files (profile images, attachments) survive restarts/redeploys.
+const uploadDir = process.env.UPLOAD_DIR
+    ? path.resolve(process.env.UPLOAD_DIR)
+    : path.join(__dirname, '..', '..', 'uploads');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }

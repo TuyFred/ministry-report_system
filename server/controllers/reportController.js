@@ -171,6 +171,23 @@ exports.updateReport = async (req, res) => {
             repentance, prayer_requests, other_work, tomorrow_tasks
         } = req.body;
 
+        // If changing the report date, prevent duplicates for the same report owner
+        if (date && date !== report.date) {
+            const existingReport = await Report.findOne({
+                where: {
+                    user_id: report.user_id,
+                    date,
+                    id: { [Op.ne]: report.id }
+                }
+            });
+
+            if (existingReport) {
+                return res.status(400).json({
+                    msg: 'You already have a report for this date. Please choose a different date.'
+                });
+            }
+        }
+
         await report.update({
             date, name, country, church, evangelism_hours, people_reached, contacts_received,
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
