@@ -1,23 +1,13 @@
-import React, { useContext, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useMemo, useState } from 'react';
 import Navbar from './Navbar';
 import Sidebar from './Sidebar';
-import { AuthContext } from '../../context/AuthContext';
 
 const Layout = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const { user } = useContext(AuthContext);
-    const location = useLocation();
-
     const showSidebar = useMemo(() => {
-        const role = user?.role;
-
-        // Requested: remove sidebar in leader dashboard (leader only)
-        if (role === 'leader') return false;
-
         return true;
-    }, [user?.role]);
+    }, []);
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
