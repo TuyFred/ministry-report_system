@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FaCalendarAlt, FaChurch, FaGlobe, FaUser, FaClock, FaUsers, FaBook, FaPray, FaDumbbell, FaPen, FaSearch } from 'react-icons/fa';
@@ -43,6 +43,68 @@ const ReportForm = () => {
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [isWeekend, setIsWeekend] = useState(false);
     const [dateWarning, setDateWarning] = useState('');
+    const [activeTemplate, setActiveTemplate] = useState(null);
+
+    const defaultWeekdayConfig = useMemo(() => ({
+        visibleSections: [
+            'ministryActivities',
+            'bibleStudy',
+            'spiritualDiscipline',
+            'serviceAttendance',
+            'serviceAttendanceExtras',
+            'otherActivities'
+        ],
+        requiredFields: [
+            'date', 'name', 'country', 'church',
+            'evangelism_hours', 'people_reached', 'contacts_received',
+            'bible_study_sessions', 'bible_study_attendants',
+            'newcomers', 'meditation_hours', 'prayer_hours',
+            'sermons_listened', 'articles_written'
+        ]
+    }), []);
+
+    const defaultWeekendConfig = useMemo(() => ({
+        visibleSections: [
+            'serviceAttendance',
+            'sundayCoreMessage',
+            'otherActivities',
+            'planNextWeek'
+        ],
+        requiredFields: [
+            'date', 'name', 'country', 'church',
+            'sermon_reflection'
+        ]
+    }), []);
+
+    const dayConfig = useMemo(() => {
+        const def = activeTemplate?.definition;
+        const cfg = isWeekend ? def?.weekend : def?.weekday;
+        return cfg || (isWeekend ? defaultWeekendConfig : defaultWeekdayConfig);
+    }, [activeTemplate, isWeekend, defaultWeekendConfig, defaultWeekdayConfig]);
+
+    const showSection = (key) => {
+        const sections = dayConfig?.visibleSections;
+        if (!Array.isArray(sections) || sections.length === 0) return true;
+        return sections.includes(key);
+    };
+
+    // Load active report form template (admin-managed)
+    useEffect(() => {
+        const fetchActiveTemplate = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const res = await axios.get(`${API_URL}/api/report-forms/active`, {
+                    headers: { 'x-auth-token': token }
+                });
+                setActiveTemplate(res.data);
+            } catch (err) {
+                // Non-blocking: fall back to default behavior
+                console.error('Failed to load active report form template:', err);
+            }
+        };
+        fetchActiveTemplate();
+    }, []);
 
     // Check if report exists for selected date
     const checkExistingReport = async (selectedDate) => {
@@ -130,20 +192,9 @@ const ReportForm = () => {
 
     // Check if all required fields are filled - different requirements for weekday vs weekend
     useEffect(() => {
-        const weekdayRequiredFields = [
-            'date', 'name', 'country', 'church', 'evangelism_hours',
-            'people_reached', 'contacts_received', 'bible_study_sessions', 'bible_study_attendants',
-            'newcomers', 'meditation_hours',
-            'prayer_hours', 'sermons_listened', 'articles_written'
-        ];
-
-        const weekendRequiredFields = [
-            // Weekend: only keep the essentials + Sunday core message
-            'date', 'name', 'country', 'church',
-            'sermon_reflection'
-        ];
-
-        const requiredFields = isWeekend ? weekendRequiredFields : weekdayRequiredFields;
+        const requiredFields = Array.isArray(dayConfig?.requiredFields)
+            ? dayConfig.requiredFields
+            : (isWeekend ? defaultWeekendConfig.requiredFields : defaultWeekdayConfig.requiredFields);
 
         const allRequiredFilled = requiredFields.every(field => {
             const value = formData[field];
@@ -151,7 +202,7 @@ const ReportForm = () => {
         });
 
         setIsFormValid(allRequiredFilled);
-    }, [formData, isWeekend]);
+    }, [formData, isWeekend, dayConfig, defaultWeekendConfig, defaultWeekdayConfig]);
 
     const onChange = e => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -391,7 +442,7 @@ const ReportForm = () => {
                         </div>
                     </div>
 
-                    {!isWeekend && (
+                    {!isWeekend && showSection('ministryActivities') && (
                         <>
                             {/* Ministry Activities */}
                             <div className="bg-white rounded-2xl shadow-lg p-4">
@@ -460,6 +511,7 @@ const ReportForm = () => {
                             </div>
 
                             {/* Bible Study */}
+                            {showSection('bibleStudy') && (
                             <div className="bg-white rounded-2xl shadow-lg p-4">
                                 <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <FaBook className="text-blue-600" />
@@ -495,8 +547,10 @@ const ReportForm = () => {
                                     </div>
                                 </div>
                             </div>
+                            )}
 
                             {/* Spiritual Disciplines */}
+                            {showSection('spiritualDiscipline') && (
                             <div className="bg-white rounded-2xl shadow-lg p-4">
                                 <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <FaPray className="text-purple-600" />
@@ -534,10 +588,12 @@ const ReportForm = () => {
                                     </div>
                                 </div>
                             </div>
+                            )}
                         </>
                     )}
 
                     {/* Service Attendance */}
+                    {showSection('serviceAttendance') && (
                     <div className="bg-white rounded-2xl shadow-lg p-4">
                         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaChurch className="text-orange-600" />
@@ -595,7 +651,7 @@ const ReportForm = () => {
                             <p className="text-xs text-gray-500 mt-2">You can select multiple services if you attended more than one.</p>
                         </div>
 
-                        {!isWeekend && (
+                        {showSection('serviceAttendanceExtras') && (
                             <>
                                 <div className="mt-4">
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Sermons or Bible Study Listened To</label>
@@ -627,9 +683,10 @@ const ReportForm = () => {
                             </>
                         )}
                     </div>
+                    )}
 
                     {/* Weekend: Sunday Service core message */}
-                    {isWeekend && (
+                    {isWeekend && showSection('sundayCoreMessage') && (
                         <div className="bg-white rounded-2xl shadow-lg p-4">
                             <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <FaPen className="text-pink-600" />
@@ -653,6 +710,7 @@ const ReportForm = () => {
                     )}
 
                     {/* Other Activities - Optional for all days */}
+                    {showSection('otherActivities') && (
                     <div className="bg-white rounded-2xl shadow-lg p-4">
                         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaPen className="text-green-600" />
@@ -673,9 +731,10 @@ const ReportForm = () => {
                             <p className="text-xs text-gray-500 mt-2">This field is optional - fill it only if you have additional activities to report.</p>
                         </div>
                     </div>
+                    )}
 
                     {/* Weekend: Plan for Next Week (separate input) */}
-                    {isWeekend && (
+                    {isWeekend && showSection('planNextWeek') && (
                         <div className="bg-white rounded-2xl shadow-lg p-4">
                             <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <FaPen className="text-indigo-600" />

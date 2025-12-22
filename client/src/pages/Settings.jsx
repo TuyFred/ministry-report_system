@@ -1,7 +1,7 @@
-import React, { useState, useContext } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
-import { FaLock, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaCheckCircle, FaCamera, FaUserPlus } from 'react-icons/fa';
+import { FaLock, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaCheckCircle, FaCamera, FaUserPlus, FaFileAlt } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
 
 const Settings = () => {
@@ -27,6 +27,143 @@ const Settings = () => {
     });
     const [adminMessage, setAdminMessage] = useState({ type: '', text: '' });
     const [adminLoading, setAdminLoading] = useState(false);
+
+    // Admin: Report Form Manager state
+    const [formTemplates, setFormTemplates] = useState([]);
+    const [formManagerLoading, setFormManagerLoading] = useState(false);
+    const [formManagerMessage, setFormManagerMessage] = useState({ type: '', text: '' });
+    const [newTemplateName, setNewTemplateName] = useState('');
+    const [newTemplateDefinitionText, setNewTemplateDefinitionText] = useState('');
+    const [selectedTemplateId, setSelectedTemplateId] = useState('');
+    const [editTemplateName, setEditTemplateName] = useState('');
+    const [editTemplateDefinitionText, setEditTemplateDefinitionText] = useState('');
+
+    const fetchFormTemplates = async () => {
+        setFormManagerLoading(true);
+        setFormManagerMessage({ type: '', text: '' });
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_URL}/api/report-forms`, {
+                headers: { 'x-auth-token': token }
+            });
+            setFormTemplates(res.data || []);
+        } catch (err) {
+            console.error(err);
+            setFormManagerMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to load report form templates' });
+        } finally {
+            setFormManagerLoading(false);
+        }
+    };
+
+    const loadDefaultTemplateIntoNew = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await axios.get(`${API_URL}/api/report-forms/defaults`, {
+                headers: { 'x-auth-token': token }
+            });
+            setNewTemplateDefinitionText(JSON.stringify(res.data?.definition || {}, null, 2));
+        } catch (err) {
+            console.error(err);
+            setFormManagerMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to load defaults' });
+        }
+    };
+
+    const onCreateTemplate = async (e) => {
+        e.preventDefault();
+        setFormManagerMessage({ type: '', text: '' });
+        try {
+            const token = localStorage.getItem('token');
+            const definition = JSON.parse(newTemplateDefinitionText || '{}');
+            await axios.post(`${API_URL}/api/report-forms`, { name: newTemplateName, definition }, {
+                headers: { 'x-auth-token': token }
+            });
+            setNewTemplateName('');
+            setNewTemplateDefinitionText('');
+            setFormManagerMessage({ type: 'success', text: 'Template created' });
+            await fetchFormTemplates();
+        } catch (err) {
+            console.error(err);
+            const msg = err.name === 'SyntaxError'
+                ? 'Invalid JSON in template definition'
+                : (err.response?.data?.msg || 'Failed to create template');
+            setFormManagerMessage({ type: 'error', text: msg });
+        }
+    };
+
+    const onSelectTemplate = (id) => {
+        setSelectedTemplateId(id);
+        const t = formTemplates.find(x => String(x.id) === String(id));
+        if (!t) {
+            setEditTemplateName('');
+            setEditTemplateDefinitionText('');
+            return;
+        }
+        setEditTemplateName(t.name || '');
+        setEditTemplateDefinitionText(JSON.stringify(t.definition || {}, null, 2));
+    };
+
+    const onUpdateTemplate = async (e) => {
+        e.preventDefault();
+        if (!selectedTemplateId) return;
+        setFormManagerMessage({ type: '', text: '' });
+        try {
+            const token = localStorage.getItem('token');
+            const definition = JSON.parse(editTemplateDefinitionText || '{}');
+            await axios.put(`${API_URL}/api/report-forms/${selectedTemplateId}`, { name: editTemplateName, definition }, {
+                headers: { 'x-auth-token': token }
+            });
+            setFormManagerMessage({ type: 'success', text: 'Template updated' });
+            await fetchFormTemplates();
+        } catch (err) {
+            console.error(err);
+            const msg = err.name === 'SyntaxError'
+                ? 'Invalid JSON in template definition'
+                : (err.response?.data?.msg || 'Failed to update template');
+            setFormManagerMessage({ type: 'error', text: msg });
+        }
+    };
+
+    const onActivateTemplate = async (id) => {
+        try {
+            const token = localStorage.getItem('token');
+            await axios.post(`${API_URL}/api/report-forms/${id}/activate`, {}, {
+                headers: { 'x-auth-token': token }
+            });
+            setFormManagerMessage({ type: 'success', text: 'Template activated (members/leaders will use it)' });
+            await fetchFormTemplates();
+        } catch (err) {
+            console.error(err);
+            setFormManagerMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to activate template' });
+        }
+    };
+
+    const onDeleteTemplate = async (id) => {
+        const ok = window.confirm('Delete this template? This cannot be undone.');
+        if (!ok) return;
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API_URL}/api/report-forms/${id}`, {
+                headers: { 'x-auth-token': token }
+            });
+            if (String(selectedTemplateId) === String(id)) {
+                setSelectedTemplateId('');
+                setEditTemplateName('');
+                setEditTemplateDefinitionText('');
+            }
+            setFormManagerMessage({ type: 'success', text: 'Template deleted' });
+            await fetchFormTemplates();
+        } catch (err) {
+            console.error(err);
+            setFormManagerMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to delete template' });
+        }
+    };
+
+    useEffect(() => {
+        if (user?.role === 'admin') {
+            fetchFormTemplates();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.role]);
 
     const handleImageUpload = async (e) => {
         const file = e.target.files[0];
@@ -419,6 +556,189 @@ const Settings = () => {
                                 {adminLoading ? 'Adding Admin...' : 'Add Admin'}
                             </button>
                         </form>
+                    </div>
+                )}
+
+                {/* Report Form Manager (only for admins) */}
+                {user?.role === 'admin' && (
+                    <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <FaFileAlt className="text-indigo-600" />
+                            Report Form Manager
+                        </h2>
+
+                        {formManagerMessage.text && (
+                            <div
+                                className={`mb-4 p-4 rounded-xl flex items-center gap-3 ${
+                                    formManagerMessage.type === 'success'
+                                        ? 'bg-green-50 text-green-800 border-2 border-green-200'
+                                        : 'bg-red-50 text-red-800 border-2 border-red-200'
+                                }`}
+                            >
+                                {formManagerMessage.type === 'success' && <FaCheckCircle className="text-green-600" />}
+                                {formManagerMessage.text}
+                            </div>
+                        )}
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            {/* Templates list */}
+                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
+                                <div className="flex items-center justify-between mb-3">
+                                    <p className="font-bold text-gray-800">Templates</p>
+                                    <button
+                                        type="button"
+                                        onClick={fetchFormTemplates}
+                                        disabled={formManagerLoading}
+                                        className="px-3 py-2 text-sm font-semibold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
+                                    >
+                                        {formManagerLoading ? 'Loading...' : 'Refresh'}
+                                    </button>
+                                </div>
+
+                                <div className="space-y-2">
+                                    {formTemplates.length === 0 ? (
+                                        <p className="text-sm text-gray-600">No templates found.</p>
+                                    ) : (
+                                        formTemplates.map(t => (
+                                            <div key={t.id} className="bg-white rounded-lg border border-gray-200 p-3">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => onSelectTemplate(t.id)}
+                                                        className="text-left flex-1 min-w-0"
+                                                    >
+                                                        <p className="font-semibold text-gray-800 truncate">{t.name}</p>
+                                                        <p className="text-xs text-gray-500">ID: {t.id}</p>
+                                                    </button>
+                                                    <div className="flex items-center gap-2 flex-shrink-0">
+                                                        {t.is_active && (
+                                                            <span className="px-2 py-1 text-xs font-bold rounded bg-green-100 text-green-800">Active</span>
+                                                        )}
+                                                        {!t.is_active && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => onActivateTemplate(t.id)}
+                                                                className="px-2.5 py-1.5 text-xs font-bold rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                                                            >
+                                                                Activate
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onDeleteTemplate(t.id)}
+                                                            className="px-2.5 py-1.5 text-xs font-bold rounded bg-red-600 text-white hover:bg-red-700"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Create / Edit */}
+                            <div className="space-y-6">
+                                {/* Create */}
+                                <div className="border border-gray-200 rounded-xl p-4">
+                                    <p className="font-bold text-gray-800 mb-3">Create Template</p>
+                                    <form onSubmit={onCreateTemplate} className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Template Name</label>
+                                            <input
+                                                type="text"
+                                                value={newTemplateName}
+                                                onChange={(e) => setNewTemplateName(e.target.value)}
+                                                placeholder="e.g. Weekend Short Form"
+                                                required
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-sm font-semibold text-gray-700 mb-1">Definition (JSON)</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={loadDefaultTemplateIntoNew}
+                                                    className="text-xs font-bold text-indigo-700 hover:text-indigo-900"
+                                                >
+                                                    Load Defaults
+                                                </button>
+                                            </div>
+                                            <textarea
+                                                value={newTemplateDefinitionText}
+                                                onChange={(e) => setNewTemplateDefinitionText(e.target.value)}
+                                                rows={10}
+                                                placeholder='{\n  "weekday": { ... },\n  "weekend": { ... }\n}'
+                                                required
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none font-mono text-xs"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            className="w-full py-3 rounded-xl font-bold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 shadow-lg"
+                                        >
+                                            Create
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {/* Edit */}
+                                <div className="border border-gray-200 rounded-xl p-4">
+                                    <p className="font-bold text-gray-800 mb-3">Edit Selected Template</p>
+                                    <div className="mb-3">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Selected</label>
+                                        <select
+                                            value={selectedTemplateId}
+                                            onChange={(e) => onSelectTemplate(e.target.value)}
+                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                        >
+                                            <option value="">-- Select template --</option>
+                                            {formTemplates.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <form onSubmit={onUpdateTemplate} className="space-y-3">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                                            <input
+                                                type="text"
+                                                value={editTemplateName}
+                                                onChange={(e) => setEditTemplateName(e.target.value)}
+                                                disabled={!selectedTemplateId}
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none disabled:bg-gray-100"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-1">Definition (JSON)</label>
+                                            <textarea
+                                                value={editTemplateDefinitionText}
+                                                onChange={(e) => setEditTemplateDefinitionText(e.target.value)}
+                                                rows={10}
+                                                disabled={!selectedTemplateId}
+                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none font-mono text-xs disabled:bg-gray-100"
+                                            />
+                                        </div>
+                                        <button
+                                            type="submit"
+                                            disabled={!selectedTemplateId}
+                                            className={`w-full py-3 rounded-xl font-bold text-white transition-all ${
+                                                !selectedTemplateId
+                                                    ? 'bg-gray-400 cursor-not-allowed'
+                                                    : 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg'
+                                            }`}
+                                        >
+                                            Save Changes
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-4">
+                            Tip: To delete the current active form, activate another template first.
+                        </p>
                     </div>
                 )}
             </div>

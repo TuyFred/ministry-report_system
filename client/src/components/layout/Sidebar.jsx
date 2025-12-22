@@ -65,7 +65,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                 </div>
             </div>
 
-            <nav className="flex-1 mt-3 px-3 overflow-y-auto no-scrollbar">
+            <nav className="flex-1 mt-3 px-3 overflow-hidden">
                 {visibleLinks.map((link) => (
                     <Link
                         key={link.path}

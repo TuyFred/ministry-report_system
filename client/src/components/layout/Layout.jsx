@@ -16,7 +16,7 @@ const Layout = ({ children }) => {
             {showSidebar && <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />}
             <div className="flex-1 flex flex-col overflow-hidden min-w-0">
                 <Navbar toggleSidebar={toggleSidebar} showSidebarToggle={showSidebar} />
-                <main className="flex-1 overflow-x-hidden overflow-y-auto no-scrollbar min-w-0">
+                <main className="flex-1 overflow-x-hidden overflow-y-auto min-w-0">
                     {children}
                 </main>
             </div>

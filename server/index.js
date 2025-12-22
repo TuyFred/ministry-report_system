@@ -48,6 +48,7 @@ app.use('/api/auth', require('./routes/authRoutes'));
 // Protected routes (require auth)
 app.use('/api/maintenance', auth, require('./routes/maintenanceRoutes'));
 app.use('/api/reports', auth, require('./routes/reportRoutes'));
+app.use('/api/report-forms', require('./routes/reportFormRoutes'));
 app.use('/api/users', auth, require('./routes/userRoutes'));
 app.use('/api/backup', auth, require('./routes/backupRoutes'));
 
