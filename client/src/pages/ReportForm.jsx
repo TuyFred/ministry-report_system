@@ -282,23 +282,23 @@ const ReportForm = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
-            <div className="max-w-5xl mx-auto pb-8">
+            <div className="max-w-5xl mx-auto pb-6">
                 {/* Header */}
-                <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 sticky top-0 z-10">
-                    <h1 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center gap-3">
+                <div className="bg-white rounded-2xl shadow-xl p-4 mb-4 sticky top-0 z-10">
+                    <h1 className="text-2xl md:text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 flex items-center gap-3">
                         <FaCalendarAlt className="text-indigo-600" />
                         {editReport ? 'Edit Ministry Report' : 'Daily Ministry Report'}
                     </h1>
-                    <p className="text-gray-600 mt-2">
+                    <p className="text-sm text-gray-600 mt-1">
                         {editReport ? 'Update your report details' : 'Fill all fields to submit your report'}
                     </p>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={onSubmit} className="space-y-6">
+                <form onSubmit={onSubmit} className="space-y-4">
                     {/* Date Selection */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaCalendarAlt className="text-indigo-600" />
                             Pick Date to Fill Data
                         </h2>
@@ -308,7 +308,7 @@ const ReportForm = () => {
                             value={formData.date}
                             onChange={onChange}
                             required
-                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-lg"
+                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-base"
                         />
                         {dateWarning && (
                             <div className="mt-3 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded">
@@ -318,14 +318,14 @@ const ReportForm = () => {
                     </div>
 
                     {/* Basic Information */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaUser className="text-indigo-600" />
                             Basic Information
                         </h2>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
                                 <input
                                     type="text"
                                     name="name"
@@ -333,12 +333,12 @@ const ReportForm = () => {
                                     onChange={onChange}
                                     placeholder="Your Full Name"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Country</label>
                                 <div className="relative">
                                     <div className="relative">
                                         <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -352,7 +352,7 @@ const ReportForm = () => {
                                             onFocus={() => setShowCountryDropdown(true)}
                                             placeholder="Search or select a country"
                                             required
-                                            className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            className="w-full pl-11 pr-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                         />
                                     </div>
                                     {showCountryDropdown && filteredCountries.length > 0 && (
@@ -361,7 +361,7 @@ const ReportForm = () => {
                                                 <div
                                                     key={country}
                                                     onClick={() => handleCountrySelect(country)}
-                                                    className="px-4 py-3 hover:bg-indigo-50 cursor-pointer transition-colors"
+                                                    className="px-3 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors text-sm"
                                                 >
                                                     {country}
                                                 </div>
@@ -372,7 +372,7 @@ const ReportForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Church Currently Serving At</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Church Currently Serving At</label>
                                 <input
                                     type="text"
                                     name="church"
@@ -380,21 +380,21 @@ const ReportForm = () => {
                                     onChange={onChange}
                                     placeholder="Church Name"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Ministry Activities */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaUsers className="text-green-600" />
                             Ministry Activities
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Evangelism Hours</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Evangelism Hours</label>
                                 <input
                                     type="number"
                                     name="evangelism_hours"
@@ -404,12 +404,12 @@ const ReportForm = () => {
                                     min="0"
                                     step="0.5"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">People Reached</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">People Reached</label>
                                 <input
                                     type="number"
                                     name="people_reached"
@@ -418,12 +418,12 @@ const ReportForm = () => {
                                     placeholder="Input Number"
                                     min="0"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Contacts Received</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Contacts Received</label>
                                 <input
                                     type="number"
                                     name="contacts_received"
@@ -432,12 +432,12 @@ const ReportForm = () => {
                                     placeholder="Input Number"
                                     min="0"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Newcomers</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Newcomers</label>
                                 <input
                                     type="number"
                                     name="newcomers"
@@ -446,21 +446,21 @@ const ReportForm = () => {
                                     placeholder="Input Number"
                                     min="0"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Bible Study */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaBook className="text-blue-600" />
                             Bible Study
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Bible Study Sessions</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Bible Study Sessions</label>
                                 <input
                                     type="number"
                                     name="bible_study_sessions"
@@ -469,12 +469,12 @@ const ReportForm = () => {
                                     placeholder="Number of Sessions"
                                     min="0"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Bible Study Attendants</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Bible Study Attendants</label>
                                 <input
                                     type="number"
                                     name="bible_study_attendants"
@@ -483,21 +483,21 @@ const ReportForm = () => {
                                     placeholder="Input Number"
                                     min="0"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Spiritual Disciplines */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaPray className="text-purple-600" />
                             Personal Spiritual Discipline
                         </h2>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Bible Reading and Meditation (Hours)</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Bible Reading and Meditation (Hours)</label>
                                 <input
                                     type="number"
                                     name="meditation_hours"
@@ -507,12 +507,12 @@ const ReportForm = () => {
                                     min="0"
                                     step="0.5"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Prayer (Hours)</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Prayer (Hours)</label>
                                 <input
                                     type="number"
                                     name="prayer_hours"
@@ -522,72 +522,72 @@ const ReportForm = () => {
                                     min="0"
                                     step="0.5"
                                     required
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* Service Attendance */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaChurch className="text-orange-600" />
                             Service Attendance
                         </h2>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-3">Regular Service Type(s) - Select all that apply</label>
                             <div className="space-y-3">
-                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
                                         checked={formData.regular_service.includes('No Service Attended')}
                                         onChange={() => onServiceChange('No Service Attended')}
-                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
                                     />
-                                    <span className="text-gray-700 font-medium">No Service Attended</span>
+                                    <span className="text-sm text-gray-700 font-medium">No Service Attended</span>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
                                         checked={formData.regular_service.includes('Morning Service')}
                                         onChange={() => onServiceChange('Morning Service')}
-                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
                                     />
-                                    <span className="text-gray-700 font-medium">Morning Service</span>
+                                    <span className="text-sm text-gray-700 font-medium">Morning Service</span>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
                                         checked={formData.regular_service.includes('Wednesday Weekly Service')}
                                         onChange={() => onServiceChange('Wednesday Weekly Service')}
-                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
                                     />
-                                    <span className="text-gray-700 font-medium">Wednesday Weekly Service</span>
+                                    <span className="text-sm text-gray-700 font-medium">Wednesday Weekly Service</span>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
                                         checked={formData.regular_service.includes('Friday Prayer Meeting')}
                                         onChange={() => onServiceChange('Friday Prayer Meeting')}
-                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
                                     />
-                                    <span className="text-gray-700 font-medium">Friday Prayer Meeting</span>
+                                    <span className="text-sm text-gray-700 font-medium">Friday Prayer Meeting</span>
                                 </label>
-                                <label className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
                                         checked={formData.regular_service.includes('Sunday Service')}
                                         onChange={() => onServiceChange('Sunday Service')}
-                                        className="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                        className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
                                     />
-                                    <span className="text-gray-700 font-medium">Sunday Service</span>
+                                    <span className="text-sm text-gray-700 font-medium">Sunday Service</span>
                                 </label>
                             </div>
                             <p className="text-xs text-gray-500 mt-2">You can select multiple services if you attended more than one.</p>
                         </div>
 
                         <div className="mt-4">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Sermons or Bible Study Listened To</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Sermons or Bible Study Listened To</label>
                             <input
                                 type="number"
                                 name="sermons_listened"
@@ -596,12 +596,12 @@ const ReportForm = () => {
                                 placeholder="Input Number"
                                 min="0"
                                 required
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                             />
                         </div>
 
                         <div className="mt-4">
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">Articles Written</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Articles Written</label>
                             <input
                                 type="number"
                                 name="articles_written"
@@ -610,28 +610,28 @@ const ReportForm = () => {
                                 placeholder="Input Number"
                                 min="0"
                                 required
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                             />
                         </div>
                     </div>
 
                     {/* Other Activities - Optional for all days */}
-                    <div className="bg-white rounded-2xl shadow-lg p-6">
-                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div className="bg-white rounded-2xl shadow-lg p-4">
+                        <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaPen className="text-green-600" />
                             Other Activities (Optional)
                         </h2>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
                                 Any other ministry or personal activities for today
                             </label>
                             <textarea
                                 name="other_activities"
                                 value={formData.other_activities}
                                 onChange={onChange}
-                                rows="4"
+                                rows="3"
                                 placeholder="Describe any other activities, events, or tasks you did today (optional)..."
-                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                             ></textarea>
                             <p className="text-xs text-gray-500 mt-2">This field is optional - fill it only if you have additional activities to report.</p>
                         </div>
@@ -641,16 +641,16 @@ const ReportForm = () => {
                     {isWeekend && (
                         <>
                             {/* Physical Health */}
-                            <div className="bg-white rounded-2xl shadow-lg p-6">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <div className="bg-white rounded-2xl shadow-lg p-4">
+                                <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <FaDumbbell className="text-red-600" />
                                     Physical Health
                                 </h2>
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">Exercise Duration</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Exercise Duration</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-xs font-semibold text-gray-600 mb-2">Hours</label>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Hours</label>
                                             <input
                                                 type="number"
                                                 name="exercise_hours"
@@ -661,11 +661,11 @@ const ReportForm = () => {
                                                 step="1"
                                                 inputMode="numeric"
                                                 required={false}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-xs font-semibold text-gray-600 mb-2">Minutes</label>
+                                            <label className="block text-xs font-semibold text-gray-600 mb-1">Minutes</label>
                                             <input
                                                 type="number"
                                                 name="exercise_minutes"
@@ -677,7 +677,7 @@ const ReportForm = () => {
                                                 step="1"
                                                 inputMode="numeric"
                                                 required={false}
-                                                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                                className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                             />
                                         </div>
                                     </div>
@@ -686,100 +686,100 @@ const ReportForm = () => {
                             </div>
 
                             {/* Reflections */}
-                            <div className="bg-white rounded-2xl shadow-lg p-6">
-                                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <div className="bg-white rounded-2xl shadow-lg p-4">
+                                <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                     <FaPen className="text-pink-600" />
                                     Reflection Thanksgiving and Prayer (Week)
                                 </h2>
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Sermon Reflection</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Sermon Reflection</label>
                                         <textarea
                                             name="sermon_reflection"
                                             value={formData.sermon_reflection}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="Write your sermon reflection..."
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Thanksgiving</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Thanksgiving</label>
                                         <textarea
                                             name="thanksgiving"
                                             value={formData.thanksgiving}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="What are you thankful for today..."
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Repentance/Struggles</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Repentance/Struggles</label>
                                         <textarea
                                             name="repentance"
                                             value={formData.repentance}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="Areas of repentance or struggles..."
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Prayer Requests (no more than three)</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Prayer Requests (no more than three)</label>
                                         <textarea
                                             name="prayer_requests"
                                             value={formData.prayer_requests}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="1. &#10;2. &#10;3. "
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Overall Reflection and Evaluation on the Week</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Overall Reflection and Evaluation on the Week</label>
                                         <textarea
                                             name="reflections"
                                             value={formData.reflections}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="Reflect on your week..."
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">Other Work Done During the Week (e.g., departmental work, attended training, church cleaning...)</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Other Work Done During the Week (e.g., departmental work, attended training, church cleaning...)</label>
                                         <textarea
                                             name="other_work"
                                             value={formData.other_work}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="Describe other work done during the week..."
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">3 Things Must Do Tomorrow / Plan for Next Week</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">3 Things Must Do Tomorrow / Plan for Next Week</label>
                                         <textarea
                                             name="tomorrow_tasks"
                                             value={formData.tomorrow_tasks}
                                             onChange={onChange}
-                                            rows="4"
+                                            rows="3"
                                             placeholder="1. &#10;2. &#10;3. "
                                             required={isWeekend}
-                                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                         ></textarea>
                                     </div>
                                 </div>
@@ -788,16 +788,16 @@ const ReportForm = () => {
                     )}
 
                     {/* Submit Button */}
-                    <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-6">
+                    <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-4">
                         <p className="text-sm text-gray-600 mb-3 text-center">
                             {isFormValid ? '✓ All fields filled - Ready to submit' : '⚠ Button will be active when all input boxes are filled'}
                         </p>
                         <button
                             type="submit"
                             disabled={!isFormValid}
-                            className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                            className={`w-full py-3 rounded-xl font-bold text-base transition-all ${
                                 isFormValid
-                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg transform hover:scale-[1.02]'
+                                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg transform hover:scale-[1.01]'
                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                         >
