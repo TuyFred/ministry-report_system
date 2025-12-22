@@ -210,11 +210,7 @@ const ReportForm = () => {
             regular_service: Array.isArray(formData.regular_service) ? formData.regular_service.join(', ') : formData.regular_service
         };
 
-        // Weekend UX: reuse "Other Activities" as "Other Activities / Plan for Next Week"
-        // Keep server/export compatibility by mirroring into tomorrow_tasks if not provided.
-        if (isWeekend && (!dataToSend.tomorrow_tasks || dataToSend.tomorrow_tasks.trim() === '')) {
-            dataToSend.tomorrow_tasks = (dataToSend.other_activities || '').trim();
-        }
+        // Weekend UX: "Other Activities" and "Plan for Next Week" are separate inputs.
 
         // Remove the individual hour fields that were renamed
         delete dataToSend.meditation_hours;
@@ -660,27 +656,46 @@ const ReportForm = () => {
                     <div className="bg-white rounded-2xl shadow-lg p-4">
                         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaPen className="text-green-600" />
-                            {isWeekend ? 'Other Activities (Optional, Plan for Next Week)' : 'Other Activities (Optional)'}
+                            Other Activities (Optional)
                         </h2>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                {isWeekend
-                                    ? 'Other activities (optional) and/or your plan for next week'
-                                    : 'Any other ministry or personal activities for today'}
+                                Any other ministry or personal activities for today
                             </label>
                             <textarea
                                 name="other_activities"
                                 value={formData.other_activities}
                                 onChange={onChange}
                                 rows="3"
-                                placeholder={isWeekend
-                                    ? 'Write other activities (optional) and your plan for next week (optional)...'
-                                    : 'Describe any other activities, events, or tasks you did today (optional)...'}
+                                placeholder="Describe any other activities, events, or tasks you did today (optional)..."
                                 className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                             ></textarea>
                             <p className="text-xs text-gray-500 mt-2">This field is optional - fill it only if you have additional activities to report.</p>
                         </div>
                     </div>
+
+                    {/* Weekend: Plan for Next Week (separate input) */}
+                    {isWeekend && (
+                        <div className="bg-white rounded-2xl shadow-lg p-4">
+                            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <FaPen className="text-indigo-600" />
+                                Plan for Next Week (Optional)
+                            </h2>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                    What you plan to do next week
+                                </label>
+                                <textarea
+                                    name="tomorrow_tasks"
+                                    value={formData.tomorrow_tasks}
+                                    onChange={onChange}
+                                    rows="3"
+                                    placeholder="1. \n2. \n3. "
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                ></textarea>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Submit Button */}
                     <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-4">
