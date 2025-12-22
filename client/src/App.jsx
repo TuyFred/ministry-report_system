@@ -18,6 +18,7 @@ import ResetPasswordAdmin from './pages/ResetPasswordAdmin';
 import MaintenanceMode from './pages/MaintenanceMode';
 import SystemBackup from './pages/SystemBackup';
 import MaintenancePage from './pages/MaintenancePage';
+import ReportManager from './pages/ReportManager';
 import Layout from './components/layout/Layout';
 import axios from 'axios';
 
@@ -118,6 +119,11 @@ function App() {
           <Route path="/system-backup" element={
             <PrivateRoute>
               <SystemBackup />
+            </PrivateRoute>
+          } />
+          <Route path="/report-manager" element={
+            <PrivateRoute>
+              <ReportManager />
             </PrivateRoute>
           } />
         </Routes>

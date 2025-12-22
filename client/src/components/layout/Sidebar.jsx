@@ -15,6 +15,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         { name: 'Weekly Report', path: '/weekly-report', icon: <FaCalendarWeek />, roles: ['member'] },
         { name: 'Monthly Report', path: '/monthly-report', icon: <FaCalendarAlt />, roles: ['member'] },
         { name: 'All Reports', path: '/reports', icon: <FaFileAlt />, roles: ['admin', 'leader'] },
+        { name: 'Report Manager', path: '/report-manager', icon: <FaFileAlt />, roles: ['admin'] },
         { name: 'Members', path: '/members', icon: <FaUsers />, roles: ['admin', 'leader'] },
         { name: 'Analytics', path: '/analytics', icon: <FaChartBar />, roles: ['admin', 'leader'] },
         { name: 'Reset Password', path: '/reset-password-admin', icon: <FaKey />, roles: ['admin'] },
