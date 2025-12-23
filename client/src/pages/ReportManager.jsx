@@ -1,7 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FaCheckCircle, FaFileAlt } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { API_URL } from '../utils/api';
 
@@ -140,7 +139,6 @@ const SectionPreview = ({ title, children }) => (
 
 const ReportManager = () => {
     const { user } = useContext(AuthContext);
-    const navigate = useNavigate();
 
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -154,55 +152,6 @@ const ReportManager = () => {
     const [editDraft, setEditDraft] = useState(() => normalizeDefinition({}));
 
     const [previewMode, setPreviewMode] = useState('weekend');
-
-    const [reports, setReports] = useState([]);
-    const [reportsLoading, setReportsLoading] = useState(false);
-    const [reportsMessage, setReportsMessage] = useState({ type: '', text: '' });
-
-    const fetchReports = async () => {
-        setReportsLoading(true);
-        setReportsMessage({ type: '', text: '' });
-        try {
-            const token = localStorage.getItem('token');
-            const end = new Date();
-            const start = new Date();
-            start.setDate(end.getDate() - 30);
-
-            const res = await axios.get(`${API_URL}/api/reports`, {
-                headers: { 'x-auth-token': token },
-                params: {
-                    startDate: start.toISOString().split('T')[0],
-                    endDate: end.toISOString().split('T')[0]
-                }
-            });
-            setReports(Array.isArray(res.data) ? res.data : []);
-        } catch (err) {
-            console.error(err);
-            setReportsMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to load reports' });
-        } finally {
-            setReportsLoading(false);
-        }
-    };
-
-    const onEditReport = (report) => {
-        navigate('/report-form', { state: { editReport: report } });
-    };
-
-    const onDeleteReport = async (reportId) => {
-        const ok = window.confirm('Delete this report? This cannot be undone.');
-        if (!ok) return;
-        try {
-            const token = localStorage.getItem('token');
-            await axios.delete(`${API_URL}/api/reports/${reportId}`, {
-                headers: { 'x-auth-token': token }
-            });
-            setReportsMessage({ type: 'success', text: 'Report deleted' });
-            await fetchReports();
-        } catch (err) {
-            console.error(err);
-            setReportsMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to delete report' });
-        }
-    };
 
     const fetchTemplates = async () => {
         setLoading(true);
@@ -349,7 +298,6 @@ const ReportManager = () => {
     useEffect(() => {
         if (user?.role === 'admin') {
             fetchTemplates();
-            fetchReports();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.role]);
@@ -404,13 +352,6 @@ const ReportManager = () => {
                             className="px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
                         >
                             Preview
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => scrollToId('rm-reports-admin')}
-                            className="px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
-                        >
-                            Reports
                         </button>
                     </div>
                 </div>
@@ -965,80 +906,6 @@ const ReportManager = () => {
                             </div>
                         </div>
 
-                        {/* Reports */}
-                        <div id="rm-reports-admin" className="bg-white rounded-2xl shadow-lg p-6">
-                            <div className="flex items-center justify-between gap-3 mb-4">
-                                <h2 className="text-xl font-bold text-gray-800">Reports (Admin)</h2>
-                                <button
-                                    type="button"
-                                    onClick={fetchReports}
-                                    disabled={reportsLoading}
-                                    className="px-3 py-2 text-sm font-semibold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
-                                >
-                                    {reportsLoading ? 'Loading...' : 'Refresh (last 30 days)'}
-                                </button>
-                            </div>
-
-                            {reportsMessage.text && (
-                                <div className={`mb-4 p-3 rounded-xl text-sm ${
-                                    reportsMessage.type === 'success'
-                                        ? 'bg-green-50 text-green-800 border border-green-200'
-                                        : 'bg-red-50 text-red-800 border border-red-200'
-                                }`}>
-                                    {reportsMessage.text}
-                                </div>
-                            )}
-
-                            {reports.length === 0 ? (
-                                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 text-sm text-gray-700">
-                                    No reports found in the last 30 days.
-                                </div>
-                            ) : (
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="bg-gray-50">
-                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Date</th>
-                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Member</th>
-                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Country</th>
-                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Church</th>
-                                                <th className="px-3 py-2 text-right text-xs font-bold text-gray-700">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {reports.map((r) => (
-                                                <tr key={r.id} className="border-t border-gray-100">
-                                                    <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">{r.date}</td>
-                                                    <td className="px-3 py-2 text-sm text-gray-800">{r.User?.fullname || r.name || 'N/A'}</td>
-                                                    <td className="px-3 py-2 text-sm text-gray-700">{r.User?.country || r.country || 'N/A'}</td>
-                                                    <td className="px-3 py-2 text-sm text-gray-700">{r.church || 'N/A'}</td>
-                                                    <td className="px-3 py-2 text-right whitespace-nowrap">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => onEditReport(r)}
-                                                            className="px-3 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
-                                                        >
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => onDeleteReport(r.id)}
-                                                            className="ml-2 px-3 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700"
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
-
-                            <p className="text-xs text-gray-500 mt-3">
-                                Edit opens the Daily Ministry Report form with the report loaded.
-                            </p>
-                        </div>
                     </div>
                 </div>
             </div>
