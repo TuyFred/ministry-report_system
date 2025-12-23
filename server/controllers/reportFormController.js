@@ -29,8 +29,36 @@ const defaultDefinition = {
         ],
         requiredFields: [
             'date', 'name', 'country', 'church',
+            'regular_service',
             'sermon_reflection'
         ]
+    },
+    // Optional UI metadata used by the client to render labels/placeholders.
+    // Backwards compatible: if missing, client falls back to built-in defaults.
+    fields: {
+        date: { label: 'Pick Date to Fill Data', placeholder: '' },
+        name: { label: 'Name', placeholder: 'Your Full Name' },
+        country: { label: 'Country', placeholder: 'Search or select a country' },
+        church: { label: 'Church Currently Serving At', placeholder: 'Church Name' },
+
+        evangelism_hours: { label: 'Evangelism Hours', placeholder: 'Enter Hours' },
+        people_reached: { label: 'People Reached', placeholder: 'Input Number' },
+        contacts_received: { label: 'Contacts Received', placeholder: 'Input Number' },
+        newcomers: { label: 'Newcomers', placeholder: 'Input Number' },
+
+        bible_study_sessions: { label: 'Bible Study Sessions', placeholder: 'Number of Sessions' },
+        bible_study_attendants: { label: 'Bible Study Attendants', placeholder: 'Input Number' },
+
+        meditation_hours: { label: 'Bible Reading and Meditation (Hours)', placeholder: 'Enter Hours' },
+        prayer_hours: { label: 'Prayer (Hours)', placeholder: 'Enter Hours' },
+
+        regular_service: { label: 'Regular Service Type(s) - Select all that apply', placeholder: '' },
+        sermons_listened: { label: 'Sermons or Bible Study Listened To', placeholder: 'Input Number' },
+        articles_written: { label: 'Articles Written', placeholder: 'Input Number' },
+
+        sermon_reflection: { label: 'Sunday Service Core Message', placeholder: 'Write the main points / core message...' },
+        other_activities: { label: 'Other Activities (Optional)', placeholder: 'Describe any other activities, events, or tasks you did today (optional)...' },
+        tomorrow_tasks: { label: 'Plan for Next Week (Optional)', placeholder: '1. \n2. \n3. ' }
     }
 };
 

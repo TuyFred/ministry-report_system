@@ -72,9 +72,24 @@ const ReportForm = () => {
         ],
         requiredFields: [
             'date', 'name', 'country', 'church',
+            'regular_service',
             'sermon_reflection'
         ]
     }), []);
+
+    const fieldMeta = useMemo(() => {
+        return activeTemplate?.definition?.fields || {};
+    }, [activeTemplate]);
+
+    const getLabel = (key, fallback) => {
+        const v = fieldMeta?.[key]?.label;
+        return typeof v === 'string' && v.trim() ? v : fallback;
+    };
+
+    const getPlaceholder = (key, fallback) => {
+        const v = fieldMeta?.[key]?.placeholder;
+        return typeof v === 'string' ? v : fallback;
+    };
 
     const dayConfig = useMemo(() => {
         const def = activeTemplate?.definition;
@@ -198,6 +213,9 @@ const ReportForm = () => {
 
         const allRequiredFilled = requiredFields.every(field => {
             const value = formData[field];
+            if (Array.isArray(value)) {
+                return value.length > 0;
+            }
             return value !== '' && value !== null && value !== undefined;
         });
 
@@ -381,20 +399,20 @@ const ReportForm = () => {
                         </h2>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('name', 'Name')}</label>
                                 <input
                                     type="text"
                                     name="name"
                                     value={formData.name}
                                     onChange={onChange}
-                                    placeholder="Your Full Name"
+                                    placeholder={getPlaceholder('name', 'Your Full Name')}
                                     required
                                     className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Country</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('country', 'Country')}</label>
                                 <div className="relative">
                                     <div className="relative">
                                         <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
@@ -406,7 +424,7 @@ const ReportForm = () => {
                                                 setShowCountryDropdown(true);
                                             }}
                                             onFocus={() => setShowCountryDropdown(true)}
-                                            placeholder="Search or select a country"
+                                            placeholder={getPlaceholder('country', 'Search or select a country')}
                                             required
                                             className="w-full pl-11 pr-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                         />
@@ -428,13 +446,13 @@ const ReportForm = () => {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">Church Currently Serving At</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('church', 'Church Currently Serving At')}</label>
                                 <input
                                     type="text"
                                     name="church"
                                     value={formData.church}
                                     onChange={onChange}
-                                    placeholder="Church Name"
+                                    placeholder={getPlaceholder('church', 'Church Name')}
                                     required
                                     className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />
@@ -452,13 +470,13 @@ const ReportForm = () => {
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Evangelism Hours</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('evangelism_hours', 'Evangelism Hours')}</label>
                                         <input
                                             type="number"
                                             name="evangelism_hours"
                                             value={formData.evangelism_hours}
                                             onChange={onChange}
-                                            placeholder="Enter Hours"
+                                            placeholder={getPlaceholder('evangelism_hours', 'Enter Hours')}
                                             min="0"
                                             step="0.5"
                                             required
@@ -467,13 +485,13 @@ const ReportForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">People Reached</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('people_reached', 'People Reached')}</label>
                                         <input
                                             type="number"
                                             name="people_reached"
                                             value={formData.people_reached}
                                             onChange={onChange}
-                                            placeholder="Input Number"
+                                            placeholder={getPlaceholder('people_reached', 'Input Number')}
                                             min="0"
                                             required
                                             className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -481,13 +499,13 @@ const ReportForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Contacts Received</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('contacts_received', 'Contacts Received')}</label>
                                         <input
                                             type="number"
                                             name="contacts_received"
                                             value={formData.contacts_received}
                                             onChange={onChange}
-                                            placeholder="Input Number"
+                                            placeholder={getPlaceholder('contacts_received', 'Input Number')}
                                             min="0"
                                             required
                                             className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -495,13 +513,13 @@ const ReportForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Newcomers</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('newcomers', 'Newcomers')}</label>
                                         <input
                                             type="number"
                                             name="newcomers"
                                             value={formData.newcomers}
                                             onChange={onChange}
-                                            placeholder="Input Number"
+                                            placeholder={getPlaceholder('newcomers', 'Input Number')}
                                             min="0"
                                             required
                                             className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -519,13 +537,13 @@ const ReportForm = () => {
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Bible Study Sessions</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('bible_study_sessions', 'Bible Study Sessions')}</label>
                                         <input
                                             type="number"
                                             name="bible_study_sessions"
                                             value={formData.bible_study_sessions}
                                             onChange={onChange}
-                                            placeholder="Number of Sessions"
+                                            placeholder={getPlaceholder('bible_study_sessions', 'Number of Sessions')}
                                             min="0"
                                             required
                                             className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -533,13 +551,13 @@ const ReportForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Bible Study Attendants</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('bible_study_attendants', 'Bible Study Attendants')}</label>
                                         <input
                                             type="number"
                                             name="bible_study_attendants"
                                             value={formData.bible_study_attendants}
                                             onChange={onChange}
-                                            placeholder="Input Number"
+                                            placeholder={getPlaceholder('bible_study_attendants', 'Input Number')}
                                             min="0"
                                             required
                                             className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -558,13 +576,13 @@ const ReportForm = () => {
                                 </h2>
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Bible Reading and Meditation (Hours)</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('meditation_hours', 'Bible Reading and Meditation (Hours)')}</label>
                                         <input
                                             type="number"
                                             name="meditation_hours"
                                             value={formData.meditation_hours}
                                             onChange={onChange}
-                                            placeholder="Enter Hours"
+                                            placeholder={getPlaceholder('meditation_hours', 'Enter Hours')}
                                             min="0"
                                             step="0.5"
                                             required
@@ -573,13 +591,13 @@ const ReportForm = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">Prayer (Hours)</label>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('prayer_hours', 'Prayer (Hours)')}</label>
                                         <input
                                             type="number"
                                             name="prayer_hours"
                                             value={formData.prayer_hours}
                                             onChange={onChange}
-                                            placeholder="Enter Hours"
+                                            placeholder={getPlaceholder('prayer_hours', 'Enter Hours')}
                                             min="0"
                                             step="0.5"
                                             required
@@ -600,7 +618,7 @@ const ReportForm = () => {
                             Service Attendance
                         </h2>
                         <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-3">Regular Service Type(s) - Select all that apply</label>
+                            <label className="block text-sm font-semibold text-gray-700 mb-3">{getLabel('regular_service', 'Regular Service Type(s) - Select all that apply')}</label>
                             <div className="space-y-3">
                                 <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
@@ -654,13 +672,13 @@ const ReportForm = () => {
                         {showSection('serviceAttendanceExtras') && (
                             <>
                                 <div className="mt-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Sermons or Bible Study Listened To</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('sermons_listened', 'Sermons or Bible Study Listened To')}</label>
                                     <input
                                         type="number"
                                         name="sermons_listened"
                                         value={formData.sermons_listened}
                                         onChange={onChange}
-                                        placeholder="Input Number"
+                                        placeholder={getPlaceholder('sermons_listened', 'Input Number')}
                                         min="0"
                                         required
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -668,13 +686,13 @@ const ReportForm = () => {
                                 </div>
 
                                 <div className="mt-4">
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Articles Written</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('articles_written', 'Articles Written')}</label>
                                     <input
                                         type="number"
                                         name="articles_written"
                                         value={formData.articles_written}
                                         onChange={onChange}
-                                        placeholder="Input Number"
+                                        placeholder={getPlaceholder('articles_written', 'Input Number')}
                                         min="0"
                                         required
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
@@ -690,7 +708,7 @@ const ReportForm = () => {
                         <div className="bg-white rounded-2xl shadow-lg p-4">
                             <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <FaPen className="text-pink-600" />
-                                Sunday Service Core Message
+                                {getLabel('sermon_reflection', 'Sunday Service Core Message')}
                             </h2>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -701,7 +719,7 @@ const ReportForm = () => {
                                     value={formData.sermon_reflection}
                                     onChange={onChange}
                                     rows="4"
-                                    placeholder="Write the main points / core message..."
+                                    placeholder={getPlaceholder('sermon_reflection', 'Write the main points / core message...')}
                                     required={isWeekend}
                                     className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                 ></textarea>
@@ -714,7 +732,7 @@ const ReportForm = () => {
                     <div className="bg-white rounded-2xl shadow-lg p-4">
                         <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                             <FaPen className="text-green-600" />
-                            Other Activities (Optional)
+                            {getLabel('other_activities', 'Other Activities (Optional)')}
                         </h2>
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -725,7 +743,7 @@ const ReportForm = () => {
                                 value={formData.other_activities}
                                 onChange={onChange}
                                 rows="3"
-                                placeholder="Describe any other activities, events, or tasks you did today (optional)..."
+                                placeholder={getPlaceholder('other_activities', 'Describe any other activities, events, or tasks you did today (optional)...')}
                                 className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                             ></textarea>
                             <p className="text-xs text-gray-500 mt-2">This field is optional - fill it only if you have additional activities to report.</p>
@@ -738,7 +756,7 @@ const ReportForm = () => {
                         <div className="bg-white rounded-2xl shadow-lg p-4">
                             <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <FaPen className="text-indigo-600" />
-                                Plan for Next Week (Optional)
+                                {getLabel('tomorrow_tasks', 'Plan for Next Week (Optional)')}
                             </h2>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -749,7 +767,7 @@ const ReportForm = () => {
                                     value={formData.tomorrow_tasks}
                                     onChange={onChange}
                                     rows="3"
-                                    placeholder="1. \n2. \n3. "
+                                    placeholder={getPlaceholder('tomorrow_tasks', '1. \n2. \n3. ')}
                                     className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                 ></textarea>
                             </div>

@@ -14,6 +14,85 @@ const initBackupDirectory = () => {
     }
 };
 
+const escapeSqlString = (value) => {
+    return String(value)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "''")
+        .replace(/\u0000/g, '');
+};
+
+const quoteIdent = (ident) => {
+    return `"${String(ident).replace(/"/g, '""')}"`;
+};
+
+const tableNameSql = (model) => {
+    const tn = typeof model.getTableName === 'function' ? model.getTableName() : model.tableName;
+    if (typeof tn === 'string') return quoteIdent(tn);
+    if (tn && typeof tn === 'object') {
+        const name = quoteIdent(tn.tableName);
+        return tn.schema ? `${quoteIdent(tn.schema)}.${name}` : name;
+    }
+    return quoteIdent(String(tn));
+};
+
+const sqlLiteral = (value, attributeType) => {
+    if (value === null || value === undefined) return 'NULL';
+
+    if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE';
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+
+    // Dates
+    if (value instanceof Date) {
+        // Use ISO; Postgres accepts this
+        return `'${escapeSqlString(value.toISOString())}'`;
+    }
+
+    // JSON/JSONB
+    const typeKey = attributeType?.key || attributeType?.constructor?.key;
+    const isJson = typeKey === 'JSON' || typeKey === 'JSONB';
+    if (isJson || (typeof value === 'object' && value !== null)) {
+        const json = JSON.stringify(value);
+        const cast = typeKey === 'JSONB' ? '::jsonb' : '::json';
+        return `'${escapeSqlString(json)}'${cast}`;
+    }
+
+    // Default: string
+    return `'${escapeSqlString(value)}'`;
+};
+
+const buildInsertStatements = (model, rows) => {
+    const attributes = model.rawAttributes || {};
+    const columns = Object.keys(attributes);
+    const tableSql = tableNameSql(model);
+    const lines = [];
+
+    for (const row of rows) {
+        const colSql = columns.map(quoteIdent).join(', ');
+        const valuesSql = columns
+            .map((col) => sqlLiteral(row[col], attributes[col]?.type))
+            .join(', ');
+        lines.push(`INSERT INTO ${tableSql} (${colSql}) VALUES (${valuesSql});`);
+    }
+
+    return lines;
+};
+
+const buildSequenceFix = (model) => {
+    const attributes = model.rawAttributes || {};
+    if (!attributes.id) return [];
+
+    // Only attempt to adjust sequences for integer auto-increment IDs
+    const idTypeKey = attributes.id.type?.key || attributes.id.type?.constructor?.key;
+    if (idTypeKey !== 'INTEGER') return [];
+
+    const tableSql = tableNameSql(model);
+    const tableNameForFn = tableSql; // already quoted and schema-qualified if needed
+
+    return [
+        `SELECT setval(pg_get_serial_sequence('${escapeSqlString(tableNameForFn)}', 'id'), COALESCE((SELECT MAX(${quoteIdent('id')}) FROM ${tableSql}), 0) + 1, false);`
+    ];
+};
+
 // Get backup history
 const getBackupHistory = async (req, res) => {
     try {
@@ -27,7 +106,8 @@ const getBackupHistory = async (req, res) => {
         // Read all files in backup directory
         const files = fs.readdirSync(backupDir);
         const backups = files
-            .filter(file => file.endsWith('.sql') || file.endsWith('.json'))
+            // Keep UI focused on SQL backups only
+            .filter(file => file.endsWith('.sql'))
             .map(file => {
                 const filePath = path.join(backupDir, file);
                 const stats = fs.statSync(filePath);
@@ -83,36 +163,73 @@ const createBackup = async (req, res) => {
                     downloadUrl: `/api/backup/download/${filename}`
                 });
             } catch (cmdError) {
-                console.error('Error executing pg_dump backup command; falling back to JSON backup:', cmdError);
+                console.error('Error executing pg_dump backup command; falling back to SQL-from-data backup:', cmdError);
             }
         }
 
-        // Fallback: Create a JSON backup of Sequelize models (works with DATABASE_URL-only setups)
+        // Fallback: Generate a Postgres-compatible SQL file using Sequelize data.
+        // This works even in DATABASE_URL-only environments where pg_dump isn't installed.
         const User = require('../models/User');
         const Report = require('../models/Report');
         const Attachment = require('../models/Attachment');
+        const ReportFormTemplate = require('../models/ReportFormTemplate');
 
-        const [users, reports, attachments] = await Promise.all([
-            User.findAll(),
-            Report.findAll(),
-            Attachment.findAll()
+        const [users, reports, attachments, templates] = await Promise.all([
+            User.findAll({ raw: true, order: [['id', 'ASC']] }),
+            Report.findAll({ raw: true, order: [['id', 'ASC']] }),
+            Attachment.findAll({ raw: true, order: [['id', 'ASC']] }),
+            ReportFormTemplate.findAll({ raw: true, order: [['id', 'ASC']] })
         ]);
 
-        const backupData = {
-            timestamp: new Date().toISOString(),
-            users: users.map(u => u.toJSON()),
-            reports: reports.map(r => r.toJSON()),
-            attachments: attachments.map(a => a.toJSON())
-        };
+        const lines = [];
+        lines.push('-- Ministry Report System SQL Backup');
+        lines.push(`-- Generated at: ${new Date().toISOString()}`);
+        lines.push('');
+        lines.push('BEGIN;');
+        lines.push('');
 
-        const jsonFilename = `backup_${timestamp}.json`;
-        const jsonFilePath = path.join(backupDir, jsonFilename);
-        fs.writeFileSync(jsonFilePath, JSON.stringify(backupData, null, 2));
+        // Truncate in dependency-safe order
+        lines.push(`TRUNCATE TABLE ${tableNameSql(Attachment)}, ${tableNameSql(Report)}, ${tableNameSql(ReportFormTemplate)}, ${tableNameSql(User)} RESTART IDENTITY CASCADE;`);
+        lines.push('');
+
+        if (users.length) {
+            lines.push(`-- Users (${users.length})`);
+            lines.push(...buildInsertStatements(User, users));
+            lines.push('');
+        }
+        if (reports.length) {
+            lines.push(`-- Reports (${reports.length})`);
+            lines.push(...buildInsertStatements(Report, reports));
+            lines.push('');
+        }
+        if (attachments.length) {
+            lines.push(`-- Attachments (${attachments.length})`);
+            lines.push(...buildInsertStatements(Attachment, attachments));
+            lines.push('');
+        }
+        if (templates.length) {
+            lines.push(`-- Report Form Templates (${templates.length})`);
+            lines.push(...buildInsertStatements(ReportFormTemplate, templates));
+            lines.push('');
+        }
+
+        // Fix sequences so future inserts don't collide
+        lines.push('-- Sequence fixes');
+        lines.push(...buildSequenceFix(User));
+        lines.push(...buildSequenceFix(Report));
+        lines.push(...buildSequenceFix(Attachment));
+        lines.push(...buildSequenceFix(ReportFormTemplate));
+        lines.push('');
+
+        lines.push('COMMIT;');
+        lines.push('');
+
+        fs.writeFileSync(filePath, lines.join('\n'), 'utf8');
 
         return res.json({
-            msg: 'Backup created successfully (JSON format)',
-            filename: jsonFilename,
-            downloadUrl: `/api/backup/download/${jsonFilename}`
+            msg: 'Backup created successfully (SQL format)',
+            filename,
+            downloadUrl: `/api/backup/download/${filename}`
         });
     } catch (error) {
         console.error('Error creating backup:', error);

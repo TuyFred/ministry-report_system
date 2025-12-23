@@ -1,8 +1,14 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { FaCheckCircle, FaFileAlt } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { API_URL } from '../utils/api';
+
+const scrollToId = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
 
 const SECTION_DEFS = [
     { key: 'ministryActivities', label: 'Ministry Activities' },
@@ -23,18 +29,52 @@ const FIELD_DEFS = [
     { key: 'evangelism_hours', label: 'Evangelism Hours' },
     { key: 'people_reached', label: 'People Reached' },
     { key: 'contacts_received', label: 'Contacts Received' },
+    { key: 'newcomers', label: 'Newcomers' },
     { key: 'bible_study_sessions', label: 'Bible Study Sessions' },
     { key: 'bible_study_attendants', label: 'Bible Study Attendants' },
-    { key: 'newcomers', label: 'Newcomers' },
-    { key: 'meditation_hours', label: 'Meditation Hours' },
-    { key: 'prayer_hours', label: 'Prayer Hours' },
+    { key: 'meditation_hours', label: 'Bible Reading and Meditation (Hours)' },
+    { key: 'prayer_hours', label: 'Prayer (Hours)' },
     { key: 'regular_service', label: 'Service Attendance' },
     { key: 'sermons_listened', label: 'Sermons Listened' },
     { key: 'articles_written', label: 'Articles Written' },
-    { key: 'sermon_reflection', label: 'Sunday Core Message' },
+    { key: 'sermon_reflection', label: 'Sunday Service Core Message' },
     { key: 'other_activities', label: 'Other Activities' },
     { key: 'tomorrow_tasks', label: 'Plan for Next Week' }
 ];
+
+const DEFAULT_FIELD_META = {
+    name: { label: 'Name', placeholder: 'Your Full Name' },
+    country: { label: 'Country', placeholder: 'Search or select a country' },
+    church: { label: 'Church Currently Serving At', placeholder: 'Church Name' },
+    evangelism_hours: { label: 'Evangelism Hours', placeholder: 'Enter Hours' },
+    people_reached: { label: 'People Reached', placeholder: 'Input Number' },
+    contacts_received: { label: 'Contacts Received', placeholder: 'Input Number' },
+    newcomers: { label: 'Newcomers', placeholder: 'Input Number' },
+    bible_study_sessions: { label: 'Bible Study Sessions', placeholder: 'Number of Sessions' },
+    bible_study_attendants: { label: 'Bible Study Attendants', placeholder: 'Input Number' },
+    meditation_hours: { label: 'Bible Reading and Meditation (Hours)', placeholder: 'Enter Hours' },
+    prayer_hours: { label: 'Prayer (Hours)', placeholder: 'Enter Hours' },
+    regular_service: { label: 'Regular Service Type(s) - Select all that apply', placeholder: '' },
+    sermons_listened: { label: 'Sermons or Bible Study Listened To', placeholder: 'Input Number' },
+    articles_written: { label: 'Articles Written', placeholder: 'Input Number' },
+    sermon_reflection: { label: 'Sunday Service Core Message', placeholder: 'Write the main points / core message...' },
+    other_activities: { label: 'Other Activities (Optional)', placeholder: 'Describe any other activities, events, or tasks you did today (optional)...' },
+    tomorrow_tasks: { label: 'Plan for Next Week (Optional)', placeholder: '1. \n2. \n3. ' }
+};
+
+const normalizeFields = (fields) => {
+    const src = fields && typeof fields === 'object' ? fields : {};
+    const out = { ...DEFAULT_FIELD_META };
+    for (const key of Object.keys(src)) {
+        const v = src[key];
+        if (!v || typeof v !== 'object') continue;
+        out[key] = {
+            label: typeof v.label === 'string' ? v.label : (out[key]?.label || ''),
+            placeholder: typeof v.placeholder === 'string' ? v.placeholder : (out[key]?.placeholder || '')
+        };
+    }
+    return out;
+};
 
 const normalizeDefinition = (def) => {
     const weekday = def?.weekday || {};
@@ -47,7 +87,8 @@ const normalizeDefinition = (def) => {
         weekend: {
             visibleSections: Array.isArray(weekend.visibleSections) ? weekend.visibleSections : [],
             requiredFields: Array.isArray(weekend.requiredFields) ? weekend.requiredFields : []
-        }
+        },
+        fields: normalizeFields(def?.fields)
     };
 };
 
@@ -64,29 +105,42 @@ const buildDefinition = (draft) => ({
     weekend: {
         visibleSections: draft.weekend.visibleSections,
         requiredFields: draft.weekend.requiredFields
-    }
+    },
+    fields: normalizeFields(draft.fields)
 });
 
-const SectionPreview = ({ title, lines }) => (
+const PreviewField = ({ label, placeholder, isTextarea }) => (
+    <div className="flex items-start justify-between gap-3">
+        <span className="text-sm text-gray-700">{label}</span>
+        {isTextarea ? (
+            <textarea
+                disabled
+                rows={2}
+                className="w-56 px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-sm resize-none"
+                placeholder={placeholder || '(preview)'}
+            />
+        ) : (
+            <input
+                disabled
+                className="w-56 px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-sm"
+                placeholder={placeholder || '(preview)'}
+            />
+        )}
+    </div>
+);
+
+const SectionPreview = ({ title, children }) => (
     <div className="border border-gray-200 rounded-xl p-4 bg-white">
         <h4 className="font-bold text-gray-900 mb-2">{title}</h4>
         <div className="grid grid-cols-1 gap-2">
-            {lines.map((l) => (
-                <div key={l} className="flex items-center justify-between gap-3">
-                    <span className="text-sm text-gray-700">{l}</span>
-                    <input
-                        disabled
-                        className="w-44 px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-sm"
-                        placeholder="(preview)"
-                    />
-                </div>
-            ))}
+            {children}
         </div>
     </div>
 );
 
 const ReportManager = () => {
     const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
 
     const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -100,6 +154,55 @@ const ReportManager = () => {
     const [editDraft, setEditDraft] = useState(() => normalizeDefinition({}));
 
     const [previewMode, setPreviewMode] = useState('weekend');
+
+    const [reports, setReports] = useState([]);
+    const [reportsLoading, setReportsLoading] = useState(false);
+    const [reportsMessage, setReportsMessage] = useState({ type: '', text: '' });
+
+    const fetchReports = async () => {
+        setReportsLoading(true);
+        setReportsMessage({ type: '', text: '' });
+        try {
+            const token = localStorage.getItem('token');
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 30);
+
+            const res = await axios.get(`${API_URL}/api/reports`, {
+                headers: { 'x-auth-token': token },
+                params: {
+                    startDate: start.toISOString().split('T')[0],
+                    endDate: end.toISOString().split('T')[0]
+                }
+            });
+            setReports(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error(err);
+            setReportsMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to load reports' });
+        } finally {
+            setReportsLoading(false);
+        }
+    };
+
+    const onEditReport = (report) => {
+        navigate('/report-form', { state: { editReport: report } });
+    };
+
+    const onDeleteReport = async (reportId) => {
+        const ok = window.confirm('Delete this report? This cannot be undone.');
+        if (!ok) return;
+        try {
+            const token = localStorage.getItem('token');
+            await axios.delete(`${API_URL}/api/reports/${reportId}`, {
+                headers: { 'x-auth-token': token }
+            });
+            setReportsMessage({ type: 'success', text: 'Report deleted' });
+            await fetchReports();
+        } catch (err) {
+            console.error(err);
+            setReportsMessage({ type: 'error', text: err.response?.data?.msg || 'Failed to delete report' });
+        }
+    };
 
     const fetchTemplates = async () => {
         setLoading(true);
@@ -219,6 +322,20 @@ const ReportManager = () => {
         return selectedId ? editDraft : newDraft;
     }, [selectedId, editDraft, newDraft]);
 
+    const fieldText = useMemo(() => {
+        const fields = previewDraft?.fields || {};
+        return {
+            label: (k, fallback) => {
+                const v = fields?.[k]?.label;
+                return typeof v === 'string' && v.trim() ? v : fallback;
+            },
+            placeholder: (k, fallback) => {
+                const v = fields?.[k]?.placeholder;
+                return typeof v === 'string' ? v : fallback;
+            }
+        };
+    }, [previewDraft]);
+
     const previewConfig = useMemo(() => {
         return previewMode === 'weekend' ? previewDraft.weekend : previewDraft.weekday;
     }, [previewDraft, previewMode]);
@@ -232,6 +349,7 @@ const ReportManager = () => {
     useEffect(() => {
         if (user?.role === 'admin') {
             fetchTemplates();
+            fetchReports();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user?.role]);
@@ -263,6 +381,37 @@ const ReportManager = () => {
                     <div className="mt-4 bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
                         <p className="text-sm text-gray-600">Currently Active Form</p>
                         <p className="text-lg font-bold text-gray-900">{activeTemplate ? activeTemplate.name : 'None (will auto-create Default)'}</p>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => scrollToId('rm-create-template')}
+                            className="px-3 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                        >
+                            Create Template
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => scrollToId('rm-edit-template')}
+                            className="px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
+                        >
+                            Edit Template
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => scrollToId('rm-form-preview')}
+                            className="px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
+                        >
+                            Preview
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => scrollToId('rm-reports-admin')}
+                            className="px-3 py-2 text-xs font-bold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
+                        >
+                            Reports
+                        </button>
                     </div>
                 </div>
 
@@ -341,7 +490,7 @@ const ReportManager = () => {
                     {/* Create + Edit */}
                     <div className="space-y-6">
                         {/* Create */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <div id="rm-create-template" className="bg-white rounded-2xl shadow-lg p-6">
                             <h2 className="text-xl font-bold text-gray-800 mb-4">Create New Template</h2>
                             <form onSubmit={onCreate} className="space-y-3">
                                 <div>
@@ -438,7 +587,7 @@ const ReportManager = () => {
 
                                             <p className="text-xs font-semibold text-gray-600 mt-4 mb-2">Required Fields</p>
                                             <div className="grid grid-cols-1 gap-2">
-                                                {FIELD_DEFS.filter(f => ['date', 'name', 'country', 'church', 'sermon_reflection'].includes(f.key)).map(f => (
+                                                {FIELD_DEFS.filter(f => ['date', 'name', 'country', 'church', 'regular_service', 'sermon_reflection'].includes(f.key)).map(f => (
                                                     <label key={f.key} className="flex items-center gap-2 text-sm text-gray-800">
                                                         <input
                                                             type="checkbox"
@@ -457,6 +606,51 @@ const ReportManager = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div className="mt-4 border border-gray-200 rounded-xl p-4">
+                                        <p className="font-bold text-gray-900 mb-3">Field Labels & Placeholders</p>
+                                        <p className="text-xs text-gray-600 mb-3">These control what members see on the Daily Report form.</p>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {Object.keys(DEFAULT_FIELD_META).map((key) => (
+                                                <div key={key} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
+                                                    <div className="text-sm font-semibold text-gray-800">{key}</div>
+                                                    <input
+                                                        type="text"
+                                                        value={newDraft.fields?.[key]?.label || ''}
+                                                        onChange={(e) => setNewDraft((d) => ({
+                                                            ...d,
+                                                            fields: {
+                                                                ...(d.fields || {}),
+                                                                [key]: {
+                                                                    ...(d.fields?.[key] || {}),
+                                                                    label: e.target.value
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                        placeholder="Label"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={newDraft.fields?.[key]?.placeholder || ''}
+                                                        onChange={(e) => setNewDraft((d) => ({
+                                                            ...d,
+                                                            fields: {
+                                                                ...(d.fields || {}),
+                                                                [key]: {
+                                                                    ...(d.fields?.[key] || {}),
+                                                                    placeholder: e.target.value
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                        placeholder="Placeholder"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <button
@@ -469,7 +663,7 @@ const ReportManager = () => {
                         </div>
 
                         {/* Edit */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <div id="rm-edit-template" className="bg-white rounded-2xl shadow-lg p-6">
                             <h2 className="text-xl font-bold text-gray-800 mb-4">Edit Template</h2>
                             <div className="mb-3">
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">Select Template</label>
@@ -570,7 +764,7 @@ const ReportManager = () => {
 
                                             <p className="text-xs font-semibold text-gray-600 mt-4 mb-2">Required Fields</p>
                                             <div className="grid grid-cols-1 gap-2">
-                                                {FIELD_DEFS.filter(f => ['date', 'name', 'country', 'church', 'sermon_reflection'].includes(f.key)).map(f => (
+                                                {FIELD_DEFS.filter(f => ['date', 'name', 'country', 'church', 'regular_service', 'sermon_reflection'].includes(f.key)).map(f => (
                                                     <label key={f.key} className="flex items-center gap-2 text-sm text-gray-800">
                                                         <input
                                                             type="checkbox"
@@ -590,6 +784,53 @@ const ReportManager = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    <div className={`mt-4 border border-gray-200 rounded-xl p-4 ${!selectedId ? 'bg-gray-100' : 'bg-white'}`}>
+                                        <p className="font-bold text-gray-900 mb-3">Field Labels & Placeholders</p>
+                                        <p className="text-xs text-gray-600 mb-3">These control what members see on the Daily Report form.</p>
+
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {Object.keys(DEFAULT_FIELD_META).map((key) => (
+                                                <div key={key} className="grid grid-cols-1 md:grid-cols-3 gap-2 items-start">
+                                                    <div className="text-sm font-semibold text-gray-800">{key}</div>
+                                                    <input
+                                                        type="text"
+                                                        disabled={!selectedId}
+                                                        value={editDraft.fields?.[key]?.label || ''}
+                                                        onChange={(e) => setEditDraft((d) => ({
+                                                            ...d,
+                                                            fields: {
+                                                                ...(d.fields || {}),
+                                                                [key]: {
+                                                                    ...(d.fields?.[key] || {}),
+                                                                    label: e.target.value
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                                                        placeholder="Label"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        disabled={!selectedId}
+                                                        value={editDraft.fields?.[key]?.placeholder || ''}
+                                                        onChange={(e) => setEditDraft((d) => ({
+                                                            ...d,
+                                                            fields: {
+                                                                ...(d.fields || {}),
+                                                                [key]: {
+                                                                    ...(d.fields?.[key] || {}),
+                                                                    placeholder: e.target.value
+                                                                }
+                                                            }
+                                                        }))}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg disabled:bg-gray-100"
+                                                        placeholder="Placeholder"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <button
@@ -607,7 +848,7 @@ const ReportManager = () => {
                         </div>
 
                         {/* Preview */}
-                        <div className="bg-white rounded-2xl shadow-lg p-6">
+                        <div id="rm-form-preview" className="bg-white rounded-2xl shadow-lg p-6">
                             <div className="flex items-center justify-between gap-3 mb-4">
                                 <h2 className="text-xl font-bold text-gray-800">Form Preview</h2>
                                 <div className="flex items-center gap-2">
@@ -641,33 +882,162 @@ const ReportManager = () => {
                                     previewSections.map((key) => {
                                         const section = SECTION_DEFS.find(s => s.key === key);
                                         if (key === 'ministryActivities') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Evangelism Hours', 'People Reached', 'Contacts Received']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField label={fieldText.label('evangelism_hours', 'Evangelism Hours')} placeholder={fieldText.placeholder('evangelism_hours', 'Enter Hours')} />
+                                                    <PreviewField label={fieldText.label('people_reached', 'People Reached')} placeholder={fieldText.placeholder('people_reached', 'Input Number')} />
+                                                    <PreviewField label={fieldText.label('contacts_received', 'Contacts Received')} placeholder={fieldText.placeholder('contacts_received', 'Input Number')} />
+                                                    <PreviewField label={fieldText.label('newcomers', 'Newcomers')} placeholder={fieldText.placeholder('newcomers', 'Input Number')} />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'bibleStudy') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Bible Study Sessions', 'Bible Study Attendants', 'Newcomers']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField label={fieldText.label('bible_study_sessions', 'Bible Study Sessions')} placeholder={fieldText.placeholder('bible_study_sessions', 'Number of Sessions')} />
+                                                    <PreviewField label={fieldText.label('bible_study_attendants', 'Bible Study Attendants')} placeholder={fieldText.placeholder('bible_study_attendants', 'Input Number')} />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'spiritualDiscipline') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Meditation Hours', 'Prayer Hours']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField label={fieldText.label('meditation_hours', 'Bible Reading and Meditation (Hours)')} placeholder={fieldText.placeholder('meditation_hours', 'Enter Hours')} />
+                                                    <PreviewField label={fieldText.label('prayer_hours', 'Prayer (Hours)')} placeholder={fieldText.placeholder('prayer_hours', 'Enter Hours')} />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'serviceAttendance') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Service Attendance']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField label={fieldText.label('regular_service', 'Regular Service Type(s) - Select all that apply')} placeholder={fieldText.placeholder('regular_service', '')} />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'serviceAttendanceExtras') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Sermons Listened', 'Articles Written']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField label={fieldText.label('sermons_listened', 'Sermons or Bible Study Listened To')} placeholder={fieldText.placeholder('sermons_listened', 'Input Number')} />
+                                                    <PreviewField label={fieldText.label('articles_written', 'Articles Written')} placeholder={fieldText.placeholder('articles_written', 'Input Number')} />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'sundayCoreMessage') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Sunday Core Message']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField
+                                                        label={fieldText.label('sermon_reflection', 'Sunday Service Core Message')}
+                                                        placeholder={fieldText.placeholder('sermon_reflection', 'Write the main points / core message...')}
+                                                        isTextarea
+                                                    />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'otherActivities') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Other Activities']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField
+                                                        label={fieldText.label('other_activities', 'Other Activities (Optional)')}
+                                                        placeholder={fieldText.placeholder('other_activities', 'Describe any other activities, events, or tasks you did today (optional)...')}
+                                                        isTextarea
+                                                    />
+                                                </SectionPreview>
+                                            );
                                         }
                                         if (key === 'planNextWeek') {
-                                            return <SectionPreview key={key} title={section?.label || key} lines={['Plan for Next Week']} />;
+                                            return (
+                                                <SectionPreview key={key} title={section?.label || key}>
+                                                    <PreviewField
+                                                        label={fieldText.label('tomorrow_tasks', 'Plan for Next Week (Optional)')}
+                                                        placeholder={fieldText.placeholder('tomorrow_tasks', '1. \n2. \n3. ')}
+                                                        isTextarea
+                                                    />
+                                                </SectionPreview>
+                                            );
                                         }
-                                        return <SectionPreview key={key} title={section?.label || key} lines={['(section)']} />;
+                                        return (
+                                            <SectionPreview key={key} title={section?.label || key}>
+                                                <PreviewField label="(section)" placeholder="(preview)" />
+                                            </SectionPreview>
+                                        );
                                     })
                                 )}
                             </div>
+                        </div>
+
+                        {/* Reports */}
+                        <div id="rm-reports-admin" className="bg-white rounded-2xl shadow-lg p-6">
+                            <div className="flex items-center justify-between gap-3 mb-4">
+                                <h2 className="text-xl font-bold text-gray-800">Reports (Admin)</h2>
+                                <button
+                                    type="button"
+                                    onClick={fetchReports}
+                                    disabled={reportsLoading}
+                                    className="px-3 py-2 text-sm font-semibold rounded-lg bg-white border border-gray-200 hover:border-indigo-300"
+                                >
+                                    {reportsLoading ? 'Loading...' : 'Refresh (last 30 days)'}
+                                </button>
+                            </div>
+
+                            {reportsMessage.text && (
+                                <div className={`mb-4 p-3 rounded-xl text-sm ${
+                                    reportsMessage.type === 'success'
+                                        ? 'bg-green-50 text-green-800 border border-green-200'
+                                        : 'bg-red-50 text-red-800 border border-red-200'
+                                }`}>
+                                    {reportsMessage.text}
+                                </div>
+                            )}
+
+                            {reports.length === 0 ? (
+                                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50 text-sm text-gray-700">
+                                    No reports found in the last 30 days.
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead>
+                                            <tr className="bg-gray-50">
+                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Date</th>
+                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Member</th>
+                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Country</th>
+                                                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700">Church</th>
+                                                <th className="px-3 py-2 text-right text-xs font-bold text-gray-700">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {reports.map((r) => (
+                                                <tr key={r.id} className="border-t border-gray-100">
+                                                    <td className="px-3 py-2 text-sm text-gray-800 whitespace-nowrap">{r.date}</td>
+                                                    <td className="px-3 py-2 text-sm text-gray-800">{r.User?.fullname || r.name || 'N/A'}</td>
+                                                    <td className="px-3 py-2 text-sm text-gray-700">{r.User?.country || r.country || 'N/A'}</td>
+                                                    <td className="px-3 py-2 text-sm text-gray-700">{r.church || 'N/A'}</td>
+                                                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onEditReport(r)}
+                                                            className="px-3 py-2 text-xs font-bold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+                                                        >
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => onDeleteReport(r.id)}
+                                                            className="ml-2 px-3 py-2 text-xs font-bold rounded-lg bg-red-600 text-white hover:bg-red-700"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            <p className="text-xs text-gray-500 mt-3">
+                                Edit opens the Daily Ministry Report form with the report loaded.
+                            </p>
                         </div>
                     </div>
                 </div>

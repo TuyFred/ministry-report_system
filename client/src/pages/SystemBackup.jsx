@@ -136,7 +136,7 @@ const SystemBackup = () => {
                     <div className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border-2 border-blue-200">
                         <h2 className="text-xl font-bold text-gray-800 mb-3">Create New Backup</h2>
                         <p className="text-gray-600 mb-4 text-sm">
-                            Create a complete backup of the database including all users, reports, and attachments.
+                            Create a complete SQL backup of the database including all users, reports, attachments, and form templates.
                         </p>
                         <button
                             onClick={createBackup}
@@ -239,7 +239,8 @@ const SystemBackup = () => {
                         <ul className="space-y-2 text-sm text-yellow-800">
                             <li>• <strong>Regular Backups:</strong> Create backups before major updates or changes</li>
                             <li>• <strong>Storage:</strong> Backups are stored on the server and can be downloaded anytime</li>
-                            <li>• <strong>What's Included:</strong> Database (users, reports, attachments metadata)</li>
+                            <li>• <strong>Format:</strong> Downloads as a <strong>.sql</strong> file</li>
+                            <li>• <strong>What's Included:</strong> Database (users, reports, attachments, report form templates)</li>
                             <li>• <strong>Security:</strong> Only administrators can create and download backups</li>
                             <li>• <strong>Restoration:</strong> Contact system administrator for backup restoration</li>
                         </ul>
