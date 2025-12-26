@@ -9,8 +9,18 @@ const ReportForm = () => {
     const location = useLocation();
     const editReport = location.state?.editReport;
 
+    // Helper: local date string (YYYY-MM-DD) so the default
+    // selected date matches the user's calendar day reliably.
+    const getLocalISODate = () => {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
     const [formData, setFormData] = useState({
-        date: new Date().toISOString().split('T')[0],
+        date: getLocalISODate(),
         name: '',
         country: '',
         church: '',
@@ -26,8 +36,7 @@ const ReportForm = () => {
         regular_service: [],
         sermons_listened: '',
         articles_written: '',
-        exercise_hours: '',
-        exercise_minutes: '',
+        exercise_time_hhmm: '',
         sermon_reflection: '',
         thanksgiving: '',
         repentance: '',
@@ -42,8 +51,12 @@ const ReportForm = () => {
     const [countrySearch, setCountrySearch] = useState('');
     const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [isWeekend, setIsWeekend] = useState(false);
+    const [isSaturday, setIsSaturday] = useState(false);
+    const [isSunday, setIsSunday] = useState(false);
     const [dateWarning, setDateWarning] = useState('');
+    const [prayerRequestsWarning, setPrayerRequestsWarning] = useState('');
     const [activeTemplate, setActiveTemplate] = useState(null);
+    const [selectedDayName, setSelectedDayName] = useState('');
 
     const defaultWeekdayConfig = useMemo(() => ({
         visibleSections: [
@@ -63,12 +76,28 @@ const ReportForm = () => {
         ]
     }), []);
 
-    const defaultWeekendConfig = useMemo(() => ({
+    const defaultSaturdayConfig = useMemo(() => ({
+        visibleSections: [
+            'weeklyReflection',
+            'planNextWeek'
+        ],
+        requiredFields: [
+            'date', 'name', 'country', 'church',
+            'exercise_time_hhmm',
+            'thanksgiving',
+            'repentance',
+            'prayer_requests',
+            'reflections',
+            'other_work',
+            'tomorrow_tasks'
+        ]
+    }), []);
+
+    const defaultSundayConfig = useMemo(() => ({
         visibleSections: [
             'serviceAttendance',
             'sundayCoreMessage',
-            'otherActivities',
-            'planNextWeek'
+            'otherActivities'
         ],
         requiredFields: [
             'date', 'name', 'country', 'church',
@@ -93,9 +122,21 @@ const ReportForm = () => {
 
     const dayConfig = useMemo(() => {
         const def = activeTemplate?.definition;
-        const cfg = isWeekend ? def?.weekend : def?.weekday;
-        return cfg || (isWeekend ? defaultWeekendConfig : defaultWeekdayConfig);
-    }, [activeTemplate, isWeekend, defaultWeekendConfig, defaultWeekdayConfig]);
+
+        // If admin template supports separate configs, prefer them.
+        // Otherwise fall back to our defaults.
+        if (isSaturday) {
+            const cfg = def?.saturday || def?.weekend;
+            return cfg || defaultSaturdayConfig;
+        }
+        if (isSunday) {
+            const cfg = def?.sunday || def?.weekend;
+            return cfg || defaultSundayConfig;
+        }
+
+        const cfg = def?.weekday;
+        return cfg || defaultWeekdayConfig;
+    }, [activeTemplate, isSaturday, isSunday, defaultSaturdayConfig, defaultSundayConfig, defaultWeekdayConfig]);
 
     const showSection = (key) => {
         const sections = dayConfig?.visibleSections;
@@ -145,32 +186,87 @@ const ReportForm = () => {
         }
     };
 
+    const countNonEmptyLines = (text) => {
+        if (typeof text !== 'string') return 0;
+        return text
+            .split(/\r?\n/)
+            .map(l => l.trim())
+            .filter(Boolean)
+            .length;
+    };
+
+    const isSaturdayDate = (dateStr) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr + 'T00:00:00Z');
+        return d.getUTCDay() === 6;
+    };
+
+    const isSundayDate = (dateStr) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr + 'T00:00:00Z');
+        return d.getUTCDay() === 0;
+    };
+
+    const isValidDurationHHMM = (value) => {
+        if (typeof value !== 'string') return false;
+        const v = value.trim();
+        // Allow 1-3 digit hours to support weekly totals > 23h.
+        const match = v.match(/^\d{1,3}:[0-5]\d$/);
+        return Boolean(match);
+    };
+
+    const parseDurationHHMMToHours = (value) => {
+        if (!isValidDurationHHMM(value)) return null;
+        const [hStr, mStr] = value.trim().split(':');
+        const hours = parseInt(hStr, 10);
+        const minutes = parseInt(mStr, 10);
+        if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+        return hours + (minutes / 60);
+    };
+
     // Check if selected date is weekend (Saturday or Sunday) and check for existing reports
     useEffect(() => {
         if (formData.date) {
-            const selectedDate = new Date(formData.date + 'T00:00:00');
-            const dayOfWeek = selectedDate.getDay();
-            // 0 = Sunday, 6 = Saturday
-            setIsWeekend(dayOfWeek === 0 || dayOfWeek === 6);
+            const saturday = isSaturdayDate(formData.date);
+            const sunday = isSundayDate(formData.date);
+            setIsSaturday(saturday);
+            setIsSunday(sunday);
+            setIsWeekend(saturday || sunday);
+            // Track selected calendar day name for user clarity
+            const d = new Date(formData.date + 'T00:00:00Z');
+            const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            setSelectedDayName(dayNames[d.getUTCDay()] || '');
             
             // Check if report exists for this date
             checkExistingReport(formData.date);
         }
     }, [formData.date]);
 
+    // Prayer requests: no more than three (Saturday weekly form)
+    useEffect(() => {
+        if (!isSaturday) {
+            setPrayerRequestsWarning('');
+            return;
+        }
+        const count = countNonEmptyLines(formData.prayer_requests);
+        if (count > 3) {
+            setPrayerRequestsWarning('⚠️ Prayer requests must be no more than three (use one line per request).');
+        } else {
+            setPrayerRequestsWarning('');
+        }
+    }, [formData.prayer_requests, isSaturday]);
+
     // Load edit data if editing
     useEffect(() => {
         if (editReport) {
             const exerciseTime = Number(editReport.exercise_time);
-            let exerciseHours = '';
-            let exerciseMinutes = '';
-            if (!Number.isNaN(exerciseTime)) {
-                const wholeHours = Math.max(0, Math.floor(exerciseTime));
-                const minutes = Math.max(0, Math.round((exerciseTime - wholeHours) * 60));
-                const normalizedMinutes = minutes >= 60 ? 0 : minutes;
-                const normalizedHours = minutes >= 60 ? wholeHours + 1 : wholeHours;
-                exerciseHours = normalizedHours.toString();
-                exerciseMinutes = normalizedMinutes.toString();
+            let exerciseTimeHHMM = '';
+            if (!Number.isNaN(exerciseTime) && exerciseTime >= 0) {
+                const totalMinutes = Math.max(0, Math.round(exerciseTime * 60));
+                const hh = Math.floor(totalMinutes / 60);
+                const mm = totalMinutes % 60;
+                const hhStr = hh < 100 ? String(hh).padStart(2, '0') : String(hh);
+                exerciseTimeHHMM = `${hhStr}:${String(mm).padStart(2, '0')}`;
             }
 
             setFormData({
@@ -190,8 +286,7 @@ const ReportForm = () => {
                 regular_service: editReport.regular_service ? (typeof editReport.regular_service === 'string' ? editReport.regular_service.split(',').map(s => s.trim()) : []) : [],
                 sermons_listened: editReport.sermons_listened?.toString() || '',
                 articles_written: editReport.articles_written?.toString() || '',
-                exercise_hours: exerciseHours,
-                exercise_minutes: exerciseMinutes,
+                exercise_time_hhmm: exerciseTimeHHMM,
                 sermon_reflection: editReport.sermon_reflection || '',
                 thanksgiving: editReport.thanksgiving || '',
                 repentance: editReport.repentance || '',
@@ -205,11 +300,15 @@ const ReportForm = () => {
         }
     }, [editReport]);
 
-    // Check if all required fields are filled - different requirements for weekday vs weekend
+    // Check if all required fields are filled - different requirements for weekday vs Saturday vs Sunday
     useEffect(() => {
         const requiredFields = Array.isArray(dayConfig?.requiredFields)
             ? dayConfig.requiredFields
-            : (isWeekend ? defaultWeekendConfig.requiredFields : defaultWeekdayConfig.requiredFields);
+            : (isSaturday
+                ? defaultSaturdayConfig.requiredFields
+                : (isSunday
+                    ? defaultSundayConfig.requiredFields
+                    : defaultWeekdayConfig.requiredFields));
 
         const allRequiredFilled = requiredFields.every(field => {
             const value = formData[field];
@@ -219,8 +318,10 @@ const ReportForm = () => {
             return value !== '' && value !== null && value !== undefined;
         });
 
-        setIsFormValid(allRequiredFilled);
-    }, [formData, isWeekend, dayConfig, defaultWeekendConfig, defaultWeekdayConfig]);
+        const prayerOk = !isSaturday || countNonEmptyLines(formData.prayer_requests) <= 3;
+        const exerciseOk = !isSaturday || isValidDurationHHMM(formData.exercise_time_hhmm);
+        setIsFormValid(allRequiredFilled && prayerOk && exerciseOk);
+    }, [formData, isSaturday, isSunday, dayConfig, defaultSaturdayConfig, defaultSundayConfig, defaultWeekdayConfig]);
 
     const onChange = e => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -252,15 +353,24 @@ const ReportForm = () => {
             return;
         }
         
+        if (isSaturday && countNonEmptyLines(formData.prayer_requests) > 3) {
+            alert('Prayer requests must be no more than three (use one line per request).');
+            return;
+        }
+
+        if (isSaturday && !isValidDurationHHMM(formData.exercise_time_hhmm)) {
+            alert('Exercise time must be in HH:MM format (minutes 00-59). Example: 05:30');
+            return;
+        }
+
         if (!isFormValid) {
             alert('Please fill all required fields');
             return;
         }
 
-        const exerciseHours = parseInt(formData.exercise_hours, 10) || 0;
-        const exerciseMinutesRaw = parseInt(formData.exercise_minutes, 10) || 0;
-        const exerciseMinutes = Math.max(0, Math.min(59, exerciseMinutesRaw));
-        const exerciseTotalHours = exerciseHours + (exerciseMinutes / 60);
+        const exerciseTotalHours = isSaturday
+            ? (parseDurationHHMMToHours(formData.exercise_time_hhmm) || 0)
+            : 0;
 
         // Normalize numeric fields so weekend submissions can omit weekday sections safely
         const dataToSend = {
@@ -284,8 +394,7 @@ const ReportForm = () => {
         // Remove the individual hour fields that were renamed
         delete dataToSend.meditation_hours;
         delete dataToSend.prayer_hours;
-        delete dataToSend.exercise_hours;
-        delete dataToSend.exercise_minutes;
+        delete dataToSend.exercise_time_hhmm;
 
         try {
             const token = localStorage.getItem('token');
@@ -364,7 +473,13 @@ const ReportForm = () => {
                         {editReport ? 'Edit Ministry Report' : 'Daily Ministry Report'}
                     </h1>
                     <p className="text-sm text-gray-600 mt-1">
-                        {editReport ? 'Update your report details' : (isWeekend ? 'Weekend: fill the short form to submit your report' : 'Fill all fields to submit your report')}
+                        {editReport
+                            ? 'Update your report details'
+                            : (isSaturday
+                                ? `Selected day: ${selectedDayName}. Saturday weekly reflection form.`
+                                : (isSunday
+                                    ? `Selected day: ${selectedDayName}. Sunday core message form.`
+                                    : `Selected day: ${selectedDayName}. Weekday full daily form.`))}
                     </p>
                 </div>
 
@@ -610,6 +725,108 @@ const ReportForm = () => {
                         </>
                     )}
 
+                    {/* Saturday: Weekly Reflection (Saturday only) */}
+                    {isSaturday && showSection('weeklyReflection') && (
+                        <div className="bg-white rounded-2xl shadow-lg p-4">
+                            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                                <FaPen className="text-indigo-600" />
+                                Weekly Reflection (Saturday)
+                            </h2>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                        Exercise Done in the Week (Total Time)
+                                    </label>
+                                    <input
+                                        type="text"
+                                        name="exercise_time_hhmm"
+                                        value={formData.exercise_time_hhmm}
+                                        onChange={onChange}
+                                        placeholder="HH:MM"
+                                        inputMode="numeric"
+                                        pattern="^\\d{1,3}:[0-5]\\d$"
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">Enter weekly total duration as HH:MM (example: 05:30).</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                        Overall Reflection and Evaluation (Week)
+                                    </label>
+                                    <textarea
+                                        name="reflections"
+                                        value={formData.reflections}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder="Write your overall reflection and evaluation for the week..."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Thanksgiving (Week)</label>
+                                    <textarea
+                                        name="thanksgiving"
+                                        value={formData.thanksgiving}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder="Write thanksgiving for the week..."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repentance / Struggles (Week)</label>
+                                    <textarea
+                                        name="repentance"
+                                        value={formData.repentance}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder="Write repentance/struggles for the week..."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Prayer Requests (No more than three)</label>
+                                    <textarea
+                                        name="prayer_requests"
+                                        value={formData.prayer_requests}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder="1.\n2.\n3."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                    {prayerRequestsWarning ? (
+                                        <p className="text-xs text-red-600 mt-2">{prayerRequestsWarning}</p>
+                                    ) : (
+                                        <p className="text-xs text-gray-500 mt-2">Use one line per request (max 3).</p>
+                                    )}
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Work Done in the Week (Department / Training / etc)</label>
+                                    <textarea
+                                        name="other_work"
+                                        value={formData.other_work}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder="Describe the work you did during the week (department work, training, etc)..."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Service Attendance */}
                     {showSection('serviceAttendance') && (
                     <div className="bg-white rounded-2xl shadow-lg p-4">
@@ -703,8 +920,8 @@ const ReportForm = () => {
                     </div>
                     )}
 
-                    {/* Weekend: Sunday Service core message */}
-                    {isWeekend && showSection('sundayCoreMessage') && (
+                    {/* Sunday: Service core message */}
+                    {isSunday && showSection('sundayCoreMessage') && (
                         <div className="bg-white rounded-2xl shadow-lg p-4">
                             <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <FaPen className="text-pink-600" />
@@ -712,7 +929,7 @@ const ReportForm = () => {
                             </h2>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                    Write the core message (Sunday/Saturday)
+                                    Write the core message (Sunday)
                                 </label>
                                 <textarea
                                     name="sermon_reflection"
@@ -720,7 +937,7 @@ const ReportForm = () => {
                                     onChange={onChange}
                                     rows="4"
                                     placeholder={getPlaceholder('sermon_reflection', 'Write the main points / core message...')}
-                                    required={isWeekend}
+                                    required={isSunday}
                                     className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                 ></textarea>
                             </div>
@@ -751,12 +968,12 @@ const ReportForm = () => {
                     </div>
                     )}
 
-                    {/* Weekend: Plan for Next Week (separate input) */}
-                    {isWeekend && showSection('planNextWeek') && (
+                    {/* Saturday: Plan for Next Week */}
+                    {isSaturday && showSection('planNextWeek') && (
                         <div className="bg-white rounded-2xl shadow-lg p-4">
                             <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
                                 <FaPen className="text-indigo-600" />
-                                {getLabel('tomorrow_tasks', 'Plan for Next Week (Optional)')}
+                                {getLabel('tomorrow_tasks', 'Plan for Next Week')}
                             </h2>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">
@@ -768,6 +985,7 @@ const ReportForm = () => {
                                     onChange={onChange}
                                     rows="3"
                                     placeholder={getPlaceholder('tomorrow_tasks', '1. \n2. \n3. ')}
+                                    required={isSaturday}
                                     className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                 ></textarea>
                             </div>
@@ -777,7 +995,7 @@ const ReportForm = () => {
                     {/* Submit Button */}
                     <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-4">
                         <p className="text-sm text-gray-600 mb-3 text-center">
-                            {isFormValid ? '✓ Ready to submit' : (isWeekend ? '⚠ Fill the required weekend fields to submit' : '⚠ Button will be active when all input boxes are filled')}
+                            {isFormValid ? '✓ Ready to submit' : (isSaturday ? '⚠ Fill the required Saturday weekly fields to submit' : (isSunday ? '⚠ Fill the required Sunday fields to submit' : '⚠ Button will be active when all input boxes are filled'))}
                         </p>
                         <button
                             type="submit"

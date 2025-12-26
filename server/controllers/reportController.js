@@ -5,6 +5,56 @@ const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
 
+const getUtcDayOfWeek = (dateStr) => {
+    if (!dateStr || typeof dateStr !== 'string') return null;
+    const d = new Date(`${dateStr}T00:00:00Z`);
+    // If invalid date, getTime() will be NaN
+    if (Number.isNaN(d.getTime())) return null;
+    return d.getUTCDay();
+};
+
+const countNonEmptyLines = (text) => {
+    if (typeof text !== 'string') return 0;
+    return text
+        .split(/\r?\n/)
+        .map(l => l.trim())
+        .filter(Boolean)
+        .length;
+};
+
+const validateSaturdayWeeklyFields = (payload) => {
+    const missing = [];
+    const requiredTextFields = [
+        'thanksgiving',
+        'repentance',
+        'prayer_requests',
+        'reflections',
+        'other_work',
+        'tomorrow_tasks'
+    ];
+
+    for (const key of requiredTextFields) {
+        const v = payload?.[key];
+        if (typeof v !== 'string' || !v.trim()) missing.push(key);
+    }
+
+    // exercise_time is stored as hours (float) and should be provided on Saturday.
+    const exerciseTime = payload?.exercise_time;
+    const exerciseOk = typeof exerciseTime === 'number' ? exerciseTime >= 0 : (typeof exerciseTime === 'string' ? exerciseTime.trim() !== '' : false);
+    if (!exerciseOk) missing.push('exercise_time');
+
+    const prayerCount = countNonEmptyLines(payload?.prayer_requests);
+    if (prayerCount > 3) {
+        return { ok: false, msg: 'Prayer requests must be no more than three (use one line per request).' };
+    }
+
+    if (missing.length > 0) {
+        return { ok: false, msg: `Missing required Saturday weekly fields: ${missing.join(', ')}` };
+    }
+
+    return { ok: true };
+};
+
 // Create Report
 exports.createReport = async (req, res) => {
     try {
@@ -14,6 +64,15 @@ exports.createReport = async (req, res) => {
             meditation_time, prayer_time, morning_service, regular_service, sermons_listened, articles_written, exercise_time,
             sermon_reflection, reflections, thanksgiving, repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         } = req.body;
+
+        // Saturday weekly report rules
+        const dayOfWeek = getUtcDayOfWeek(date);
+        if (dayOfWeek === 6) {
+            const validation = validateSaturdayWeeklyFields(req.body);
+            if (!validation.ok) {
+                return res.status(400).json({ msg: validation.msg });
+            }
+        }
 
         // Check if a report already exists for this user on this date
         const existingReport = await Report.findOne({
@@ -170,6 +229,20 @@ exports.updateReport = async (req, res) => {
             articles_written, exercise_time, sermon_reflection, reflections, thanksgiving, 
             repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         } = req.body;
+
+        // Saturday weekly report rules (based on the resulting date)
+        const effectiveDate = date || report.date;
+        const dayOfWeek = getUtcDayOfWeek(effectiveDate);
+        if (dayOfWeek === 6) {
+            const mergedPayload = {
+                ...report.toJSON(),
+                ...req.body
+            };
+            const validation = validateSaturdayWeeklyFields(mergedPayload);
+            if (!validation.ok) {
+                return res.status(400).json({ msg: validation.msg });
+            }
+        }
 
         // If changing the report date, prevent duplicates for the same report owner
         if (date && date !== report.date) {
