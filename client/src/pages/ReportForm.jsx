@@ -122,6 +122,39 @@ const ReportForm = () => {
         return typeof v === 'string' ? v : fallback;
     };
 
+    const mergeDayConfig = (baseCfg, overrideCfg) => {
+        if (!overrideCfg) return baseCfg;
+
+        const baseVisible = Array.isArray(baseCfg?.visibleSections) ? baseCfg.visibleSections : [];
+        const overrideVisibleIsArray = Array.isArray(overrideCfg?.visibleSections);
+        const overrideVisible = overrideVisibleIsArray ? overrideCfg.visibleSections : null;
+
+        // If override provides an explicit empty array, treat it as "show all"
+        // (keep empty so showSection() returns true for everything).
+        let visibleSections;
+        if (overrideVisibleIsArray && overrideVisible.length === 0) {
+            visibleSections = [];
+        } else if (overrideVisibleIsArray) {
+            visibleSections = Array.from(new Set([...baseVisible, ...overrideVisible]));
+        } else {
+            visibleSections = baseVisible;
+        }
+
+        const baseRequired = Array.isArray(baseCfg?.requiredFields) ? baseCfg.requiredFields : [];
+        const overrideRequiredIsArray = Array.isArray(overrideCfg?.requiredFields);
+        const overrideRequired = overrideRequiredIsArray ? overrideCfg.requiredFields : null;
+        const requiredFields = overrideRequiredIsArray
+            ? Array.from(new Set([...baseRequired, ...overrideRequired]))
+            : baseRequired;
+
+        return {
+            ...baseCfg,
+            ...overrideCfg,
+            visibleSections,
+            requiredFields
+        };
+    };
+
     const dayConfig = useMemo(() => {
         const def = activeTemplate?.definition;
 
@@ -129,15 +162,16 @@ const ReportForm = () => {
         // Otherwise fall back to our defaults.
         if (isSaturday) {
             const cfg = def?.saturday || def?.weekend;
-            return cfg || defaultSaturdayConfig;
+            // Always include the default Saturday sections so the Saturday form is never hidden.
+            return mergeDayConfig(defaultSaturdayConfig, cfg);
         }
         if (isSunday) {
             const cfg = def?.sunday || def?.weekend;
-            return cfg || defaultSundayConfig;
+            return mergeDayConfig(defaultSundayConfig, cfg);
         }
 
         const cfg = def?.weekday;
-        return cfg || defaultWeekdayConfig;
+        return mergeDayConfig(defaultWeekdayConfig, cfg);
     }, [activeTemplate, isSaturday, isSunday, defaultSaturdayConfig, defaultSundayConfig, defaultWeekdayConfig]);
 
     const showSection = (key) => {
