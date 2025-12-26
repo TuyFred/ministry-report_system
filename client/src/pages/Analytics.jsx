@@ -15,7 +15,7 @@ const Analytics = () => {
     const [membersPage, setMembersPage] = useState(1);
     const [performersPage, setPerformersPage] = useState(1);
     const [needsAttentionPage, setNeedsAttentionPage] = useState(1);
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     useEffect(() => {
         fetchAnalytics();

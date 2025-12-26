@@ -79,11 +79,13 @@ const ReportForm = () => {
     const defaultSaturdayConfig = useMemo(() => ({
         visibleSections: [
             'weeklyReflection',
+            'serviceAttendance',
             'planNextWeek'
         ],
         requiredFields: [
             'date', 'name', 'country', 'church',
             'exercise_time_hhmm',
+            'sermon_reflection',
             'thanksgiving',
             'repentance',
             'prayer_requests',
@@ -195,17 +197,17 @@ const ReportForm = () => {
             .length;
     };
 
-    const isSaturdayDate = (dateStr) => {
-        if (!dateStr) return false;
-        const d = new Date(dateStr + 'T00:00:00Z');
-        return d.getUTCDay() === 6;
+    const getLocalDateDay = (dateStr) => {
+        if (!dateStr) return null;
+        // Interpret the selected YYYY-MM-DD as a local date (not UTC)
+        // so day-of-week always matches the user's calendar.
+        const d = new Date(dateStr + 'T00:00:00');
+        const day = d.getDay();
+        return Number.isNaN(day) ? null : day;
     };
 
-    const isSundayDate = (dateStr) => {
-        if (!dateStr) return false;
-        const d = new Date(dateStr + 'T00:00:00Z');
-        return d.getUTCDay() === 0;
-    };
+    const isSaturdayDate = (dateStr) => getLocalDateDay(dateStr) === 6;
+    const isSundayDate = (dateStr) => getLocalDateDay(dateStr) === 0;
 
     const isValidDurationHHMM = (value) => {
         if (typeof value !== 'string') return false;
@@ -233,9 +235,9 @@ const ReportForm = () => {
             setIsSunday(sunday);
             setIsWeekend(saturday || sunday);
             // Track selected calendar day name for user clarity
-            const d = new Date(formData.date + 'T00:00:00Z');
             const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            setSelectedDayName(dayNames[d.getUTCDay()] || '');
+            const day = getLocalDateDay(formData.date);
+            setSelectedDayName(day === null ? '' : (dayNames[day] || ''));
             
             // Check if report exists for this date
             checkExistingReport(formData.date);
@@ -736,7 +738,7 @@ const ReportForm = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Exercise Done in the Week (Total Time)
+                                        Exercise :
                                     </label>
                                     <input
                                         type="text"
@@ -749,52 +751,51 @@ const ReportForm = () => {
                                         required={isSaturday}
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                     />
-                                    <p className="text-xs text-gray-500 mt-2">Enter weekly total duration as HH:MM (example: 05:30).</p>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Overall Reflection and Evaluation (Week)
+                                        Sermon Reflection :
                                     </label>
                                     <textarea
-                                        name="reflections"
-                                        value={formData.reflections}
+                                        name="sermon_reflection"
+                                        value={formData.sermon_reflection}
                                         onChange={onChange}
                                         rows="4"
-                                        placeholder="Write your overall reflection and evaluation for the week..."
+                                        placeholder={getPlaceholder('sermon_reflection', 'Write sermon reflection...')}
                                         required={isSaturday}
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                     ></textarea>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Thanksgiving (Week)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Thanks giving :</label>
                                     <textarea
                                         name="thanksgiving"
                                         value={formData.thanksgiving}
                                         onChange={onChange}
                                         rows="4"
-                                        placeholder="Write thanksgiving for the week..."
+                                        placeholder="Write thanksgiving..."
                                         required={isSaturday}
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                     ></textarea>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repentance / Struggles (Week)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Repentance/Struggles :</label>
                                     <textarea
                                         name="repentance"
                                         value={formData.repentance}
                                         onChange={onChange}
                                         rows="4"
-                                        placeholder="Write repentance/struggles for the week..."
+                                        placeholder="Write repentance/struggles..."
                                         required={isSaturday}
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                     ></textarea>
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Prayer Requests (No more than three)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Prayer Requests (no more than three) :</label>
                                     <textarea
                                         name="prayer_requests"
                                         value={formData.prayer_requests}
@@ -812,13 +813,41 @@ const ReportForm = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Work Done in the Week (Department / Training / etc)</label>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                        Overall Reflection and evaluation on the day :
+                                    </label>
+                                    <textarea
+                                        name="reflections"
+                                        value={formData.reflections}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder="Write your overall reflection and evaluation on the day..."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">Other work done today(e.g departmental work, attended training, church cleaning...) :</label>
                                     <textarea
                                         name="other_work"
                                         value={formData.other_work}
                                         onChange={onChange}
                                         rows="4"
-                                        placeholder="Describe the work you did during the week (department work, training, etc)..."
+                                        placeholder="Describe other work done today..."
+                                        required={isSaturday}
+                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
+                                    ></textarea>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-1">3 things must do tomorrow :</label>
+                                    <textarea
+                                        name="tomorrow_tasks"
+                                        value={formData.tomorrow_tasks}
+                                        onChange={onChange}
+                                        rows="4"
+                                        placeholder={getPlaceholder('tomorrow_tasks', '1. \n2. \n3. ')}
                                         required={isSaturday}
                                         className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
                                     ></textarea>
@@ -873,6 +902,19 @@ const ReportForm = () => {
                                     />
                                     <span className="text-sm text-gray-700 font-medium">Friday Prayer Meeting</span>
                                 </label>
+
+                                {isSaturday && (
+                                    <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.regular_service.includes('Saturday Weekly Bible Study')}
+                                            onChange={() => onServiceChange('Saturday Weekly Bible Study')}
+                                            className="w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                        <span className="text-sm text-gray-700 font-medium">Saturday Weekly Bible Study</span>
+                                    </label>
+                                )}
+
                                 <label className="flex items-center gap-3 p-2.5 border-2 border-gray-200 rounded-xl hover:border-indigo-300 cursor-pointer transition-colors">
                                     <input
                                         type="checkbox"
@@ -969,28 +1011,7 @@ const ReportForm = () => {
                     )}
 
                     {/* Saturday: Plan for Next Week */}
-                    {isSaturday && showSection('planNextWeek') && (
-                        <div className="bg-white rounded-2xl shadow-lg p-4">
-                            <h2 className="text-lg md:text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
-                                <FaPen className="text-indigo-600" />
-                                {getLabel('tomorrow_tasks', 'Plan for Next Week')}
-                            </h2>
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                    What you plan to do next week
-                                </label>
-                                <textarea
-                                    name="tomorrow_tasks"
-                                    value={formData.tomorrow_tasks}
-                                    onChange={onChange}
-                                    rows="3"
-                                    placeholder={getPlaceholder('tomorrow_tasks', '1. \n2. \n3. ')}
-                                    required={isSaturday}
-                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none resize-none"
-                                ></textarea>
-                            </div>
-                        </div>
-                    )}
+                    {isSaturday && showSection('planNextWeek') && null}
 
                     {/* Submit Button */}
                     <div className="sticky bottom-4 bg-white rounded-2xl shadow-xl p-4">
