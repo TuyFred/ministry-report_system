@@ -1,0 +1,17 @@
+---
+# cPanel Deployment Configuration
+# This file helps automate deployment to cPanel
+
+deployment:
+  tasks:
+    # Build the frontend
+    - export DEPLOYPATH=/home/username/public_html/
+    - cd client
+    - npm install
+    - npm run build
+    - cp -R dist/* $DEPLOYPATH
+    
+    # Setup backend
+    - cd ../server
+    - npm install --production
+    - cp -R * /home/username/ministry-backend/

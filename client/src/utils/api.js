@@ -1,7 +1,7 @@
 // Use environment variable for API URL
-// Production: Uses Render backend
+// Production: Uses api.gnitafrica.com backend
 // Development: Uses localhost
-const isProduction = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('ministry-report-system');
+const isProduction = window.location.hostname !== 'localhost' && !window.location.hostname.includes('127.0.0.1');
 
 export const API_URL = import.meta.env.VITE_API_URL || 
-    (isProduction ? 'https://ministry-report-system.onrender.com' : 'http://localhost:5000');
+    (isProduction ? 'https://api.gnitafrica.com' : 'http://localhost:5000');

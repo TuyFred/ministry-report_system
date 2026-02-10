@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 const Report = require('./Report');
 
-const Attachment = sequelize.define('Attachment', {
+const Attachment = sequelize.define('attachments', {
     id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,

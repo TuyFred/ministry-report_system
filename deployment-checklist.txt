@@ -1,0 +1,245 @@
+═══════════════════════════════════════════════════════════════
+    CPANEL DEPLOYMENT CHECKLIST - Ministry Report System
+═══════════════════════════════════════════════════════════════
+
+BEFORE YOU START:
+☐ cPanel login credentials ready
+☐ Domain name configured and pointing to cPanel
+☐ SSH access enabled (recommended)
+☐ FTP client installed (if using FTP)
+
+═══════════════════════════════════════════════════════════════
+STEP 1: DATABASE SETUP
+═══════════════════════════════════════════════════════════════
+
+☐ Login to cPanel
+☐ Go to MySQL Databases
+☐ Create database: _________________ (save name)
+☐ Create database user: _________________ (save username)
+☐ Create strong password: _________________ (save password)
+☐ Add user to database with ALL PRIVILEGES
+☐ Open phpMyAdmin
+☐ Select your database
+☐ Import file: server/scripts/mysql_schema_sequelize.sql
+☐ Verify tables created: users, reports, attachments
+☐ Verify admin user exists in users table
+
+═══════════════════════════════════════════════════════════════
+STEP 2: BACKEND DEPLOYMENT
+═══════════════════════════════════════════════════════════════
+
+File Upload:
+☐ Create directory: /home/username/ministry-backend
+☐ Upload all files from server/ folder
+☐ Upload complete - verify files present
+
+Configuration:
+☐ Rename .env.production to .env
+☐ Edit .env file
+☐ Update DB_NAME: _________________
+☐ Update DB_USER: _________________
+☐ Update DB_PASS: _________________
+☐ Update DB_HOST: localhost
+☐ Update CLIENT_URL: https://yourdomain.com
+☐ Update UPLOAD_DIR: /home/username/ministry-backend/uploads
+☐ Generate new JWT_SECRET (32+ characters)
+☐ Generate new ADMIN_SECRET_KEY (32+ characters)
+☐ Save .env file
+
+Dependencies & Setup:
+☐ SSH into server
+☐ cd ~/ministry-backend
+☐ Run: npm install --production
+☐ Installation complete - no errors
+☐ Create uploads directory: mkdir -p uploads
+☐ Create logs directory: mkdir -p logs
+☐ Set permissions: chmod 755 uploads logs
+
+Start Application:
+☐ Using Node.js Selector: Application created and started
+   OR
+☐ Using PM2: pm2 start index.js --name ministry-backend
+☐ Application running - verify: pm2 status
+☐ Test: node test-mysql-connection.js
+☐ Database connection successful
+
+═══════════════════════════════════════════════════════════════
+STEP 3: FRONTEND DEPLOYMENT
+═══════════════════════════════════════════════════════════════
+
+Local Build:
+☐ cd client
+☐ Copy .env.production to .env
+☐ Edit .env - set VITE_API_URL to your domain
+☐ Run: npm run build
+☐ Build successful - dist/ folder created
+
+Upload to cPanel:
+☐ Go to cPanel File Manager
+☐ Navigate to public_html/
+☐ Upload all files from client/dist/
+☐ Upload client/.htaccess to public_html/
+☐ Verify index.html is in public_html/
+☐ Verify .htaccess is in public_html/
+☐ Verify assets/ folder is present
+
+═══════════════════════════════════════════════════════════════
+STEP 4: DOMAIN & SSL CONFIGURATION
+═══════════════════════════════════════════════════════════════
+
+SSL Certificate:
+☐ Go to cPanel → SSL/TLS
+☐ Click "SSL/TLS Status"
+☐ Select your domain
+☐ Click "Run AutoSSL"
+☐ Certificate installed successfully
+
+HTTPS Redirect:
+☐ Edit public_html/.htaccess
+☐ Add HTTPS redirect code
+☐ Add API proxy configuration
+☐ Save .htaccess
+☐ Test HTTPS redirect: http://yourdomain.com → https://
+
+API Proxy:
+☐ Verify API proxy in .htaccess
+☐ Test: curl https://yourdomain.com/api
+☐ Should proxy to backend on port 5000
+
+═══════════════════════════════════════════════════════════════
+STEP 5: TESTING & VERIFICATION
+═══════════════════════════════════════════════════════════════
+
+Backend Tests:
+☐ Test backend directly: curl http://localhost:5000
+☐ Response: "Ministry Reporting System API"
+☐ Check backend logs: tail -f ~/ministry-backend/logs/out.log
+☐ No errors in logs
+☐ Database queries working
+
+Frontend Tests:
+☐ Visit: https://yourdomain.com
+☐ Page loads successfully
+☐ No console errors (F12)
+☐ Login page displays correctly
+☐ Assets loading (images, CSS, JS)
+
+Integration Tests:
+☐ Login with: admin@ministry.com / Admin@123
+☐ Login successful - redirects to dashboard
+☐ Dashboard displays user info
+☐ Can navigate to different pages
+☐ Can create new report
+☐ Can view reports
+☐ Can export reports
+☐ File uploads working
+☐ All features functional
+
+═══════════════════════════════════════════════════════════════
+STEP 6: SECURITY & OPTIMIZATION
+═══════════════════════════════════════════════════════════════
+
+Security:
+☐ Change admin password from default
+☐ Create additional admin user (backup)
+☐ Verify .env file permissions (600)
+☐ Verify uploads directory permissions (755)
+☐ Check .htaccess security headers
+☐ Test CORS configuration
+☐ Verify JWT tokens working
+
+Performance:
+☐ Enable Gzip compression in .htaccess
+☐ Enable browser caching
+☐ Optimize images if needed
+☐ Test page load speed
+☐ Check mobile responsiveness
+
+Backups:
+☐ Setup cPanel automatic backups
+☐ Export database backup
+☐ Download backup of uploaded files
+☐ Save .env file securely (offline)
+☐ Document all credentials
+
+═══════════════════════════════════════════════════════════════
+POST-DEPLOYMENT
+═══════════════════════════════════════════════════════════════
+
+Monitoring:
+☐ Setup cron job for health checks (optional)
+☐ Monitor backend logs regularly
+☐ Check disk space usage
+☐ Monitor database size
+☐ Check error logs weekly
+
+Maintenance:
+☐ Schedule database backups (weekly)
+☐ Update Node.js dependencies (monthly)
+☐ Review security patches
+☐ Monitor uptime
+☐ Keep documentation updated
+
+Documentation:
+☐ Document all credentials in secure location
+☐ Document directory structure
+☐ Document database schema changes
+☐ Create user manual (if needed)
+☐ Document troubleshooting procedures
+
+═══════════════════════════════════════════════════════════════
+CREDENTIALS RECORD (Keep Secure!)
+═══════════════════════════════════════════════════════════════
+
+cPanel:
+URL: _________________________________
+Username: _____________________________
+Password: _____________________________
+
+Database:
+Name: _________________________________
+User: _________________________________
+Password: _____________________________
+Host: localhost
+
+Domain:
+Main: https://_________________________
+Admin Email: __________________________
+
+Application:
+Admin Email: admin@ministry.com
+Admin Password: _______________________
+
+Node.js:
+Port: 5000
+Version: ______________________________
+PM2 Process: ministry-report-backend
+
+═══════════════════════════════════════════════════════════════
+NOTES:
+═══════════════════════════════════════════════════════════════
+
+Deployment Date: _____________________
+Deployed By: _________________________
+Issues Encountered: 
+
+
+
+
+
+
+
+═══════════════════════════════════════════════════════════════
+    ALL DONE! ✅
+═══════════════════════════════════════════════════════════════
+
+Access your application at: https://yourdomain.com
+Login: admin@ministry.com / Admin@123
+
+Remember to:
+✓ Change default passwords
+✓ Setup regular backups  
+✓ Monitor logs
+✓ Keep system updated
+
+Congratulations on your deployment! 🎉

@@ -17,9 +17,13 @@ app.use(cors({
             'http://localhost:3000', 
             'http://localhost:5173',
             'https://ministry-report-system.vercel.app',
+            'https://gnitafrica.com',
+            'https://www.gnitafrica.com',
+            'https://report.gnitafrica.com',
+            'http://report.gnitafrica.com',
             process.env.CLIENT_URL
         ];
-        if (!origin || allowedOrigins.includes(origin) || origin?.endsWith('.vercel.app')) {
+        if (!origin || allowedOrigins.includes(origin) || origin?.endsWith('.vercel.app') || origin?.includes('gnitafrica.com')) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
