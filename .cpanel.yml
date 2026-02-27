@@ -15,3 +15,5 @@ deployment:
     - cd ../server
     - npm install --production
     - cp -R * /home/username/ministry-backend/
+
+    

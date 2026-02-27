@@ -40,7 +40,7 @@ Configuration:
 ☐ Update DB_USER: _________________
 ☐ Update DB_PASS: _________________
 ☐ Update DB_HOST: localhost
-☐ Update CLIENT_URL: https://yourdomain.com
+☐ Update CLIENT_URL: https://report.gnitafrica.com
 ☐ Update UPLOAD_DIR: /home/username/ministry-backend/uploads
 ☐ Generate new JWT_SECRET (32+ characters)
 ☐ Generate new ADMIN_SECRET_KEY (32+ characters)
@@ -99,11 +99,11 @@ HTTPS Redirect:
 ☐ Add HTTPS redirect code
 ☐ Add API proxy configuration
 ☐ Save .htaccess
-☐ Test HTTPS redirect: http://yourdomain.com → https://
+☐ Test HTTPS redirect: http://report.gnitafrica.com → https://
 
 API Proxy:
 ☐ Verify API proxy in .htaccess
-☐ Test: curl https://yourdomain.com/api
+☐ Test: curl https://report.gnitafrica.com/api
 ☐ Should proxy to backend on port 5000
 
 ═══════════════════════════════════════════════════════════════
@@ -118,7 +118,7 @@ Backend Tests:
 ☐ Database queries working
 
 Frontend Tests:
-☐ Visit: https://yourdomain.com
+☐ Visit: https://report.gnitafrica.com
 ☐ Page loads successfully
 ☐ No console errors (F12)
 ☐ Login page displays correctly
@@ -233,7 +233,7 @@ Issues Encountered:
     ALL DONE! ✅
 ═══════════════════════════════════════════════════════════════
 
-Access your application at: https://yourdomain.com
+Access your application at: https://report.gnitafrica.com
 Login: admin@ministry.com / Admin@123
 
 Remember to:

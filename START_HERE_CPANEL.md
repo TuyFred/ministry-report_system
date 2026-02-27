@@ -76,7 +76,7 @@ Your Ministry Report System is now **100% ready** to deploy to cPanel hosting. H
    └─ Start ministry-backend
 
 5. Test & Go Live! (5 min)
-   └─ Visit: https://yourdomain.com
+   └─ Visit: https://report.gnitafrica.com
    └─ Login: admin@ministry.com
 ```
 
@@ -110,7 +110,7 @@ Before deployment, update these 2 files:
 DB_NAME=your_cpanel_username_report        ← Update this
 DB_USER=your_cpanel_username_dbuser        ← Update this
 DB_PASS=your_database_password             ← Update this
-CLIENT_URL=https://yourdomain.com          ← Update this
+CLIENT_URL=https://report.gnitafrica.com          ← Update this
 UPLOAD_DIR=/home/username/ministry-backend/uploads  ← Update username
 JWT_SECRET=generate_random_32_chars        ← Generate new
 ADMIN_SECRET_KEY=generate_random_32_chars  ← Generate new
@@ -118,7 +118,7 @@ ADMIN_SECRET_KEY=generate_random_32_chars  ← Generate new
 
 ### 2. `deployment_package/frontend/.env.production.local`
 ```env
-VITE_API_URL=https://yourdomain.com/api    ← Update this
+VITE_API_URL=https://report.gnitafrica.com/api    ← Update this
 ```
 
 ---

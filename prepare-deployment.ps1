@@ -95,7 +95,7 @@ Update these files:
    - Generate new JWT_SECRET and ADMIN_SECRET_KEY
 
 2. frontend/.env.production.local
-   - VITE_API_URL (https://yourdomain.com/api)
+   - VITE_API_URL (https://report.gnitafrica.com/api)
 
 3. Build frontend on cPanel:
    cd ~/ministry-frontend
