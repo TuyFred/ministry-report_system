@@ -210,5 +210,10 @@ BEGIN
   IF seq_name IS NOT NULL THEN
     EXECUTE format('SELECT setval(%L, COALESCE((SELECT MAX("id") FROM "ReportFormTemplates"), 0) + 1, false);', seq_name);
   END IF;
+<<<<<<< HEAD
 END $$;
 
+=======
+END $$;
+
+>>>>>>> 04920ac493daeaada4207a3915fd87d9275d5fc8
