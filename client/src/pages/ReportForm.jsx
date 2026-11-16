@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FaCalendarAlt, FaChurch, FaGlobe, FaUser, FaClock, FaUsers, FaBook, FaPray, FaDumbbell, FaPen, FaSearch } from 'react-icons/fa';
+import { FaCalendarAlt, FaChurch, FaUser, FaClock, FaUsers, FaBook, FaPray, FaDumbbell, FaPen } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
+import CountrySelect from '../components/CountrySelect';
 
 const ReportForm = () => {
     const navigate = useNavigate();
@@ -48,8 +49,6 @@ const ReportForm = () => {
     });
 
     const [isFormValid, setIsFormValid] = useState(false);
-    const [countrySearch, setCountrySearch] = useState('');
-    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
     const [isWeekend, setIsWeekend] = useState(false);
     const [isSaturday, setIsSaturday] = useState(false);
     const [isSunday, setIsSunday] = useState(false);
@@ -332,7 +331,6 @@ const ReportForm = () => {
                 tomorrow_tasks: editReport.tomorrow_tasks || '',
                 other_activities: editReport.other_activities || ''
             });
-            setCountrySearch(editReport.country || '');
         }
     }, [editReport]);
 
@@ -460,45 +458,6 @@ const ReportForm = () => {
         }
     };
 
-    const countries = [
-        'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia',
-        'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium',
-        'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei',
-        'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 'Cape Verde',
-        'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 'Congo',
-        'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 'Dominica',
-        'Dominican Republic', 'East Timor', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea',
-        'Eritrea', 'Estonia', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 'Georgia',
-        'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
-        'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland',
-        'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 'Kuwait',
-        'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein',
-        'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta',
-        'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 'Moldova', 'Monaco',
-        'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 'Nauru', 'Nepal',
-        'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia',
-        'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay',
-        'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda',
-        'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa',
-        'San Marino', 'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles',
-        'Sierra Leone', 'Singapore', 'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa',
-        'South Korea', 'South Sudan', 'Spain', 'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland',
-        'Syria', 'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Togo', 'Tonga', 'Trinidad and Tobago',
-        'Tunisia', 'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates',
-        'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City',
-        'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
-    ];
-
-    const filteredCountries = countries.filter(country =>
-        country.toLowerCase().includes(countrySearch.toLowerCase())
-    );
-
-    const handleCountrySelect = (country) => {
-        setFormData({ ...formData, country });
-        setCountrySearch(country);
-        setShowCountryDropdown(false);
-    };
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
             <div className="max-w-5xl mx-auto pb-6">
@@ -564,36 +523,13 @@ const ReportForm = () => {
 
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('country', 'Country')}</label>
-                                <div className="relative">
-                                    <div className="relative">
-                                        <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            value={countrySearch}
-                                            onChange={(e) => {
-                                                setCountrySearch(e.target.value);
-                                                setShowCountryDropdown(true);
-                                            }}
-                                            onFocus={() => setShowCountryDropdown(true)}
-                                            placeholder={getPlaceholder('country', 'Search or select a country')}
-                                            required
-                                            className="w-full pl-11 pr-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
-                                        />
-                                    </div>
-                                    {showCountryDropdown && filteredCountries.length > 0 && (
-                                        <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-300 rounded-xl shadow-lg max-h-60 overflow-y-auto no-scrollbar">
-                                            {filteredCountries.map(country => (
-                                                <div
-                                                    key={country}
-                                                    onClick={() => handleCountrySelect(country)}
-                                                    className="px-3 py-2.5 hover:bg-indigo-50 cursor-pointer transition-colors text-sm"
-                                                >
-                                                    {country}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
+                                <CountrySelect
+                                    value={formData.country}
+                                    onChange={(country) => setFormData({ ...formData, country })}
+                                    placeholder={getPlaceholder('country', 'Type or select an African country')}
+                                    required
+                                    className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                />
                             </div>
 
                             <div>

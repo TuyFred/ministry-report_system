@@ -12,6 +12,8 @@ const ResetPasswordAdmin = () => {
     const [selectedUser, setSelectedUser] = useState(null);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [otpRequested, setOtpRequested] = useState(false);
     const [message, setMessage] = useState({ type: '', text: '' });
     const [loading, setLoading] = useState(false);
 
@@ -49,6 +51,29 @@ const ResetPasswordAdmin = () => {
         }
     }, [searchTerm, users]);
 
+    const requestOtp = async () => {
+        setMessage({ type: '', text: '' });
+        if (!selectedUser) {
+            setMessage({ type: 'error', text: 'Please select a user first.' });
+            return;
+        }
+        setLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(
+                `${API_URL}/api/users/admin-reset-password/request-otp`,
+                { userId: selectedUser.id },
+                { headers: { 'x-auth-token': token } }
+            );
+            setOtpRequested(true);
+            setMessage({ type: 'success', text: response.data.msg });
+        } catch (error) {
+            setMessage({ type: 'error', text: error.response?.data?.msg || 'Failed to send verification code.' });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleResetPassword = async (e) => {
         e.preventDefault();
         setMessage({ type: '', text: '' });
@@ -75,6 +100,7 @@ const ResetPasswordAdmin = () => {
                 `${API_URL}/api/users/admin-reset-password`,
                 {
                     userId: selectedUser.id,
+                    otp,
                     newPassword: newPassword
                 },
                 {
@@ -85,6 +111,8 @@ const ResetPasswordAdmin = () => {
             setMessage({ type: 'success', text: `Password reset successfully for ${selectedUser.fullname}` });
             setNewPassword('');
             setConfirmPassword('');
+            setOtp('');
+            setOtpRequested(false);
             setSelectedUser(null);
             setSearchTerm('');
             
@@ -149,6 +177,10 @@ const ResetPasswordAdmin = () => {
                                         onClick={() => {
                                             setSelectedUser(u);
                                             setSearchTerm('');
+                                            setOtpRequested(false);
+                                            setOtp('');
+                                            setNewPassword('');
+                                            setConfirmPassword('');
                                         }}
                                         className="p-4 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-0 transition-colors"
                                     >
@@ -215,8 +247,38 @@ const ResetPasswordAdmin = () => {
                         </div>
                     )}
 
+                    {selectedUser && (
+                        <div className="mb-5">
+                            <button
+                                type="button"
+                                onClick={requestOtp}
+                                disabled={loading}
+                                className="w-full py-3 rounded-xl font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 disabled:opacity-50"
+                            >
+                                {loading ? 'Sending code...' : otpRequested ? 'Resend code to user email' : 'Send verification code to user email'}
+                            </button>
+                        </div>
+                    )}
+
                     {/* Reset Password Form */}
                     <form onSubmit={handleResetPassword} className="space-y-4">
+                        {otpRequested && (
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Code sent to the user’s registered email</label>
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="one-time-code"
+                                    pattern="[0-9]{6}"
+                                    maxLength="6"
+                                    value={otp}
+                                    onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    required
+                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-center tracking-[0.5em] text-lg focus:border-indigo-500 focus:outline-none"
+                                    placeholder="000000"
+                                />
+                            </div>
+                        )}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 <FaLock className="inline mr-2" />
@@ -249,9 +311,9 @@ const ResetPasswordAdmin = () => {
 
                         <button
                             type="submit"
-                            disabled={loading || !selectedUser}
+                            disabled={loading || !selectedUser || !otpRequested}
                             className={`w-full py-3 rounded-xl font-bold transition-all ${
-                                loading || !selectedUser
+                                loading || !selectedUser || !otpRequested
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 shadow-lg'
                             }`}

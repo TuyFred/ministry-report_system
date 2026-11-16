@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 const { DataTypes } = require('sequelize');
 const { sequelize } = require('../config/db');
 
@@ -27,33 +26,3 @@ const ReportFormTemplate = sequelize.define('ReportFormTemplate', {
 });
 
 module.exports = ReportFormTemplate;
-=======
-const { DataTypes } = require('sequelize');
-const { sequelize } = require('../config/db');
-
-const ReportFormTemplate = sequelize.define('ReportFormTemplate', {
-    id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-    },
-    name: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    definition: {
-        // Postgres JSONB
-        type: DataTypes.JSONB,
-        allowNull: false
-    },
-    is_active: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
-    }
-}, {
-    timestamps: true
-});
-
-module.exports = ReportFormTemplate;
->>>>>>> 04920ac493daeaada4207a3915fd87d9275d5fc8

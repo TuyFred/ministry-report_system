@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { FaEdit, FaTrash, FaUserPlus, FaTimes, FaFilter, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
+import CountrySelect from '../components/CountrySelect';
 
 const Members = () => {
   const [members, setMembers] = useState([]);
@@ -231,14 +232,22 @@ const Members = () => {
                     
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                        <input 
-                            type="text" 
-                            required 
-                            className={`w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500 ${user.role === 'leader' ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                            value={formData.country} 
-                            onChange={e => setFormData({...formData, country: e.target.value})}
-                            readOnly={user.role === 'leader'}
-                        />
+                        {user.role === 'leader' ? (
+                            <input 
+                                type="text" 
+                                required 
+                                className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500 bg-gray-100 cursor-not-allowed"
+                                value={formData.country} 
+                                readOnly
+                            />
+                        ) : (
+                            <CountrySelect
+                                required
+                                className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500"
+                                value={formData.country}
+                                onChange={(country) => setFormData({ ...formData, country })}
+                            />
+                        )}
                     </div>
                     <div className="col-span-1">
                         <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>

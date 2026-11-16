@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { FaLock, FaEye, FaEyeSlash, FaUser, FaEnvelope, FaCheckCircle, FaCamera, FaUserPlus } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
+import CountrySelect from '../components/CountrySelect';
 
 const Settings = () => {
     const { user, updateUser, refreshUser } = useContext(AuthContext);
@@ -398,11 +399,9 @@ const Settings = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Country</label>
-                                <input
-                                    type="text"
+                                <CountrySelect
                                     value={newAdminData.country}
-                                    onChange={(e) => setNewAdminData({ ...newAdminData, country: e.target.value })}
-                                    placeholder="Enter country"
+                                    onChange={(country) => setNewAdminData({ ...newAdminData, country })}
                                     required
                                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
                                 />

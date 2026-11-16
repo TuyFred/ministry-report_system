@@ -122,7 +122,7 @@ Once the admin account is created, you can:
 
 Make sure your `.env` file contains:
 ```
-ADMIN_SECRET_KEY=ministry_admin_secret_2025_secure_key
+ADMIN_SECRET_KEY=your_configured_admin_secret_key
 ```
 
 **IMPORTANT:** Change this secret key in production!
@@ -250,7 +250,7 @@ Once the admin account is created, you can:
 
 Make sure your `.env` file contains:
 ```
-ADMIN_SECRET_KEY=ministry_admin_secret_2025_secure_key
+ADMIN_SECRET_KEY=your_configured_admin_secret_key
 ```
 
 **IMPORTANT:** Change this secret key in production!

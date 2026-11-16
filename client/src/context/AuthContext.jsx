@@ -36,10 +36,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     const register = async (formData) => {
-        // Register user but don't auto-login
-        // User will be redirected to login page to enter credentials
-        await axios.post(`${API_URL}/api/auth/register`, formData);
-        // Don't set token or user - let them login manually
+        return axios.post(`${API_URL}/api/auth/register`, formData);
     };
 
     const logout = () => {

@@ -3,6 +3,8 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { FaChurch, FaUser, FaEnvelope, FaLock, FaGlobe, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
+import { API_URL } from '../utils/api';
+import CountrySelect from '../components/CountrySelect';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -16,7 +18,10 @@ const Register = () => {
         address: ''
     });
     const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
     const [loading, setLoading] = useState(false);
+    const [otpRequested, setOtpRequested] = useState(false);
+    const [otp, setOtp] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { register } = useContext(AuthContext);
@@ -42,6 +47,7 @@ const Register = () => {
 
     const onChange = e => {
         setError('');
+        setNotice('');
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -61,17 +67,48 @@ const Register = () => {
 
         setLoading(true);
         try {
-            await register({ fullname, email, password, role, country, contact, address });
-            // After successful registration, redirect to login page
-            navigate('/login', { 
-                state: { 
-                    message: 'Registration successful! Please login with your credentials.',
-                    email: email 
-                }
-            });
+            const response = await register({ fullname, email, password, role, country, contact, address });
+            setOtpRequested(true);
+            setNotice(response.data.msg);
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.msg || 'Registration failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const verifyOtp = async (event) => {
+        event.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await axios.post(`${API_URL}/api/auth/register/verify-otp`, {
+                email,
+                otp
+            });
+            navigate('/login', {
+                state: {
+                    message: 'Your email is verified and your account has been created. Please sign in.',
+                    email
+                }
+            });
+        } catch (err) {
+            setError(err.response?.data?.msg || 'Unable to verify the code.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const resendOtp = async () => {
+        setError('');
+        setNotice('');
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_URL}/api/auth/register/resend-otp`, { email });
+            setNotice(response.data.msg);
+        } catch (err) {
+            setError(err.response?.data?.msg || 'Unable to resend the code.');
         } finally {
             setLoading(false);
         }
@@ -96,7 +133,35 @@ const Register = () => {
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
                     )}
+                    {notice && (
+                        <div role="status" className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">{notice}</div>
+                    )}
 
+                    {otpRequested ? (
+                        <form onSubmit={verifyOtp} className="space-y-4">
+                            <p className="text-sm text-gray-600">Enter the six-digit verification code sent to <strong>{email}</strong>. It expires in 10 minutes.</p>
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="registration-otp">Email verification code</label>
+                            <input
+                                id="registration-otp"
+                                type="text"
+                                inputMode="numeric"
+                                autoComplete="one-time-code"
+                                pattern="[0-9]{6}"
+                                maxLength="6"
+                                value={otp}
+                                onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                                required
+                                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-center tracking-[0.5em] text-lg focus:ring-2 focus:ring-indigo-500"
+                                placeholder="000000"
+                            />
+                            <button type="submit" disabled={loading} className="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50">
+                                {loading ? 'Verifying...' : 'Verify Email and Create Account'}
+                            </button>
+                            <button type="button" onClick={resendOtp} disabled={loading} className="w-full text-sm text-indigo-600 hover:text-indigo-700 disabled:opacity-50">
+                                Resend code
+                            </button>
+                        </form>
+                    ) : (
                     <form onSubmit={onSubmit} className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
@@ -185,14 +250,11 @@ const Register = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                                 <div className="relative">
                                     <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-                                    <input
-                                        type="text"
-                                        name="country"
+                                    <CountrySelect
                                         value={country}
-                                        onChange={onChange}
+                                        onChange={(value) => setFormData({ ...formData, country: value })}
                                         required
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                        placeholder="Your country"
+                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
                                     />
                                 </div>
                             </div>
@@ -236,6 +298,7 @@ const Register = () => {
                             {loading ? 'Creating Account...' : 'Create Account'}
                         </button>
                     </form>
+                    )}
 
                     <p className="mt-4 text-center text-xs text-gray-500">
                         Admin accounts are managed by administrators

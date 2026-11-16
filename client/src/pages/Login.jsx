@@ -76,9 +76,13 @@ const Login = () => {
             <div className="max-w-md w-full">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <Link to="/" className="inline-flex items-center space-x-2 mb-6">
-                        <FaChurch className="text-indigo-600 text-4xl" />
-                        <span className="text-3xl font-bold text-gray-800">Ministry Reports</span>
+                    <Link to="/" className="group inline-flex flex-col items-center gap-3 mb-6">
+                        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200 ring-4 ring-white transition-transform group-hover:scale-105">
+                            <FaChurch className="text-3xl" aria-hidden="true" />
+                        </span>
+                        <span className="text-2xl font-extrabold tracking-tight text-gray-800">
+                            Ministry <span className="text-indigo-600">Reports</span>
+                        </span>
                     </Link>
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">
                         Welcome Back
@@ -86,7 +90,7 @@ const Login = () => {
                     <p className="text-gray-600">
                         Don't have an account?{' '}
                         <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                            Sign up free
+                            Create account
                         </Link>
                     </p>
                 </div>

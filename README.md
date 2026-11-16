@@ -144,10 +144,20 @@ DB_NAME=ministry_db
 DB_USER=postgres
 DB_PASS=fred123
 DB_HOST=localhost
-JWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_x3kP9u7dF4rA9QmD7wL0Zt1Xc9R2S8kH3pO6sV1bT2kW8qY5
+JWT_SECRET=generate_a_long_random_secret
 PORT=5000
-ADMIN_SECRET_KEY=ministry_admin_secret_2025_secure_key
+ADMIN_SECRET_KEY=generate_a_different_long_random_secret
+BREVO_API_KEY=your_brevo_transactional_api_key
+BREVO_SENDER_EMAIL=verified-sender@your-domain.example
+BREVO_SENDER_NAME=Ministry Reports
+BREVO_WEBHOOK_SECRET=generate_a_third_long_random_secret
+OTP_HASH_SECRET=generate_a_fourth_long_random_secret
+APP_NAME=Ministry Reports
 ```
+
+Verify the sender address/domain in Brevo before sending. For reliable inbox delivery, authenticate your sending domain with Brevo's SPF and DKIM DNS records (and configure DMARC where possible). Delivery to the inbox cannot be guaranteed by application code alone.
+
+The server creates the `email_otps` table at startup. Codes are HMAC-hashed, expire after 10 minutes, can be used once, allow at most five guesses, and are limited to one send per minute and five sends per hour per email and flow. To record delivery outcomes, configure a Brevo transactional webhook to `https://YOUR_API_HOST/api/email/brevo-webhook?secret=YOUR_BREVO_WEBHOOK_SECRET` and subscribe to delivery/bounce events. The webhook secret must match the backend environment variable.
 
 ### 4. Run Database Migrations
 The database tables will be created automatically when you start the server for the first time.
@@ -545,8 +555,16 @@ Error: Port 5000 is already in use
 
 ### Authentication
 - `POST /api/auth/register` - Register leader/member
+- `POST /api/auth/register/verify-otp` - Verify email and create member account
+- `POST /api/auth/register/resend-otp` - Resend account verification code
 - `POST /api/auth/register-admin` - Register admin (requires secret key)
 - `POST /api/auth/login` - Login
+- `POST /api/auth/password-reset/request-otp` - Email a password-reset code
+- `POST /api/auth/password-reset/resend-otp` - Resend password-reset code
+- `POST /api/auth/password-reset/verify-otp` - Verify code and set a new password
+- `POST /api/users/admin-reset-password/request-otp` - Admin-only; email a code to the selected user's registered address
+- `POST /api/users/admin-reset-password` - Admin-only; verify the emailed code and change that user's password
+- `POST /api/email/brevo-webhook` - Optional, secret-protected Brevo delivery-status webhook
 ## 🔧 Environment Variables
 
 ### Server (.env)
@@ -556,9 +574,9 @@ DB_USER=postgres
 DB_PASS=fred123
 DB_HOST=localhost
 DB_PORT=5432
-JWT_SECRET=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9_x3kP9u7dF4rA9QmD7wL0Zt1Xc9R2S8kH3pO6sV1bT2kW8qY5
+JWT_SECRET=generate_a_long_random_secret
 PORT=5000
-ADMIN_SECRET_KEY=ministry_admin_secret_2025_secure_key
+ADMIN_SECRET_KEY=generate_a_different_long_random_secret
 ```
 
 ## 🚨 Troubleshooting

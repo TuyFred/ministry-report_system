@@ -83,6 +83,13 @@ Upload to cPanel:
 ☐ Verify .htaccess is in public_html/
 ☐ Verify assets/ folder is present
 
+Important for this domain's Node.js/Passenger app:
+The app is mounted at the domain root (/), so requests to / are handled by
+Express. Include the built client files in server/public/ when deploying the
+backend. The backend then serves the home page and React routes while keeping
+/api routes on the same host. Uploading the frontend to a separate child folder
+will not replace the page served at /.
+
 ═══════════════════════════════════════════════════════════════
 STEP 4: DOMAIN & SSL CONFIGURATION
 ═══════════════════════════════════════════════════════════════

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { FaChurch, FaUsers, FaGlobe, FaFileAlt, FaArrowRight, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaChurch, FaUsers, FaGlobe, FaFileAlt, FaArrowRight, FaSignInAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import axios from 'axios';
+import { detectDeviceType } from '../utils/device';
 
 const Welcome = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const navigate = useNavigate();
+    const deviceType = detectDeviceType();
     
     const slides = [
         { 
@@ -101,7 +103,7 @@ const Welcome = () => {
                             to="/register" 
                             className="px-3 sm:px-6 py-2 text-sm sm:text-base bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition-all shadow-lg hover:shadow-xl border border-white/30"
                         >
-                            Get Started
+                            Sign Up
                         </Link>
                     </div>
                 </div>
@@ -123,16 +125,21 @@ const Welcome = () => {
                     <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4">
                         <Link 
                             to="/register" 
-                            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all shadow-2xl hover:shadow-3xl flex items-center justify-center gap-2 text-base sm:text-lg font-bold"
+                            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all shadow-2xl hover:shadow-3xl flex items-center justify-center gap-2 text-base sm:text-lg font-bold focus:outline-none focus:ring-4 focus:ring-white/40"
                         >
-                            Start Free <FaArrowRight />
+                            Sign Up <FaArrowRight aria-hidden="true" />
                         </Link>
-                        <a 
-                            href="#features" 
-                            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition-all shadow-lg border-2 border-white/50 text-base sm:text-lg font-medium text-center"
+                        <Link 
+                            to="/login" 
+                            className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition-all shadow-lg border-2 border-white/50 text-base sm:text-lg font-medium text-center flex items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-white/40"
                         >
-                            Learn More
-                        </a>
+                            <FaSignInAlt aria-hidden="true" /> Sign In
+                        </Link>
+                    </div>
+
+                    <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm text-white/90 backdrop-blur-md">
+                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+                        Mobile-ready {deviceType} experience
                     </div>
 
                     {/* Slide Indicators */}

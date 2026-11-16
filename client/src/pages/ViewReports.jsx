@@ -9,6 +9,7 @@ const ViewReports = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [reports, setReports] = useState([]);
+    const [sortOrder, setSortOrder] = useState('newest');
     const [filter, setFilter] = useState('daily'); // daily, weekly, monthly
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [loading, setLoading] = useState(false);
@@ -232,7 +233,18 @@ const ViewReports = () => {
     // Pagination Logic
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentReports = reports.slice(indexOfFirstItem, indexOfLastItem);
+    const sortedReports = [...reports].sort((a, b) => {
+        const getTimestamp = (value) => {
+            const timestamp = new Date(value || '').getTime();
+            return Number.isNaN(timestamp) ? 0 : timestamp;
+        };
+        const direction = sortOrder === 'newest' ? -1 : 1;
+        const reportDateDifference = getTimestamp(a.date || a.createdAt) - getTimestamp(b.date || b.createdAt);
+        const submissionDateDifference = getTimestamp(a.createdAt) - getTimestamp(b.createdAt);
+
+        return direction * (reportDateDifference || submissionDateDifference);
+    });
+    const currentReports = sortedReports.slice(indexOfFirstItem, indexOfLastItem);
     const totalPages = Math.ceil(reports.length / itemsPerPage);
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -327,6 +339,19 @@ const ViewReports = () => {
                                 onChange={(e) => setSelectedDate(e.target.value)}
                                 className="px-3 py-2 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none text-sm"
                             />
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <label htmlFor="report-sort-order" className="font-semibold text-gray-700">Sort by:</label>
+                            <select
+                                id="report-sort-order"
+                                value={sortOrder}
+                                onChange={(e) => setSortOrder(e.target.value)}
+                                className="px-3 py-2 border-2 border-gray-200 rounded-xl bg-white text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                            >
+                                <option value="newest">Newest first</option>
+                                <option value="oldest">Oldest first</option>
+                            </select>
                         </div>
 
                         {user?.role === 'admin' && (
