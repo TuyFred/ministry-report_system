@@ -7,7 +7,7 @@ import { API_URL } from '../utils/api';
 import CountrySelect from '../components/CountrySelect';
 import BrandLogo from '../components/BrandLogo';
 
-const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
+const Register = ({ isModal = false, onClose }) => {
     const [formData, setFormData] = useState({
         fullname: '',
         email: '',
@@ -117,28 +117,25 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
 
     return (
         <div role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4'}>
-            <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-2xl sm:p-6">
+            <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl sm:p-5">
                 {isModal && (
                     <button type="button" onClick={onClose} aria-label="Close sign up dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
                         <FaTimes />
                     </button>
                 )}
-                <div className="mb-6 text-center">
-                    <Link to="/" onClick={isModal ? onClose : undefined} className="mb-3 inline-flex items-center">
+                <div className="mb-4 text-center">
+                    <Link to="/" onClick={isModal ? onClose : undefined} className="mb-2 inline-flex items-center">
                         <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="mb-1 text-2xl font-semibold text-slate-800">Register</h2>
-                    <p className="text-sm text-gray-600">
-                        Already have an account?{' '}
-                        {isModal ? (
-                            <button type="button" onClick={() => onSwitchToLogin?.()} className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</button>
-                        ) : (
-                            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</Link>
-                        )}
-                    </p>
+                    <h2 className="text-xl font-semibold text-slate-800">Register</h2>
+                    {!isModal && (
+                        <p className="mt-1 text-sm text-gray-600">
+                            Already registered? <Link to="/login" className="font-medium text-sky-700 hover:text-sky-800">Go to login</Link>
+                        </p>
+                    )}
                 </div>
 
-                <div className="max-h-[calc(100vh-8rem)] overflow-y-auto bg-transparent p-0">
+                <div className="max-h-[calc(100vh-6rem)] overflow-y-auto bg-transparent p-0">
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
                     )}
@@ -172,8 +169,8 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                         </form>
                     ) : (
                     <form onSubmit={onSubmit} className="space-y-3">
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <div className="relative">
                                     <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -258,7 +255,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-2">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                                 <div className="relative">

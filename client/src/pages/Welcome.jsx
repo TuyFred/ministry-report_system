@@ -9,7 +9,6 @@ import BrandLogo from '../components/BrandLogo';
 const Welcome = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
     const [authModal, setAuthModal] = useState(null);
-    const [loginDetails, setLoginDetails] = useState({ email: '', message: '' });
     const navigate = useNavigate();
     
     const slides = [
@@ -61,10 +60,6 @@ const Welcome = () => {
     const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
     const openLogin = () => setAuthModal('login');
     const openRegister = () => setAuthModal('register');
-    const switchToLogin = (details = {}) => {
-        setLoginDetails({ email: details.email || '', message: details.message || '' });
-        setAuthModal('login');
-    };
 
     return (
         <div className="bg-gray-900">
@@ -272,15 +267,12 @@ const Welcome = () => {
                     isModal
                     onClose={() => setAuthModal(null)}
                     onSwitchToRegister={openRegister}
-                    initialEmail={loginDetails.email}
-                    initialMessage={loginDetails.message}
                 />
             )}
             {authModal === 'register' && (
                 <Register
                     isModal
                     onClose={() => setAuthModal(null)}
-                    onSwitchToLogin={switchToLogin}
                 />
             )}
         </div>
