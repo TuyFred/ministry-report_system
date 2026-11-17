@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock, FaGlobe, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaGlobe, FaPhone, FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 import CountrySelect from '../components/CountrySelect';
@@ -24,6 +24,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
     const [otpRequested, setOtpRequested] = useState(false);
     const [otp, setOtp] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [selectedDialCode, setSelectedDialCode] = useState('');
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
@@ -127,7 +128,6 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                     <Link to="/" onClick={isModal ? onClose : undefined} className="mb-2 inline-flex items-center">
                         <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="text-xl font-semibold text-slate-800">Register</h2>
                     {!isModal && (
                         <p className="mt-1 text-sm text-gray-600">
                             Already registered? <Link to="/login" className="font-medium text-sky-700 hover:text-sky-800">Go to login</Link>
@@ -135,7 +135,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                     )}
                 </div>
 
-                <div className="max-h-[calc(100vh-6rem)] overflow-y-auto bg-transparent p-0">
+                <div className="overflow-visible bg-transparent p-0">
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
                     )}
@@ -169,8 +169,8 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                         </form>
                     ) : (
                     <form onSubmit={onSubmit} className="space-y-3">
-                        <div>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                            <div>
                                 <label className="sr-only" htmlFor="register-fullname">Full Name</label>
                                 <div className="relative">
                                     <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -207,7 +207,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </div>
                         </div>
 
-                        <div>
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                             <div>
                                 <label className="sr-only" htmlFor="register-password">Password</label>
                                 <div className="relative">
@@ -217,16 +217,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         id="register-password"
                                         name="password"
                                         value={password}
-                                        onChange={(event) => {
-                                            const nextPassword = event.target.value;
-                                            setError('');
-                                            setNotice('');
-                                            setFormData((current) => ({
-                                                ...current,
-                                                password: nextPassword,
-                                                confirmPassword: nextPassword
-                                            }));
-                                        }}
+                                        onChange={onChange}
                                         autoComplete="new-password"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
@@ -241,7 +232,31 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                     </button>
                                 </div>
                             </div>
-
+                            <div>
+                                <label className="sr-only" htmlFor="register-confirm-password">Confirm password</label>
+                                <div className="relative">
+                                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400 text-sm" />
+                                    <input
+                                        id="register-confirm-password"
+                                        type={showConfirmPassword ? 'text' : 'password'}
+                                        name="confirmPassword"
+                                        value={confirmPassword}
+                                        onChange={onChange}
+                                        autoComplete="new-password"
+                                        required
+                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
+                                        placeholder="Confirm password"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 transform text-gray-400 hover:text-gray-600"
+                                    >
+                                        {showConfirmPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -293,22 +308,6 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                 </div>
                             </div>
                         </div>
-
-                        <details className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2">
-                            <summary className="cursor-pointer text-sm font-medium text-slate-600">Add address (optional)</summary>
-                            <div className="relative mt-2">
-                                <FaMapMarkerAlt className="absolute left-3 top-3 text-gray-400 text-sm" />
-                                <textarea
-                                    name="address"
-                                    value={address}
-                                    onChange={onChange}
-                                    autoComplete="street-address"
-                                    rows="2"
-                                    className="w-full resize-none rounded-sm border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
-                                    placeholder="Your address"
-                                ></textarea>
-                            </div>
-                        </details>
 
                         <button
                             type="submit"

@@ -85,7 +85,6 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                     <Link to="/" onClick={isModal ? onClose : undefined} className="group mb-4 inline-flex flex-col items-center">
                         <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="mb-1 text-2xl font-semibold text-slate-800">Login</h2>
                     <p className="text-sm text-gray-600">
                         Don't have an account?{' '}
                         {isModal ? (

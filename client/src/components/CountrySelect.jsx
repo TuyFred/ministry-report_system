@@ -3,6 +3,7 @@ import { COUNTRIES, findCountry } from '../utils/countries';
 
 const CountrySelect = ({
     value,
+    id,
     onChange,
     onCountrySelect,
     required = false,
@@ -54,6 +55,7 @@ const CountrySelect = ({
         <div ref={containerRef} className="relative w-full">
             <input
                 type="text"
+                id={id}
                 value={query}
                 onChange={handleChange}
                 onFocus={() => setIsOpen(true)}
