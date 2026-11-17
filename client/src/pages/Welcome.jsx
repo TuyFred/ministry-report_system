@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaChurch, FaUsers, FaGlobe, FaFileAlt, FaArrowRight, FaSignInAlt, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import axios from 'axios';
-import { detectDeviceType } from '../utils/device';
+import Login from './Login';
+import Register from './Register';
+import BrandLogo from '../components/BrandLogo';
 
 const Welcome = () => {
     const [currentSlide, setCurrentSlide] = useState(0);
+    const [authModal, setAuthModal] = useState(null);
+    const [loginDetails, setLoginDetails] = useState({ email: '', message: '' });
     const navigate = useNavigate();
-    const deviceType = detectDeviceType();
     
     const slides = [
         { 
@@ -56,6 +59,12 @@ const Welcome = () => {
 
     const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
     const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    const openLogin = () => setAuthModal('login');
+    const openRegister = () => setAuthModal('register');
+    const switchToLogin = (details = {}) => {
+        setLoginDetails({ email: details.email || '', message: details.message || '' });
+        setAuthModal('login');
+    };
 
     return (
         <div className="bg-gray-900">
@@ -89,22 +98,23 @@ const Welcome = () => {
             <nav className="relative z-20 container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
                 <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-2">
-                        <FaChurch className="text-white text-2xl sm:text-3xl drop-shadow-lg" />
-                        <span className="text-lg sm:text-2xl font-bold text-white drop-shadow-lg">Ministry Reports</span>
+                        <BrandLogo dark />
                     </div>
                     <div className="flex gap-2 sm:gap-4">
-                        <Link 
-                            to="/login" 
+                        <button 
+                            type="button"
+                            onClick={openLogin}
                             className="px-3 sm:px-6 py-2 text-sm sm:text-base text-white hover:text-indigo-200 font-medium transition-colors drop-shadow-lg"
                         >
                             Sign In
-                        </Link>
-                        <Link 
-                            to="/register" 
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={openRegister}
                             className="px-3 sm:px-6 py-2 text-sm sm:text-base bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition-all shadow-lg hover:shadow-xl border border-white/30"
                         >
                             Sign Up
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </nav>
@@ -123,23 +133,20 @@ const Welcome = () => {
                         leaders and members worldwide. Track progress, share insights, and stay connected.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4">
-                        <Link 
-                            to="/register" 
+                        <button 
+                            type="button"
+                            onClick={openRegister}
                             className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-all shadow-2xl hover:shadow-3xl flex items-center justify-center gap-2 text-base sm:text-lg font-bold focus:outline-none focus:ring-4 focus:ring-white/40"
                         >
                             Sign Up <FaArrowRight aria-hidden="true" />
-                        </Link>
-                        <Link 
-                            to="/login" 
+                        </button>
+                        <button 
+                            type="button"
+                            onClick={openLogin}
                             className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-white/20 backdrop-blur-md text-white rounded-lg hover:bg-white/30 transition-all shadow-lg border-2 border-white/50 text-base sm:text-lg font-medium text-center flex items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-white/40"
                         >
                             <FaSignInAlt aria-hidden="true" /> Sign In
-                        </Link>
-                    </div>
-
-                    <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-4 py-2 text-sm text-white/90 backdrop-blur-md">
-                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
-                        Mobile-ready {deviceType} experience
+                        </button>
                     </div>
 
                     {/* Slide Indicators */}
@@ -238,12 +245,13 @@ const Welcome = () => {
                     <p className="text-base sm:text-lg lg:text-xl text-indigo-100 mb-6 sm:mb-10 max-w-2xl mx-auto px-4">
                         Join ministry leaders and members around the world using our platform to stay organized and connected.
                     </p>
-                    <Link 
-                        to="/register" 
+                    <button 
+                        type="button"
+                        onClick={openRegister}
                         className="inline-flex items-center justify-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-indigo-600 rounded-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl text-base sm:text-lg font-medium w-auto mx-4 sm:mx-0"
                     >
                         Create Your Account <FaArrowRight />
-                    </Link>
+                    </button>
                 </div>
             </div>
 
@@ -252,13 +260,29 @@ const Welcome = () => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     <div className="flex items-center justify-center space-x-2 mb-3 sm:mb-4">
                         <FaChurch className="text-xl sm:text-2xl" />
-                        <span className="text-lg sm:text-xl font-bold">Ministry Reports</span>
+                        <span className="text-lg sm:text-xl font-bold">Olivet Assembly Africa</span>
                     </div>
                     <p className="text-sm sm:text-base text-gray-400 px-4">
-                        © 2025 Ministry Report System. All rights reserved.
+                        © 2025 Olivet Assembly Africa. All rights reserved.
                     </p>
                 </div>
             </footer>
+            {authModal === 'login' && (
+                <Login
+                    isModal
+                    onClose={() => setAuthModal(null)}
+                    onSwitchToRegister={openRegister}
+                    initialEmail={loginDetails.email}
+                    initialMessage={loginDetails.message}
+                />
+            )}
+            {authModal === 'register' && (
+                <Register
+                    isModal
+                    onClose={() => setAuthModal(null)}
+                    onSwitchToLogin={switchToLogin}
+                />
+            )}
         </div>
     );
 };

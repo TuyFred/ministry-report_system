@@ -1,12 +1,13 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaChurch, FaUser, FaEnvelope, FaLock, FaGlobe, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaLock, FaGlobe, FaPhone, FaMapMarkerAlt, FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 import CountrySelect from '../components/CountrySelect';
+import BrandLogo from '../components/BrandLogo';
 
-const Register = () => {
+const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
     const [formData, setFormData] = useState({
         fullname: '',
         email: '',
@@ -87,12 +88,12 @@ const Register = () => {
                 email,
                 otp
             });
-            navigate('/login', {
-                state: {
-                    message: 'Your email is verified and your account has been created. Please sign in.',
-                    email
-                }
-            });
+            const message = 'Your email is verified and your account has been created. Please sign in.';
+            if (isModal) {
+                onSwitchToLogin?.({ email, message });
+            } else {
+                navigate('/login', { state: { message, email } });
+            }
         } catch (err) {
             setError(err.response?.data?.msg || 'Unable to verify the code.');
         } finally {
@@ -115,17 +116,25 @@ const Register = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4">
+        <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4'}>
             <div className="max-w-md w-full">
+                {isModal && (
+                    <button type="button" onClick={onClose} aria-label="Close sign up dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
+                        <FaTimes />
+                    </button>
+                )}
                 <div className="text-center mb-6">
-                    <Link to="/" className="inline-flex items-center space-x-2 mb-4">
-                        <FaChurch className="text-indigo-600 text-3xl" />
-                        <span className="text-2xl font-bold text-gray-800">Ministry Reports</span>
+                    <Link to="/" onClick={isModal ? onClose : undefined} className="inline-flex items-center space-x-2 mb-4">
+                        <BrandLogo />
                     </Link>
                     <h2 className="text-2xl font-bold text-gray-900 mb-1">Create Your Account</h2>
                     <p className="text-sm text-gray-600">
                         Already have an account?{' '}
-                        <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</Link>
+                        {isModal ? (
+                            <button type="button" onClick={() => onSwitchToLogin?.()} className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</button>
+                        ) : (
+                            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">Sign in</Link>
+                        )}
                     </p>
                 </div>
 
@@ -252,7 +261,12 @@ const Register = () => {
                                     <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <CountrySelect
                                         value={country}
-                                        onChange={(value) => setFormData({ ...formData, country: value })}
+                                        onChange={(value) => setFormData((current) => ({ ...current, country: value }))}
+                                        onCountrySelect={(selectedCountry) => setFormData((current) => ({
+                                            ...current,
+                                            country: selectedCountry.name,
+                                            contact: current.contact || `${selectedCountry.dialCode} `
+                                        }))}
                                         required
                                         className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
                                     />

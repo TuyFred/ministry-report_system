@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FaChurch, FaEnvelope, FaCheckCircle, FaLock } from 'react-icons/fa';
+import { FaEnvelope, FaCheckCircle, FaLock } from 'react-icons/fa';
+import BrandLogo from '../components/BrandLogo';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 
@@ -66,8 +67,7 @@ const ForgotPassword = () => {
             <div className="max-w-md w-full">
                 <div className="text-center mb-8">
                     <Link to="/" className="inline-flex items-center space-x-2 mb-6">
-                        <FaChurch className="text-indigo-600 text-4xl" />
-                        <span className="text-3xl font-bold text-gray-800">Ministry Reports</span>
+                        <BrandLogo />
                     </Link>
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">Forgot Password?</h2>
                     <p className="text-gray-600">We’ll email you a secure, one-time verification code.</p>

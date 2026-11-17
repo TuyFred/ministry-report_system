@@ -1,17 +1,18 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { FaChurch, FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaExclamationTriangle } from 'react-icons/fa';
+import { FaEnvelope, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 import axios from 'axios';
+import BrandLogo from '../components/BrandLogo';
 
-const Login = () => {
+const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = '', initialMessage = '' }) => {
     const location = useLocation();
     const [formData, setFormData] = useState({ 
-        email: location.state?.email || '', 
+        email: location.state?.email || initialEmail,
         password: '' 
     });
     const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState(location.state?.message || '');
+    const [successMessage, setSuccessMessage] = useState(location.state?.message || initialMessage);
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -72,16 +73,18 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8'}>
             <div className="max-w-md w-full">
+                {isModal && (
+                    <button type="button" onClick={onClose} aria-label="Close sign in dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
+                        <FaTimes />
+                    </button>
+                )}
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <Link to="/" className="group inline-flex flex-col items-center gap-3 mb-6">
+                    <Link to="/" onClick={isModal ? onClose : undefined} className="group inline-flex flex-col items-center gap-3 mb-6">
                         <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200 ring-4 ring-white transition-transform group-hover:scale-105">
-                            <FaChurch className="text-3xl" aria-hidden="true" />
-                        </span>
-                        <span className="text-2xl font-extrabold tracking-tight text-gray-800">
-                            Ministry <span className="text-indigo-600">Reports</span>
+                            <BrandLogo />
                         </span>
                     </Link>
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">
@@ -89,9 +92,11 @@ const Login = () => {
                     </h2>
                     <p className="text-gray-600">
                         Don't have an account?{' '}
-                        <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">
-                            Create account
-                        </Link>
+                        {isModal ? (
+                            <button type="button" onClick={onSwitchToRegister} className="font-medium text-indigo-600 hover:text-indigo-500">Create account</button>
+                        ) : (
+                            <Link to="/register" className="font-medium text-indigo-600 hover:text-indigo-500">Create account</Link>
+                        )}
                     </p>
                 </div>
 
@@ -183,7 +188,7 @@ const Login = () => {
                     </form>
 
                     <div className="mt-6 text-center">
-                        <Link to="/" className="text-sm text-indigo-600 hover:text-indigo-500">
+                        <Link to="/" onClick={isModal ? onClose : undefined} className="text-sm text-indigo-600 hover:text-indigo-500">
                             ← Back to Home
                         </Link>
                     </div>

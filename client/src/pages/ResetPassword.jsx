@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { FaChurch, FaLock, FaCheckCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaLock, FaCheckCircle, FaEye, FaEyeSlash } from 'react-icons/fa';
+import BrandLogo from '../components/BrandLogo';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 
@@ -55,8 +56,7 @@ const ResetPassword = () => {
             <div className="max-w-md w-full">
                 <div className="text-center mb-8">
                     <Link to="/" className="inline-flex items-center space-x-2 mb-6">
-                        <FaChurch className="text-indigo-600 text-4xl" />
-                        <span className="text-3xl font-bold text-gray-800">Ministry Reports</span>
+                        <BrandLogo />
                     </Link>
                     <h2 className="text-3xl font-bold text-gray-900 mb-2">Reset Password</h2>
                     <p className="text-gray-600">Enter your new password</p>
