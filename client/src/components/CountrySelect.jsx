@@ -66,7 +66,10 @@ const CountrySelect = ({
                 className={className}
             />
             {isOpen && !disabled && (
-                <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-xl">
+                <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white py-1 shadow-2xl">
+                    <div className="sticky top-0 border-b border-gray-100 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                        {filteredCountries.length} countries · search by name, ISO code, or phone code
+                    </div>
                     {filteredCountries.length ? filteredCountries.map((country) => (
                         <button
                             type="button"

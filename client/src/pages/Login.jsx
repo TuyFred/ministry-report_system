@@ -73,24 +73,22 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
     };
 
     return (
-        <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8'}>
-            <div className="max-w-md w-full">
+        <div role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/70 p-4 backdrop-blur-sm' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8'}>
+            <div className="w-full max-w-sm">
                 {isModal && (
                     <button type="button" onClick={onClose} aria-label="Close sign in dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
                         <FaTimes />
                     </button>
                 )}
                 {/* Header */}
-                <div className="text-center mb-8">
-                    <Link to="/" onClick={isModal ? onClose : undefined} className="group inline-flex flex-col items-center gap-3 mb-6">
-                        <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200 ring-4 ring-white transition-transform group-hover:scale-105">
-                            <BrandLogo />
-                        </span>
+                <div className="mb-5 text-center">
+                    <Link to="/" onClick={isModal ? onClose : undefined} className="group mb-4 inline-flex flex-col items-center">
+                        <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                    <h2 className="mb-1 text-xl font-bold text-gray-900">
                         Welcome Back
                     </h2>
-                    <p className="text-gray-600">
+                    <p className="text-sm text-gray-600">
                         Don't have an account?{' '}
                         {isModal ? (
                             <button type="button" onClick={onSwitchToRegister} className="font-medium text-indigo-600 hover:text-indigo-500">Create account</button>
@@ -101,7 +99,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                 </div>
 
                 {/* Login Form */}
-                <div className="bg-white rounded-2xl shadow-xl p-8">
+                <div className="rounded-2xl border border-white/60 bg-white p-4 shadow-2xl sm:p-5">
                     {/* Maintenance Warning Banner */}
                     {maintenanceMode && (
                         <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-400 rounded-lg">
@@ -127,7 +125,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                         </div>
                     )}
 
-                    <form onSubmit={onSubmit} className="space-y-6">
+                    <form onSubmit={onSubmit} className="space-y-4">
                         {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -140,7 +138,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                                 value={email}
                                 onChange={onChange}
                                 required
-                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 transition-all focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
                                 placeholder="your@email.com"
                             />
                         </div>
@@ -163,7 +161,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                                     value={password}
                                     onChange={onChange}
                                     required
-                                    className="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 transition-all focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
                                     placeholder="Enter your password"
                                 />
                                 <button
@@ -180,14 +178,14 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-lg hover:shadow-xl font-medium text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-base font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5 hover:from-indigo-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <FaSignInAlt />
                             {loading ? 'Signing In...' : 'Sign In'}
                         </button>
                     </form>
 
-                    <div className="mt-6 text-center">
+                    <div className="mt-4 text-center">
                         <Link to="/" onClick={isModal ? onClose : undefined} className="text-sm text-indigo-600 hover:text-indigo-500">
                             ← Back to Home
                         </Link>

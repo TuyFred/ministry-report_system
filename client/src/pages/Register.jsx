@@ -116,18 +116,18 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
     };
 
     return (
-        <div className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4'}>
-            <div className="max-w-md w-full">
+        <div role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4'}>
+            <div className="w-full max-w-lg">
                 {isModal && (
                     <button type="button" onClick={onClose} aria-label="Close sign up dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
                         <FaTimes />
                     </button>
                 )}
-                <div className="text-center mb-6">
+                <div className="mb-5 text-center">
                     <Link to="/" onClick={isModal ? onClose : undefined} className="inline-flex items-center space-x-2 mb-4">
-                        <BrandLogo />
+                        <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-1">Create Your Account</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-1">Create Your Account</h2>
                     <p className="text-sm text-gray-600">
                         Already have an account?{' '}
                         {isModal ? (
@@ -138,7 +138,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                     </p>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-white/60 bg-white p-4 shadow-2xl sm:p-5">
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
                     )}
@@ -172,7 +172,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                         </form>
                     ) : (
                     <form onSubmit={onSubmit} className="space-y-4">
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <div className="relative">
@@ -206,7 +206,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                                 <div className="relative">
@@ -254,7 +254,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                                 <div className="relative">
