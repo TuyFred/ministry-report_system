@@ -117,17 +117,17 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
 
     return (
         <div role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4'}>
-            <div className="w-full max-w-lg">
+            <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-7">
                 {isModal && (
                     <button type="button" onClick={onClose} aria-label="Close sign up dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
                         <FaTimes />
                     </button>
                 )}
-                <div className="mb-5 text-center">
+                <div className="mb-6 text-center">
                     <Link to="/" onClick={isModal ? onClose : undefined} className="inline-flex items-center space-x-2 mb-4">
                         <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="text-xl font-bold text-gray-900 mb-1">Create Your Account</h2>
+                    <h2 className="mb-1 text-2xl font-semibold text-slate-800">Register</h2>
                     <p className="text-sm text-gray-600">
                         Already have an account?{' '}
                         {isModal ? (
@@ -138,7 +138,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                     </p>
                 </div>
 
-                <div className="max-h-[calc(100vh-8rem)] overflow-y-auto rounded-2xl border border-white/60 bg-white p-4 shadow-2xl sm:p-5">
+                <div className="max-h-[calc(100vh-8rem)] overflow-y-auto bg-transparent p-0">
                     {error && (
                         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>
                     )}
@@ -183,7 +183,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         value={fullname}
                                         onChange={onChange}
                                         required
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="John Doe"
                                     />
                                 </div>
@@ -199,7 +199,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         value={email}
                                         onChange={onChange}
                                         required
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="email@example.com"
                                     />
                                 </div>
@@ -217,7 +217,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         value={password}
                                         onChange={onChange}
                                         required
-                                        className="w-full pl-9 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="••••••"
                                     />
                                     <button
@@ -240,7 +240,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         value={confirmPassword}
                                         onChange={onChange}
                                         required
-                                        className="w-full pl-9 pr-9 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="••••••"
                                     />
                                     <button
@@ -268,7 +268,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                             contact: current.contact || `${selectedCountry.dialCode} `
                                         }))}
                                         required
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
+                                        className="w-full rounded-sm border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                     />
                                 </div>
                             </div>
@@ -282,7 +282,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         name="contact"
                                         value={contact}
                                         onChange={onChange}
-                                        className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="+1234567890"
                                     />
                                 </div>
@@ -298,7 +298,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                     value={address}
                                     onChange={onChange}
                                     rows="2"
-                                    className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm resize-none"
+                                    className="w-full resize-none rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                     placeholder="Your address"
                                 ></textarea>
                             </div>
@@ -307,7 +307,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full rounded-sm bg-[#17466f] py-3 font-semibold uppercase tracking-wide text-white shadow-md transition-all hover:bg-[#123a5d] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             {loading ? 'Creating Account...' : 'Create Account'}
                         </button>

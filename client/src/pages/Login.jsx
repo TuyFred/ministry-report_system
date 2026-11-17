@@ -74,20 +74,18 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
 
     return (
         <div role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-hidden bg-slate-950/70 p-4 backdrop-blur-sm' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8'}>
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl sm:p-7">
                 {isModal && (
                     <button type="button" onClick={onClose} aria-label="Close sign in dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
                         <FaTimes />
                     </button>
                 )}
                 {/* Header */}
-                <div className="mb-5 text-center">
+                <div className="mb-6 text-center">
                     <Link to="/" onClick={isModal ? onClose : undefined} className="group mb-4 inline-flex flex-col items-center">
                         <BrandLogo size="tiny" />
                     </Link>
-                    <h2 className="mb-1 text-xl font-bold text-gray-900">
-                        Welcome Back
-                    </h2>
+                    <h2 className="mb-1 text-2xl font-semibold text-slate-800">Login</h2>
                     <p className="text-sm text-gray-600">
                         Don't have an account?{' '}
                         {isModal ? (
@@ -99,7 +97,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                 </div>
 
                 {/* Login Form */}
-                <div className="rounded-2xl border border-white/60 bg-white p-4 shadow-2xl sm:p-5">
+                <div className="bg-transparent p-0">
                     {/* Maintenance Warning Banner */}
                     {maintenanceMode && (
                         <div className="mb-6 p-4 bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-400 rounded-lg">
@@ -138,7 +136,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                                 value={email}
                                 onChange={onChange}
                                 required
-                                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 transition-all focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
+                                className="w-full rounded-sm border border-slate-300 bg-white px-4 py-3 transition-all focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                 placeholder="your@email.com"
                             />
                         </div>
@@ -161,7 +159,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                                     value={password}
                                     onChange={onChange}
                                     required
-                                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 pr-10 transition-all focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/20"
+                                    className="w-full rounded-sm border border-slate-300 bg-white px-4 py-3 pr-10 transition-all focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                     placeholder="Enter your password"
                                 />
                                 <button
@@ -178,7 +176,7 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-base font-semibold text-white shadow-lg shadow-indigo-200 transition-all hover:-translate-y-0.5 hover:from-indigo-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="w-full rounded-sm bg-[#17466f] py-3.5 text-base font-semibold uppercase tracking-wide text-white shadow-md transition-all hover:bg-[#123a5d] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <FaSignInAlt />
                             {loading ? 'Signing In...' : 'Sign In'}
