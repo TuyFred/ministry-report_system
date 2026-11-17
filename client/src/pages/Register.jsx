@@ -171,10 +171,11 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                     <form onSubmit={onSubmit} className="space-y-3">
                         <div>
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <label className="sr-only" htmlFor="register-fullname">Full Name</label>
                                 <div className="relative">
                                     <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <input
+                                        id="register-fullname"
                                         type="text"
                                         name="fullname"
                                         value={fullname}
@@ -182,16 +183,17 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         autoComplete="name"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
-                                        placeholder="John Doe"
+                                        placeholder="Full name"
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <label className="sr-only" htmlFor="register-email">Email</label>
                                 <div className="relative">
                                     <FaEnvelope className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <input
+                                        id="register-email"
                                         type="email"
                                         name="email"
                                         value={email}
@@ -199,7 +201,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         autoComplete="email"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
-                                        placeholder="email@example.com"
+                                        placeholder="Email address"
                                     />
                                 </div>
                             </div>
@@ -207,11 +209,12 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
 
                         <div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <label className="sr-only" htmlFor="register-password">Password</label>
                                 <div className="relative">
                                     <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <input
                                         type={showPassword ? "text" : "password"}
+                                        id="register-password"
                                         name="password"
                                         value={password}
                                         onChange={(event) => {
@@ -227,7 +230,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         autoComplete="new-password"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
-                                        placeholder="••••••"
+                                        placeholder="Password (min 6 chars)"
                                     />
                                     <button
                                         type="button"
@@ -243,13 +246,15 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
 
                         <div className="space-y-2">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                <label className="sr-only" htmlFor="register-country">Country</label>
                                 <div className="relative rounded-sm border border-slate-300 bg-slate-50 p-1">
                                     <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <CountrySelect
                                         value={country}
+                                        id="register-country"
                                         onChange={(value) => setFormData((current) => ({ ...current, country: value }))}
                                         required
+                                        placeholder="Type country name or dial code..."
                                         onCountrySelect={(selectedCountry) => {
                                             setSelectedDialCode(selectedCountry.dialCode);
                                             setFormData((current) => ({
@@ -265,23 +270,24 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
 
                             <div className="grid grid-cols-[7rem_1fr] gap-2">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                                    <label className="sr-only" htmlFor="country-dial-code">Country dialing code</label>
                                     <div className="flex h-[42px] items-center justify-center rounded-sm border border-slate-300 bg-slate-50 px-2 text-sm text-slate-700">
-                                        {selectedDialCode || '+--'}
+                                        <span id="country-dial-code">{selectedDialCode || '+--'}</span>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                    <label className="sr-only" htmlFor="register-phone">Phone number</label>
                                     <div className="relative">
                                     <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <input
                                         type="tel"
+                                        id="register-phone"
                                         name="contact"
                                         value={contact}
                                         onChange={onChange}
                                         autoComplete="tel"
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
-                                        placeholder="+1234567890"
+                                        placeholder="Phone number"
                                     />
                                     </div>
                                 </div>
