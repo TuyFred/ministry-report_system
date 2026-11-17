@@ -7,7 +7,7 @@ import { API_URL } from '../utils/api';
 import CountrySelect from '../components/CountrySelect';
 import BrandLogo from '../components/BrandLogo';
 
-const Register = ({ isModal = false, onClose }) => {
+const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
     const [formData, setFormData] = useState({
         fullname: '',
         email: '',
@@ -24,7 +24,7 @@ const Register = ({ isModal = false, onClose }) => {
     const [otpRequested, setOtpRequested] = useState(false);
     const [otp, setOtp] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [selectedDialCode, setSelectedDialCode] = useState('');
     const { register } = useContext(AuthContext);
     const navigate = useNavigate();
 
@@ -169,7 +169,7 @@ const Register = ({ isModal = false, onClose }) => {
                         </form>
                     ) : (
                     <form onSubmit={onSubmit} className="space-y-3">
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div>
                             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <div className="relative">
@@ -214,7 +214,16 @@ const Register = ({ isModal = false, onClose }) => {
                                         type={showPassword ? "text" : "password"}
                                         name="password"
                                         value={password}
-                                        onChange={onChange}
+                                        onChange={(event) => {
+                                            const nextPassword = event.target.value;
+                                            setError('');
+                                            setNotice('');
+                                            setFormData((current) => ({
+                                                ...current,
+                                                password: nextPassword,
+                                                confirmPassword: nextPassword
+                                            }));
+                                        }}
                                         autoComplete="new-password"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
@@ -230,53 +239,40 @@ const Register = ({ isModal = false, onClose }) => {
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm</label>
-                                <div className="relative">
-                                    <FaLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
-                                    <input
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        name="confirmPassword"
-                                        value={confirmPassword}
-                                        onChange={onChange}
-                                        autoComplete="new-password"
-                                        required
-                                        className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
-                                        placeholder="••••••"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                                    >
-                                        {showConfirmPassword ? <FaEyeSlash className="text-sm" /> : <FaEye className="text-sm" />}
-                                    </button>
-                                </div>
-                            </div>
                         </div>
 
                         <div className="space-y-2">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <div className="relative">
+                                <div className="relative rounded-sm border border-slate-300 bg-slate-50 p-1">
                                     <FaGlobe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <CountrySelect
                                         value={country}
                                         onChange={(value) => setFormData((current) => ({ ...current, country: value }))}
-                                        onCountrySelect={(selectedCountry) => setFormData((current) => ({
-                                            ...current,
-                                            country: selectedCountry.name,
-                                            contact: current.contact || `${selectedCountry.dialCode} `
-                                        }))}
                                         required
+                                        onCountrySelect={(selectedCountry) => {
+                                            setSelectedDialCode(selectedCountry.dialCode);
+                                            setFormData((current) => ({
+                                                ...current,
+                                                country: selectedCountry.name,
+                                                contact: current.contact || `${selectedCountry.dialCode} `
+                                            }));
+                                        }}
                                         className="w-full rounded-sm border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                     />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                                <div className="relative">
+                            <div className="grid grid-cols-[7rem_1fr] gap-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                                    <div className="flex h-[42px] items-center justify-center rounded-sm border border-slate-300 bg-slate-50 px-2 text-sm text-slate-700">
+                                        {selectedDialCode || '+--'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                    <div className="relative">
                                     <FaPhone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
                                     <input
                                         type="tel"
@@ -287,6 +283,7 @@ const Register = ({ isModal = false, onClose }) => {
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="+1234567890"
                                     />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -317,9 +314,14 @@ const Register = ({ isModal = false, onClose }) => {
                     </form>
                     )}
 
-                    <p className="mt-4 text-center text-xs text-gray-500">
-                        Admin accounts are managed by administrators
-                    </p>
+                    <div className="mt-4 rounded-lg bg-slate-50 py-3 text-center text-sm text-slate-500">
+                        Already registered?{' '}
+                        {isModal ? (
+                            <button type="button" onClick={onSwitchToLogin} className="font-medium text-teal-700 hover:text-teal-800">Go to login</button>
+                        ) : (
+                            <Link to="/login" className="font-medium text-teal-700 hover:text-teal-800">Go to login</Link>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
