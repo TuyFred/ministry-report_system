@@ -117,14 +117,14 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
 
     return (
         <div role={isModal ? 'dialog' : undefined} aria-modal={isModal || undefined} className={isModal ? 'fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/70 p-4 backdrop-blur-sm' : 'min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-8 px-4'}>
-            <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl sm:p-7">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-2xl sm:p-6">
                 {isModal && (
                     <button type="button" onClick={onClose} aria-label="Close sign up dialog" className="absolute right-5 top-5 z-10 rounded-full bg-white/90 p-2 text-gray-600 hover:bg-white hover:text-gray-900">
                         <FaTimes />
                     </button>
                 )}
                 <div className="mb-6 text-center">
-                    <Link to="/" onClick={isModal ? onClose : undefined} className="inline-flex items-center space-x-2 mb-4">
+                    <Link to="/" onClick={isModal ? onClose : undefined} className="mb-3 inline-flex items-center">
                         <BrandLogo size="tiny" />
                     </Link>
                     <h2 className="mb-1 text-2xl font-semibold text-slate-800">Register</h2>
@@ -171,9 +171,9 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </button>
                         </form>
                     ) : (
-                    <form onSubmit={onSubmit} className="space-y-4">
+                    <form onSubmit={onSubmit} className="space-y-3">
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            <div>
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                                 <div className="relative">
                                     <FaUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm" />
@@ -182,6 +182,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         name="fullname"
                                         value={fullname}
                                         onChange={onChange}
+                                        autoComplete="name"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="John Doe"
@@ -198,6 +199,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         name="email"
                                         value={email}
                                         onChange={onChange}
+                                        autoComplete="email"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="email@example.com"
@@ -206,7 +208,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                                 <div className="relative">
@@ -216,6 +218,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         name="password"
                                         value={password}
                                         onChange={onChange}
+                                        autoComplete="new-password"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="••••••"
@@ -239,6 +242,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         name="confirmPassword"
                                         value={confirmPassword}
                                         onChange={onChange}
+                                        autoComplete="new-password"
                                         required
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-9 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="••••••"
@@ -282,6 +286,7 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                                         name="contact"
                                         value={contact}
                                         onChange={onChange}
+                                        autoComplete="tel"
                                         className="w-full rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                         placeholder="+1234567890"
                                     />
@@ -289,20 +294,21 @@ const Register = ({ isModal = false, onClose, onSwitchToLogin }) => {
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Address (Optional)</label>
-                            <div className="relative">
+                        <details className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2">
+                            <summary className="cursor-pointer text-sm font-medium text-slate-600">Add address (optional)</summary>
+                            <div className="relative mt-2">
                                 <FaMapMarkerAlt className="absolute left-3 top-3 text-gray-400 text-sm" />
                                 <textarea
                                     name="address"
                                     value={address}
                                     onChange={onChange}
+                                    autoComplete="street-address"
                                     rows="2"
-                                    className="w-full resize-none rounded-sm border border-slate-300 py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
+                                    className="w-full resize-none rounded-sm border border-slate-300 bg-white py-2.5 pl-9 pr-3 text-sm focus:border-sky-700 focus:ring-2 focus:ring-sky-700/20"
                                     placeholder="Your address"
                                 ></textarea>
                             </div>
-                        </div>
+                        </details>
 
                         <button
                             type="submit"
