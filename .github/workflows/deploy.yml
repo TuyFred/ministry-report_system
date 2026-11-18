@@ -1,15 +1,19 @@
 
-name: Check cPanel Deployment Tools
+name: Deploy Ministry Reporting System to cPanel
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  check-tools:
+  deploy:
+    name: Deploy to Production
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check cPanel and GitHub connection
+      - name: Download and deploy application
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -17,60 +21,149 @@ jobs:
           key: ${{ secrets.CPANEL_SSH_KEY }}
           passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
-          timeout: 60s
-          command_timeout: 180s
+          timeout: 120s
+          command_timeout: 30m
 
           script: |
             set -e
 
-            echo "===== 1. CPANEL SSH CONNECTION ====="
-            whoami
-            pwd
+            APP="/home/fbretcba/report"
+            NODE="/home/fbretcba/nodevenv/report/20/bin"
+            STAMP=$(date +%Y%m%d-%H%M%S)
+            BACKUP="/home/fbretcba/deployment-backups/$STAMP"
+            STAGING="/home/fbretcba/deployment-staging-$STAMP"
+            ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
 
-            echo ""
-            echo "===== 2. CHECK DEPLOYMENT TOOLS ====="
+            echo "=================================="
+            echo "STARTING DEPLOYMENT"
+            echo "=================================="
 
-            for tool in curl tar rsync npm node cp; do
-              if command -v "$tool" >/dev/null 2>&1; then
-                echo "$tool: AVAILABLE"
-              else
-                echo "$tool: NOT AVAILABLE"
-              fi
-            done
+            # Check required tools
+            command -v curl
+            command -v tar
+            command -v rsync
 
-            echo ""
-            echo "===== 3. CHECK NODE VERSION ====="
+            test -x "$NODE/node"
+            test -x "$NODE/npm"
+            test -d "$APP"
+            test -d "$APP/uploads"
+            test -d "$APP/tmp"
 
-            /home/fbretcba/nodevenv/report/20/bin/node --version
-            /home/fbretcba/nodevenv/report/20/bin/npm --version
+            # Create a backup before changing live files
+            echo "Creating production backup..."
 
-            echo ""
-            echo "===== 4. CHECK CPANEL FOLDERS ====="
+            mkdir -p "$BACKUP"
 
-            ls -ld /home/fbretcba/report
-            ls -ld /home/fbretcba/report/public
-            ls -ld /home/fbretcba/report/uploads
-            ls -ld /home/fbretcba/report/tmp
+            tar -czf "$BACKUP/application-source.tar.gz" \
+              --exclude='./.env*' \
+              --exclude='./uploads' \
+              --exclude='./node_modules' \
+              --exclude='./public' \
+              --exclude='./tmp' \
+              --exclude='./pre-deployment-backup' \
+              -C "$APP" .
 
-            echo ""
-            echo "===== 5. TEST GITHUB DOWNLOAD ====="
+            if [ -d "$APP/public" ]; then
+              tar -czf "$BACKUP/public-files.tar.gz" \
+                -C "$APP" public
+            fi
+
+            echo "Backup created at: $BACKUP"
+
+            # Download latest GitHub source
+            echo "Downloading source from GitHub..."
+
+            mkdir -p "$STAGING/source"
 
             curl -fL \
+              --retry 3 \
+              --retry-delay 5 \
               --connect-timeout 30 \
-              --max-time 120 \
+              --max-time 300 \
               "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main" \
-              -o /home/fbretcba/github-test.tar.gz
+              -o "$ARCHIVE"
 
-            echo "GitHub download successful"
+            # Extract source
+            tar -xzf "$ARCHIVE" \
+              --strip-components=1 \
+              -C "$STAGING/source"
 
-            ls -lh /home/fbretcba/github-test.tar.gz
+            REPO="$STAGING/source"
 
-            echo ""
-            echo "===== 6. TEST ARCHIVE ====="
+            # Verify project files
+            test -f "$REPO/server/index.js"
+            test -f "$REPO/server/package.json"
+            test -f "$REPO/server/package-lock.json"
+            test -f "$REPO/client/package.json"
 
-            tar -tzf /home/fbretcba/github-test.tar.gz | head -20
+            # Build React frontend
+            echo "Building React frontend..."
 
-            rm -f /home/fbretcba/github-test.tar.gz
+            cd "$REPO/client"
 
-            echo ""
-            echo "===== ALL CHECKS COMPLETED ====="
+            "$NODE/npm" install --no-audit --no-fund
+            "$NODE/npm" run build
+
+            test -f "$REPO/client/dist/index.html"
+
+            # Install backend production dependencies
+            echo "Installing backend dependencies..."
+
+            cd "$REPO/server"
+
+            "$NODE/npm" ci --omit=dev --no-audit --no-fund
+
+            test -d "$REPO/server/node_modules"
+
+            # Publish backend code
+            echo "Publishing backend files..."
+
+            rsync -a \
+              --exclude='.env*' \
+              --exclude='uploads/' \
+              --exclude='node_modules/' \
+              --exclude='public/' \
+              --exclude='tmp/' \
+              --exclude='pre-deployment-backup/' \
+              "$REPO/server/" "$APP/"
+
+            # Publish backend dependencies
+            echo "Publishing backend dependencies..."
+
+            mkdir -p "$APP/node_modules"
+
+            rsync -a \
+              "$REPO/server/node_modules/" \
+              "$APP/node_modules/"
+
+            # Publish React frontend
+            echo "Publishing frontend..."
+
+            mkdir -p "$APP/public"
+
+            rsync -a \
+              "$REPO/client/dist/" \
+              "$APP/public/"
+
+            # Verify deployed files
+            echo "Checking deployed application..."
+
+            test -f "$APP/index.js"
+            test -f "$APP/package.json"
+            test -f "$APP/public/index.html"
+            test -d "$APP/uploads"
+
+            # Restart Node.js application
+            echo "Restarting Node.js application..."
+
+            touch "$APP/tmp/restart.txt"
+
+            # Remove temporary deployment files
+            rm -rf "$STAGING"
+            rm -f "$ARCHIVE"
+
+            echo "=================================="
+            echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
+            echo "=================================="
+            echo "Backup: $BACKUP"
+            echo "Application: $APP"
