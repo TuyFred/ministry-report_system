@@ -117,12 +117,25 @@ jobs:
 
             echo "Project source verified."
 
-            # STEP 6: Build frontend
+            # STEP 6: Install frontend dependencies and build
             echo "[6/9] Building React frontend..."
 
             cd "$REPO/client"
 
-            "$NODE/npm" install --no-audit --no-fund
+            echo "Installing frontend dependencies..."
+
+            "$NODE/npm" install \
+              --include=dev \
+              --no-audit \
+              --no-fund
+
+            echo "Checking Vite..."
+
+            test -x node_modules/.bin/vite
+
+            "$NODE/npm" ls vite
+
+            echo "Building frontend..."
 
             "$NODE/npm" run build
 
@@ -130,12 +143,15 @@ jobs:
 
             echo "Frontend build successful."
 
-            # STEP 7: Install backend dependencies
+            # STEP 7: Install backend production dependencies
             echo "[7/9] Installing backend dependencies..."
 
             cd "$REPO/server"
 
-            "$NODE/npm" ci --omit=dev --no-audit --no-fund
+            "$NODE/npm" ci \
+              --omit=dev \
+              --no-audit \
+              --no-fund
 
             test -d "$REPO/server/node_modules"
 
@@ -144,7 +160,7 @@ jobs:
             # STEP 8: Publish application
             echo "[8/9] Publishing application files..."
 
-            echo "Publishing backend source..."
+            echo "Preparing backend archive..."
 
             tar -czf "$STAGING/backend.tar.gz" \
               --exclude='./.env*' \
@@ -154,6 +170,8 @@ jobs:
               --exclude='./tmp' \
               --exclude='./pre-deployment-backup' \
               -C "$REPO/server" .
+
+            echo "Publishing backend source..."
 
             tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
 
@@ -171,7 +189,8 @@ jobs:
             cp -a "$REPO/client/dist/." \
               "$APP/public/"
 
-            # Verify production files
+            echo "Verifying production files..."
+
             test -f "$APP/index.js"
             test -f "$APP/package.json"
             test -f "$APP/public/index.html"
@@ -180,14 +199,14 @@ jobs:
 
             echo "Production files verified."
 
-            # STEP 9: Restart application
+            # STEP 9: Restart Node.js application
             echo "[9/9] Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
             echo "Passenger restart requested."
 
-            # Clean temporary files after successful deployment
+            # Cleanup temporary files
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
@@ -197,3 +216,4 @@ jobs:
             echo "Website: https://report.gnitafrica.com"
             echo "Backup: $BACKUP"
             echo "Deployment completed."
+ 
