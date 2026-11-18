@@ -25,7 +25,9 @@ jobs:
           command_timeout: 30m
 
           script: |
-            set -e
+            set -Ee
+
+            trap 'echo "DEPLOYMENT FAILED at line $LINENO"' ERR
 
             APP="/home/fbretcba/report"
             NODE="/home/fbretcba/nodevenv/report/20/bin"
@@ -39,20 +41,35 @@ jobs:
             echo "=================================="
 
             # Check required tools
+            echo "Checking deployment tools..."
+
             command -v curl
             command -v tar
-            command -v rsync
+            command -v cp
 
             test -x "$NODE/node"
             test -x "$NODE/npm"
+
+            echo "Node:"
+            "$NODE/node" --version
+
+            echo "NPM:"
+            "$NODE/npm" --version
+
+            # Check live application folders
+            echo "Checking production folders..."
+
             test -d "$APP"
             test -d "$APP/uploads"
             test -d "$APP/tmp"
 
-            # Create a backup before changing live files
+            echo "Production folders are available."
+
+            # Create backup
             echo "Creating production backup..."
 
             mkdir -p "$BACKUP"
+            mkdir -p "$STAGING/source"
 
             tar -czf "$BACKUP/application-source.tar.gz" \
               --exclude='./.env*' \
@@ -68,12 +85,10 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Backup created at: $BACKUP"
+            echo "Backup completed: $BACKUP"
 
-            # Download latest GitHub source
-            echo "Downloading source from GitHub..."
-
-            mkdir -p "$STAGING/source"
+            # Download GitHub source
+            echo "Downloading GitHub repository..."
 
             curl -fL \
               --retry 3 \
@@ -83,7 +98,11 @@ jobs:
               "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main" \
               -o "$ARCHIVE"
 
+            echo "GitHub download completed."
+
             # Extract source
+            echo "Extracting repository..."
+
             tar -xzf "$ARCHIVE" \
               --strip-components=1 \
               -C "$STAGING/source"
@@ -96,6 +115,8 @@ jobs:
             test -f "$REPO/server/package-lock.json"
             test -f "$REPO/client/package.json"
 
+            echo "Project files verified."
+
             # Build React frontend
             echo "Building React frontend..."
 
@@ -106,6 +127,8 @@ jobs:
 
             test -f "$REPO/client/dist/index.html"
 
+            echo "Frontend build completed."
+
             # Install backend production dependencies
             echo "Installing backend dependencies..."
 
@@ -115,55 +138,64 @@ jobs:
 
             test -d "$REPO/server/node_modules"
 
-            # Publish backend code
-            echo "Publishing backend files..."
+            echo "Backend dependencies installed."
 
-            rsync -a \
-              --exclude='.env*' \
-              --exclude='uploads/' \
-              --exclude='node_modules/' \
-              --exclude='public/' \
-              --exclude='tmp/' \
-              --exclude='pre-deployment-backup/' \
-              "$REPO/server/" "$APP/"
+            # Prepare backend archive without production data
+            echo "Preparing backend files..."
+
+            tar -czf "$STAGING/server-source.tar.gz" \
+              --exclude='./.env*' \
+              --exclude='./uploads' \
+              --exclude='./node_modules' \
+              --exclude='./public' \
+              --exclude='./tmp' \
+              --exclude='./pre-deployment-backup' \
+              -C "$REPO/server" .
+
+            # Publish backend source
+            echo "Publishing backend source..."
+
+            tar -xzf "$STAGING/server-source.tar.gz" \
+              -C "$APP"
 
             # Publish backend dependencies
             echo "Publishing backend dependencies..."
 
             mkdir -p "$APP/node_modules"
 
-            rsync -a \
-              "$REPO/server/node_modules/" \
+            cp -a "$REPO/server/node_modules/." \
               "$APP/node_modules/"
 
-            # Publish React frontend
-            echo "Publishing frontend..."
+            # Publish frontend
+            echo "Publishing React frontend..."
 
             mkdir -p "$APP/public"
 
-            rsync -a \
-              "$REPO/client/dist/" \
+            cp -a "$REPO/client/dist/." \
               "$APP/public/"
 
-            # Verify deployed files
-            echo "Checking deployed application..."
+            # Verify production files
+            echo "Verifying deployed files..."
 
             test -f "$APP/index.js"
             test -f "$APP/package.json"
             test -f "$APP/public/index.html"
             test -d "$APP/uploads"
+            test -d "$APP/node_modules"
 
-            # Restart Node.js application
+            echo "Application files verified."
+
+            # Restart Passenger
             echo "Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
-            # Remove temporary deployment files
+            # Remove temporary files
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
             echo "=================================="
             echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
             echo "=================================="
-            echo "Backup: $BACKUP"
-            echo "Application: $APP"
+            echo "Backup location: $BACKUP"
+            echo "Live application: $APP"
