@@ -31,41 +31,49 @@ jobs:
 
             APP="/home/fbretcba/report"
             NODE="/home/fbretcba/nodevenv/report/20/bin"
+
             STAMP=$(date +%Y%m%d-%H%M%S)
 
             BACKUP="/home/fbretcba/deployment-backups/$STAMP"
             STAGING="/home/fbretcba/deployment-staging-$STAMP"
             ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
 
-            echo "========================================"
-            echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
-            echo "========================================"
+            echo "=========================================="
+            echo "MINISTRY REPORTING SYSTEM"
+            echo "LIVE DEPLOYMENT STARTED"
+            echo "=========================================="
 
-            # STEP 1: Check server tools
+            # STEP 1: CHECK SERVER TOOLS
+
             echo "[1/9] Checking server tools..."
 
             for tool in curl tar cp mkdir touch date; do
               command -v "$tool"
-              echo "$tool is available"
+              echo "$tool AVAILABLE"
             done
 
             test -x "$NODE/node"
             test -x "$NODE/npm"
 
+            echo "Node version:"
             "$NODE/node" --version
+
+            echo "NPM version:"
             "$NODE/npm" --version
 
-            # STEP 2: Check application directories
-            echo "[2/9] Checking production directories..."
+            # STEP 2: CHECK APPLICATION DIRECTORIES
+
+            echo "[2/9] Checking cPanel application..."
 
             test -d "$APP"
             test -d "$APP/uploads"
             test -d "$APP/tmp"
 
-            echo "Production directories verified."
+            echo "Application directories verified."
 
-            # STEP 3: Create backup
-            echo "[3/9] Backing up current application..."
+            # STEP 3: CREATE BACKUP
+
+            echo "[3/9] Creating production backup..."
 
             mkdir -p "$BACKUP"
             mkdir -p "$STAGING/source"
@@ -84,10 +92,12 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Backup saved: $BACKUP"
+            echo "Production backup completed."
+            echo "Backup: $BACKUP"
 
-            # STEP 4: Download GitHub repository
-            echo "[4/9] Downloading GitHub source..."
+            # STEP 4: DOWNLOAD GITHUB SOURCE
+
+            echo "[4/9] Downloading GitHub repository..."
 
             curl -fL \
               --retry 3 \
@@ -99,9 +109,10 @@ jobs:
 
             test -s "$ARCHIVE"
 
-            echo "GitHub source downloaded successfully."
+            echo "GitHub download successful."
 
-            # STEP 5: Extract and verify source
+            # STEP 5: EXTRACT AND VERIFY PROJECT
+
             echo "[5/9] Extracting project..."
 
             tar -xzf "$ARCHIVE" \
@@ -115,10 +126,11 @@ jobs:
             test -f "$REPO/server/package-lock.json"
             test -f "$REPO/client/package.json"
 
-            echo "Project source verified."
+            echo "Backend and frontend source verified."
 
-            # STEP 6: Install frontend dependencies and build
-            echo "[6/9] Building React frontend..."
+            # STEP 6: INSTALL VITE AND BUILD FRONTEND
+
+            echo "[6/9] Preparing React frontend..."
 
             cd "$REPO/client"
 
@@ -126,24 +138,41 @@ jobs:
 
             "$NODE/npm" install \
               --include=dev \
+              --include=optional \
+              --bin-links=true \
               --no-audit \
               --no-fund
 
-            echo "Checking Vite..."
+            echo "Installing Vite explicitly..."
 
-            test -x node_modules/.bin/vite
+            "$NODE/npm" install \
+              --no-save \
+              --include=dev \
+              --include=optional \
+              --bin-links=true \
+              --no-audit \
+              --no-fund \
+              vite@7.2.4
+
+            echo "Checking Vite installation..."
 
             "$NODE/npm" ls vite
 
-            echo "Building frontend..."
+            test -f "node_modules/vite/bin/vite.js"
 
-            "$NODE/npm" run build
+            echo "Vite version:"
+            "$NODE/node" node_modules/vite/bin/vite.js --version
+
+            echo "Building React frontend..."
+
+            "$NODE/node" node_modules/vite/bin/vite.js build
 
             test -f "$REPO/client/dist/index.html"
 
-            echo "Frontend build successful."
+            echo "FRONTEND BUILD SUCCESSFUL."
 
-            # STEP 7: Install backend production dependencies
+            # STEP 7: INSTALL BACKEND DEPENDENCIES
+
             echo "[7/9] Installing backend dependencies..."
 
             cd "$REPO/server"
@@ -157,7 +186,8 @@ jobs:
 
             echo "Backend dependencies installed."
 
-            # STEP 8: Publish application
+            # STEP 8: PUBLISH FRONTEND AND BACKEND
+
             echo "[8/9] Publishing application files..."
 
             echo "Preparing backend archive..."
@@ -173,7 +203,8 @@ jobs:
 
             echo "Publishing backend source..."
 
-            tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
+            tar -xzf "$STAGING/backend.tar.gz" \
+              -C "$APP"
 
             echo "Publishing backend dependencies..."
 
@@ -199,21 +230,23 @@ jobs:
 
             echo "Production files verified."
 
-            # STEP 9: Restart Node.js application
+            # STEP 9: RESTART APPLICATION
+
             echo "[9/9] Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
             echo "Passenger restart requested."
 
-            # Cleanup temporary files
+            # CLEAN TEMPORARY FILES
+
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
-            echo "========================================"
+            echo "=========================================="
             echo "DEPLOYMENT SUCCESSFUL!"
-            echo "========================================"
+            echo "=========================================="
+
             echo "Website: https://report.gnitafrica.com"
             echo "Backup: $BACKUP"
-            echo "Deployment completed."
- 
+            echo "Deployment completed successfully."
