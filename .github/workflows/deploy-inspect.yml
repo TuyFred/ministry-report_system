@@ -1,0 +1,62 @@
+
+name: Inspect cPanel Deployment Folders
+
+on:
+  workflow_dispatch:
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Inspect cPanel folders through SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+          port: ${{ secrets.CPANEL_PORT }}
+          timeout: 30s
+          command_timeout: 60s
+          script: |
+            set -eu
+
+            echo "===== CHECK REPOSITORY ====="
+            if [ -d /home/fbretcba/repositories/ministry-report_system ]; then
+              cd /home/fbretcba/repositories/ministry-report_system
+              pwd
+              git status --short --branch
+              git log -1 --oneline
+            else
+              echo "Repository folder not found"
+            fi
+
+            echo "===== CHECK PRODUCTION FOLDERS ====="
+            for dir in \
+              /home/fbretcba/report \
+              /home/fbretcba/report/public \
+              /home/fbretcba/report/uploads \
+              /home/fbretcba/report/tmp \
+              /home/fbretcba/report/tmp/restart.txt \
+              /home/fbretcba/nodevenv/report/20
+            do
+              if [ -e "$dir" ]; then
+                echo "FOUND: $dir"
+                ls -ld "$dir"
+              else
+                echo "NOT FOUND: $dir"
+              fi
+            done
+
+            echo "===== CHECK NODE ENVIRONMENT ====="
+            if [ -f /home/fbretcba/nodevenv/report/20/bin/activate ]; then
+              . /home/fbretcba/nodevenv/report/20/bin/activate
+              node --version
+              npm --version
+              command -v node
+            else
+              echo "Node environment activation file not found"
+            fi
+
+            echo "===== INSPECTION COMPLETE ====="
