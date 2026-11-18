@@ -2,9 +2,6 @@
 name: Deploy Ministry Reporting System to cPanel
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -12,65 +9,11 @@ permissions:
 
 jobs:
   deploy:
-    name: Build and Deploy to cPanel
+    name: Deploy through SSH
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Get project source code
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      # Step 2: Configure Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      # Step 3: Build React frontend
-      - name: Install frontend dependencies and build
-        run: |
-          cd client
-          npm install --no-audit --no-fund
-          npm run build
-
-      # Step 4: Prepare backend and frontend files
-      - name: Prepare deployment package
-        run: |
-          mkdir -p deploy-package/backend/public
-
-          rsync -a \
-            --exclude='.env*' \
-            --exclude='node_modules/' \
-            --exclude='uploads/' \
-            --exclude='public/' \
-            --exclude='pre-deployment-backup/' \
-            --exclude='.git/' \
-            server/ deploy-package/backend/
-
-          cp -a client/dist/. deploy-package/backend/public/
-
-          tar -czf deployment.tar.gz -C deploy-package .
-
-          echo "Deployment package prepared."
-
-      # Step 5: Upload files to cPanel
-      - name: Upload package to cPanel
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USER }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
-          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
-          port: ${{ secrets.CPANEL_PORT }}
-          source: deployment.tar.gz
-          target: /home/fbretcba/deploy-staging
-          timeout: 120s
-          command_timeout: 10m
-          overwrite: true
-          debug: true
-
-      # Step 6: Publish application on cPanel
-      - name: Deploy backend and frontend
+      - name: Connect to cPanel and deploy from GitHub
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -79,49 +22,120 @@ jobs:
           passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
           timeout: 120s
-          command_timeout: 10m
+          command_timeout: 30m
+
           script: |
             set -e
 
-            APP=/home/fbretcba/report
-            STAGING=/home/fbretcba/deploy-staging
-            NODE_ENV_DIR=/home/fbretcba/nodevenv/report/20
+            APP="/home/fbretcba/report"
+            NODE="/home/fbretcba/nodevenv/report/20/bin"
+            STAGING="/home/fbretcba/deployment-staging"
+            ARCHIVE="/home/fbretcba/deployment-source.tar.gz"
 
-            echo "Checking deployment files..."
+            echo "=================================="
+            echo "STARTING DEPLOYMENT"
+            echo "=================================="
 
-            test -f "$STAGING/deployment.tar.gz"
+            # Check required programs
+            command -v curl
+            command -v tar
+            command -v rsync
 
-            mkdir -p "$STAGING/extracted"
+            test -x "$NODE/node"
+            test -x "$NODE/npm"
+
+            # Check the production application
+            test -d "$APP"
+            test -d "$APP/uploads"
+            test -d "$APP/tmp"
+
+            # Download source directly from GitHub
+            echo "Downloading GitHub source..."
+
+            rm -rf "$STAGING"
+            mkdir -p "$STAGING/source"
+
+            curl -fL \
+              --retry 3 \
+              --retry-delay 5 \
+              --connect-timeout 30 \
+              --max-time 300 \
+              "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main" \
+              -o "$ARCHIVE"
+
+            echo "Extracting source..."
+
+            tar -xzf "$ARCHIVE" \
+              --strip-components=1 \
+              -C "$STAGING/source"
+
+            REPO="$STAGING/source"
+
+            # Verify project files
+            test -f "$REPO/server/index.js"
+            test -f "$REPO/server/package.json"
+            test -f "$REPO/server/package-lock.json"
+            test -f "$REPO/client/package.json"
+
+            # Build React frontend
+            echo "Building React frontend..."
+
+            cd "$REPO/client"
+
+            "$NODE/npm" install --no-audit --no-fund
+            "$NODE/npm" run build
+
+            test -f "$REPO/client/dist/index.html"
+
+            # Install backend dependencies in staging
+            echo "Installing backend dependencies..."
+
+            cd "$REPO/server"
+
+            "$NODE/npm" ci --omit=dev --no-audit --no-fund
+
+            # Prepare frontend in staging
+            mkdir -p "$STAGING/new-public"
+            cp -a "$REPO/client/dist/." "$STAGING/new-public/"
+
+            # Preserve existing production configuration and uploads
+            echo "Publishing backend files..."
+
+            rsync -a \
+              --exclude='.env*' \
+              --exclude='uploads/' \
+              --exclude='node_modules/' \
+              --exclude='public/' \
+              --exclude='tmp/' \
+              --exclude='pre-deployment-backup/' \
+              "$REPO/server/" "$APP/"
+
+            # Publish installed backend dependencies
+            rsync -a "$REPO/server/node_modules/" "$APP/node_modules/"
+
+            # Publish frontend files without deleting existing files
             mkdir -p "$APP/public"
-            mkdir -p "$APP/tmp"
-            mkdir -p "$APP/uploads"
 
-            tar -xzf "$STAGING/deployment.tar.gz" \
-              -C "$STAGING/extracted"
+            rsync -a "$STAGING/new-public/" "$APP/public/"
 
-            test -f "$STAGING/extracted/backend/index.js"
-            test -f "$STAGING/extracted/backend/package.json"
-            test -f "$STAGING/extracted/backend/package-lock.json"
-            test -f "$STAGING/extracted/backend/public/index.html"
+            # Verify production files
+            test -f "$APP/index.js"
+            test -f "$APP/package.json"
+            test -f "$APP/public/index.html"
+            test -d "$APP/uploads"
 
-            echo "Publishing application files..."
+            # Verify configured upload directory exists
+            test -d "/home/fbretcba/report/uploads"
 
-            cp -a "$STAGING/extracted/backend/." "$APP/"
-
-            export PATH="$NODE_ENV_DIR/bin:$PATH"
-
-            cd "$APP"
-
-            echo "Installing production dependencies..."
-
-            npm ci --omit=dev --no-audit --no-fund
-
+            # Restart Passenger
             echo "Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
-            echo "Cleaning temporary deployment files..."
-
+            # Cleanup temporary deployment files
             rm -rf "$STAGING"
+            rm -f "$ARCHIVE"
 
-            echo "Deployment completed successfully."
+            echo "=================================="
+            echo "DEPLOYMENT COMPLETED"
+            echo "=================================="
