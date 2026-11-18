@@ -122,7 +122,7 @@ jobs:
 
             cd "$REPO/client"
 
-            "$NODE/npm" install --no-audit --no-fund
+            "$NODE/npm" install --include=dev --no-audit --no-fund
             "$NODE/npm" run build
 
             test -f "$REPO/client/dist/index.html"
