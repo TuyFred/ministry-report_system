@@ -1,23 +1,119 @@
 
-name: Ministry Reporting System - Automatic Deployment
+name: Ministry Reporting System - GitHub Build and cPanel Deployment
 
 on:
   push:
     branches:
       - main
-
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  deploy:
-    name: Build and Deploy to cPanel
+
+  # JOB 1: BUILD REACT ON GITHUB
+  build:
+    name: Build Frontend on GitHub
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy application through SSH
+      - name: Get source code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: client
+        run: |
+          echo "Installing React dependencies..."
+          npm install --include=dev --no-audit --no-fund
+
+      - name: Verify Vite installation
+        working-directory: client
+        run: |
+          npm ls vite
+          test -f node_modules/vite/bin/vite.js
+          npx vite --version
+
+      - name: Build React application
+        working-directory: client
+        run: |
+          npm run build
+          test -f dist/index.html
+          echo "FRONTEND BUILD SUCCESSFUL"
+
+      - name: Prepare production package
+        run: |
+          set -e
+
+          RELEASE="$RUNNER_TEMP/release"
+
+          mkdir -p "$RELEASE/server"
+          mkdir -p "$RELEASE/public"
+
+          echo "Copying backend source..."
+
+          tar -czf - \
+            --exclude='./.env*' \
+            --exclude='./uploads' \
+            --exclude='./node_modules' \
+            --exclude='./tmp' \
+            --exclude='./.git' \
+            --exclude='./pre-deployment-backup' \
+            -C server . | tar -xzf - -C "$RELEASE/server"
+
+          echo "Copying built React frontend..."
+
+          cp -a client/dist/. "$RELEASE/public/"
+
+          test -f "$RELEASE/server/index.js"
+          test -f "$RELEASE/server/package.json"
+          test -f "$RELEASE/server/package-lock.json"
+          test -f "$RELEASE/public/index.html"
+
+          echo "Production package verified."
+
+      - name: Publish production package to deployment branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+
+          RELEASE="$RUNNER_TEMP/release"
+
+          cd "$RELEASE"
+
+          git init
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+          git add -A
+
+          git commit -m "Production deployment package"
+
+          git branch -M production-build
+
+          git remote add origin \
+            "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          git push --force origin production-build
+
+          echo "Production package published."
+
+  # JOB 2: DEPLOY TO CPANEL
+  deploy:
+    name: Deploy to cPanel
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Connect to cPanel and deploy
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -42,12 +138,13 @@ jobs:
             ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
 
             echo "======================================"
-            echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
+            echo "MINISTRY REPORTING SYSTEM"
+            echo "GITHUB BUILD DEPLOYMENT"
             echo "======================================"
 
-            # STEP 1: CHECK SERVER TOOLS
+            # STEP 1: CHECK ENVIRONMENT
 
-            echo "[1/9] Checking server tools..."
+            echo "[1/8] Checking cPanel environment..."
 
             for tool in curl tar cp mkdir touch date rm; do
               command -v "$tool"
@@ -59,22 +156,18 @@ jobs:
             "$NODE/node" --version
             "$NODE/npm" --version
 
-            # STEP 2: CHECK PRODUCTION DIRECTORIES
-
-            echo "[2/9] Checking production directories..."
-
             test -d "$APP"
             test -d "$APP/uploads"
             test -d "$APP/tmp"
 
-            echo "Production directories verified."
+            echo "cPanel environment verified."
 
-            # STEP 3: CREATE PRODUCTION BACKUP
+            # STEP 2: BACKUP LIVE APPLICATION
 
-            echo "[3/9] Creating production backup..."
+            echo "[2/8] Backing up production application..."
 
             mkdir -p "$BACKUP"
-            mkdir -p "$STAGING/source"
+            mkdir -p "$STAGING"
 
             tar -czf "$BACKUP/application-source.tar.gz" \
               --exclude='./.env*' \
@@ -91,28 +184,23 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Production backup completed."
-            echo "Backup location: $BACKUP"
+            echo "Backup completed: $BACKUP"
 
-            # STEP 4: DOWNLOAD GITHUB SOURCE
+            # STEP 3: DOWNLOAD GITHUB BUILD
 
-            echo "[4/9] Downloading GitHub source..."
+            echo "[3/8] Downloading production package..."
 
             curl -fL \
               --retry 3 \
               --retry-delay 5 \
               --connect-timeout 30 \
               --max-time 300 \
-              "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main" \
+              "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/production-build" \
               -o "$ARCHIVE"
 
             test -s "$ARCHIVE"
 
-            echo "GitHub source downloaded successfully."
-
-            # STEP 5: EXTRACT AND VERIFY PROJECT
-
-            echo "[5/9] Extracting project..."
+            mkdir -p "$STAGING/source"
 
             tar -xzf "$ARCHIVE" \
               --strip-components=1 \
@@ -123,71 +211,13 @@ jobs:
             test -f "$REPO/server/index.js"
             test -f "$REPO/server/package.json"
             test -f "$REPO/server/package-lock.json"
-            test -f "$REPO/client/package.json"
+            test -f "$REPO/public/index.html"
 
-            echo "Project source verified."
+            echo "GitHub production package verified."
 
-            # STEP 6: INSTALL FRONTEND AND BUILD REACT
+            # STEP 4: INSTALL BACKEND DEPENDENCIES
 
-            echo "[6/9] Preparing React frontend..."
-
-            cd "$REPO/client"
-
-            echo "Frontend directory:"
-            pwd
-
-            echo "Checking frontend package..."
-            test -f package.json
-
-            echo "Checking Vite declaration..."
-
-            "$NODE/node" -e "const p=require('./package.json'); console.log('Vite:',p.devDependencies?.vite); if(!p.devDependencies?.vite) process.exit(1)"
-
-            echo "Checking npm configuration..."
-
-            "$NODE/npm" config get dry-run
-            "$NODE/npm" config get global
-            "$NODE/npm" config get omit
-
-            echo "Installing frontend dependencies..."
-
-            "$NODE/npm" install \
-              --force \
-              --dry-run=false \
-              --global=false \
-              --package-lock=false \
-              --production=false \
-              --include=dev \
-              --include=optional \
-              --bin-links=true \
-              --no-audit \
-              --no-fund
-
-            echo "Checking installed React..."
-
-            test -d node_modules/react
-
-            echo "Checking installed Vite..."
-
-            test -f node_modules/vite/bin/vite.js
-
-            "$NODE/npm" ls vite --depth=0
-
-            echo "Vite version:"
-
-            "$NODE/node" node_modules/vite/bin/vite.js --version
-
-            echo "Building frontend..."
-
-            "$NODE/npm" run build
-
-            test -f "$REPO/client/dist/index.html"
-
-            echo "FRONTEND BUILD SUCCESSFUL."
-
-            # STEP 7: INSTALL BACKEND DEPENDENCIES
-
-            echo "[7/9] Installing backend dependencies..."
+            echo "[4/8] Installing backend dependencies..."
 
             cd "$REPO/server"
 
@@ -200,23 +230,16 @@ jobs:
 
             echo "Backend dependencies installed."
 
-            # STEP 8: PUBLISH BACKEND AND FRONTEND
+            # STEP 5: PUBLISH BACKEND SOURCE
 
-            echo "[8/9] Publishing application..."
-
-            echo "Preparing backend archive..."
+            echo "[5/8] Publishing backend..."
 
             tar -czf "$STAGING/backend.tar.gz" \
               --exclude='./.env*' \
               --exclude='./uploads' \
               --exclude='./node_modules' \
-              --exclude='./public' \
               --exclude='./tmp' \
-              --exclude='./.git' \
-              --exclude='./pre-deployment-backup' \
               -C "$REPO/server" .
-
-            echo "Publishing backend source..."
 
             tar -xzf "$STAGING/backend.tar.gz" \
               -C "$APP"
@@ -228,32 +251,43 @@ jobs:
             cp -a "$REPO/server/node_modules/." \
               "$APP/node_modules/"
 
-            echo "Publishing frontend..."
+            # STEP 6: PUBLISH FRONTEND
+
+            echo "[6/8] Publishing React frontend..."
 
             mkdir -p "$APP/public"
 
-            cp -a "$REPO/client/dist/." \
-              "$APP/public/"
+            rm -rf "$APP/public"
 
-            echo "Verifying production files..."
+            mkdir -p "$APP/public"
+
+            cp -a "$REPO/public/." "$APP/public/"
+
+            test -f "$APP/public/index.html"
+
+            echo "Frontend published successfully."
+
+            # STEP 7: VERIFY PRODUCTION FILES
+
+            echo "[7/8] Verifying production application..."
 
             test -f "$APP/index.js"
             test -f "$APP/package.json"
             test -f "$APP/public/index.html"
-            test -d "$APP/uploads"
             test -d "$APP/node_modules"
+            test -d "$APP/uploads"
 
             echo "Production files verified."
 
-            # STEP 9: RESTART NODE.JS APPLICATION
+            # STEP 8: RESTART PASSENGER
 
-            echo "[9/9] Restarting Node.js application..."
+            echo "[8/8] Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
             echo "Passenger restart requested."
 
-            # CLEAN TEMPORARY FILES
+            # REMOVE TEMPORARY DEPLOYMENT FILES
 
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
