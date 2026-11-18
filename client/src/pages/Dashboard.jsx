@@ -10,6 +10,7 @@ const Dashboard = () => {
     const { user } = useContext(AuthContext);
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const reportsPerPage = 5;
     const [stats, setStats] = useState({
@@ -34,6 +35,7 @@ const Dashboard = () => {
                     totalReached
                 });
             } catch (err) {
+                setError(err.response?.data?.msg || 'Unable to load reports. Please try again.');
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -154,6 +156,11 @@ const Dashboard = () => {
                     <div className="p-12 text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-indigo-600 mx-auto"></div>
                         <p className="text-gray-600 mt-4">Loading reports...</p>
+                    </div>
+                ) : error ? (
+                    <div className="p-12 text-center">
+                        <FaFileAlt className="text-6xl text-red-300 mx-auto mb-4" />
+                        <p className="text-red-700 text-lg">{error}</p>
                     </div>
                 ) : reports.length === 0 ? (
                     <div className="p-12 text-center">
