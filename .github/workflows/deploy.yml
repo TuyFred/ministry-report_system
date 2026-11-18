@@ -1,7 +1,11 @@
 
-name: Ministry Reporting System - Live Deployment
+name: Ministry Reporting System - Automatic Deployment
 
 on:
+  push:
+    branches:
+      - main
+
   workflow_dispatch:
 
 permissions:
@@ -25,28 +29,28 @@ jobs:
           command_timeout: 30m
 
           script: |
-            set -e
+            set -Ee
+
+            trap 'status=$?; echo "DEPLOYMENT FAILED at line $LINENO (exit code $status)"; exit "$status"' ERR
 
             APP="/home/fbretcba/report"
             NODE="/home/fbretcba/nodevenv/report/20/bin"
 
             STAMP=$(date +%Y%m%d-%H%M%S)
-
             BACKUP="/home/fbretcba/deployment-backups/$STAMP"
             STAGING="/home/fbretcba/deployment-staging-$STAMP"
             ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
 
-            echo "=========================================="
+            echo "======================================"
             echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
-            echo "=========================================="
+            echo "======================================"
 
-            # STEP 1: CHECK SERVER TOOLS
+            # STEP 1: CHECK SERVER
 
             echo "[1/9] Checking server tools..."
 
             for tool in curl tar cp mkdir touch date rm; do
               command -v "$tool"
-              echo "$tool is available"
             done
 
             test -x "$NODE/node"
@@ -55,7 +59,7 @@ jobs:
             "$NODE/node" --version
             "$NODE/npm" --version
 
-            # STEP 2: CHECK PRODUCTION DIRECTORIES
+            # STEP 2: CHECK DIRECTORIES
 
             echo "[2/9] Checking production directories..."
 
@@ -65,9 +69,9 @@ jobs:
 
             echo "Production directories verified."
 
-            # STEP 3: BACKUP CURRENT APPLICATION
+            # STEP 3: BACKUP
 
-            echo "[3/9] Backing up current application..."
+            echo "[3/9] Creating production backup..."
 
             mkdir -p "$BACKUP"
             mkdir -p "$STAGING/source"
@@ -89,7 +93,7 @@ jobs:
 
             echo "Backup completed: $BACKUP"
 
-            # STEP 4: DOWNLOAD GITHUB SOURCE
+            # STEP 4: DOWNLOAD SOURCE
 
             echo "[4/9] Downloading GitHub source..."
 
@@ -103,9 +107,9 @@ jobs:
 
             test -s "$ARCHIVE"
 
-            echo "GitHub source downloaded successfully."
+            echo "GitHub source downloaded."
 
-            # STEP 5: EXTRACT AND VERIFY SOURCE
+            # STEP 5: EXTRACT SOURCE
 
             echo "[5/9] Extracting project..."
 
@@ -122,19 +126,19 @@ jobs:
 
             echo "Project source verified."
 
-            # STEP 6: INSTALL FRONTEND DEPENDENCIES AND BUILD
+            # STEP 6: INSTALL FRONTEND AND BUILD
 
-            echo "[6/9] Preparing React frontend..."
+            echo "[6/9] Installing frontend dependencies..."
 
             cd "$REPO/client"
 
-            echo "Frontend directory:"
+            echo "Frontend location:"
             pwd
 
             echo "Checking package.json..."
             test -f package.json
 
-            echo "Installing frontend dependencies..."
+            echo "Installing Vite and frontend dependencies..."
 
             "$NODE/npm" install \
               --include=dev \
@@ -143,13 +147,11 @@ jobs:
               --no-audit \
               --no-fund
 
-            echo "Checking Vite installation..."
+            echo "Checking Vite..."
 
             "$NODE/npm" ls vite
 
             test -f node_modules/vite/bin/vite.js
-
-            echo "Checking Vite version..."
 
             "$NODE/node" node_modules/vite/bin/vite.js --version
 
@@ -161,7 +163,7 @@ jobs:
 
             echo "FRONTEND BUILD SUCCESSFUL."
 
-            # STEP 7: INSTALL BACKEND DEPENDENCIES
+            # STEP 7: INSTALL BACKEND
 
             echo "[7/9] Installing backend dependencies..."
 
@@ -172,15 +174,13 @@ jobs:
               --no-audit \
               --no-fund
 
-            test -d "$REPO/server/node_modules"
+            test -d node_modules
 
             echo "Backend dependencies installed."
 
-            # STEP 8: PUBLISH FRONTEND AND BACKEND
+            # STEP 8: PUBLISH FILES
 
-            echo "[8/9] Publishing application files..."
-
-            echo "Preparing backend archive..."
+            echo "[8/9] Publishing application..."
 
             tar -czf "$STAGING/backend.tar.gz" \
               --exclude='./.env*' \
@@ -204,14 +204,14 @@ jobs:
             cp -a "$REPO/server/node_modules/." \
               "$APP/node_modules/"
 
-            echo "Publishing frontend files..."
+            echo "Publishing frontend..."
 
             mkdir -p "$APP/public"
 
             cp -a "$REPO/client/dist/." \
               "$APP/public/"
 
-            echo "Verifying production files..."
+            echo "Verifying published files..."
 
             test -f "$APP/index.js"
             test -f "$APP/package.json"
@@ -219,9 +219,9 @@ jobs:
             test -d "$APP/uploads"
             test -d "$APP/node_modules"
 
-            echo "Production files verified."
+            echo "Published files verified."
 
-            # STEP 9: RESTART NODE.JS APPLICATION
+            # STEP 9: RESTART APPLICATION
 
             echo "[9/9] Restarting Node.js application..."
 
@@ -229,15 +229,14 @@ jobs:
 
             echo "Passenger restart requested."
 
-            # CLEAN TEMPORARY DEPLOYMENT FILES
+            # CLEAN TEMPORARY FILES
 
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
-            echo "=========================================="
-            echo "DEPLOYMENT SUCCESSFUL!"
-            echo "=========================================="
+            echo "======================================"
+            echo "DEPLOYMENT SUCCESSFUL"
+            echo "======================================"
 
             echo "Website: https://report.gnitafrica.com"
             echo "Backup: $BACKUP"
-            echo "Deployment completed successfully."
