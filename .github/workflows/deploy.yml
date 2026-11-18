@@ -1,5 +1,5 @@
 
-name: Deploy Ministry Reporting System to cPanel
+name: Ministry Reporting System - Live Deployment
 
 on:
   workflow_dispatch:
@@ -9,11 +9,11 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy to Production
+    name: Build and Deploy to cPanel
     runs-on: ubuntu-latest
 
     steps:
-      - name: Download and deploy application
+      - name: Deploy application through SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -27,46 +27,45 @@ jobs:
           script: |
             set -Ee
 
-            trap 'echo "DEPLOYMENT FAILED at line $LINENO"' ERR
+            trap 'status=$?; echo "DEPLOYMENT FAILED at line $LINENO (exit code $status)"; exit "$status"' ERR
 
             APP="/home/fbretcba/report"
             NODE="/home/fbretcba/nodevenv/report/20/bin"
             STAMP=$(date +%Y%m%d-%H%M%S)
+
             BACKUP="/home/fbretcba/deployment-backups/$STAMP"
             STAGING="/home/fbretcba/deployment-staging-$STAMP"
             ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
 
-            echo "=================================="
-            echo "STARTING DEPLOYMENT"
-            echo "=================================="
+            echo "========================================"
+            echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
+            echo "========================================"
 
-            # Check required tools
-            echo "Checking deployment tools..."
+            # STEP 1: Check server tools
+            echo "[1/9] Checking server tools..."
 
-            command -v curl
-            command -v tar
-            command -v cp
+            for tool in curl tar cp mkdir touch date; do
+              command -v "$tool"
+              echo "$tool is available"
+            done
 
             test -x "$NODE/node"
             test -x "$NODE/npm"
 
-            echo "Node:"
             "$NODE/node" --version
-
-            echo "NPM:"
             "$NODE/npm" --version
 
-            # Check live application folders
-            echo "Checking production folders..."
+            # STEP 2: Check application directories
+            echo "[2/9] Checking production directories..."
 
             test -d "$APP"
             test -d "$APP/uploads"
             test -d "$APP/tmp"
 
-            echo "Production folders are available."
+            echo "Production directories verified."
 
-            # Create backup
-            echo "Creating production backup..."
+            # STEP 3: Create backup
+            echo "[3/9] Backing up current application..."
 
             mkdir -p "$BACKUP"
             mkdir -p "$STAGING/source"
@@ -85,10 +84,10 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Backup completed: $BACKUP"
+            echo "Backup saved: $BACKUP"
 
-            # Download GitHub source
-            echo "Downloading GitHub repository..."
+            # STEP 4: Download GitHub repository
+            echo "[4/9] Downloading GitHub source..."
 
             curl -fL \
               --retry 3 \
@@ -98,10 +97,12 @@ jobs:
               "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main" \
               -o "$ARCHIVE"
 
-            echo "GitHub download completed."
+            test -s "$ARCHIVE"
 
-            # Extract source
-            echo "Extracting repository..."
+            echo "GitHub source downloaded successfully."
+
+            # STEP 5: Extract and verify source
+            echo "[5/9] Extracting project..."
 
             tar -xzf "$ARCHIVE" \
               --strip-components=1 \
@@ -109,28 +110,28 @@ jobs:
 
             REPO="$STAGING/source"
 
-            # Verify project files
             test -f "$REPO/server/index.js"
             test -f "$REPO/server/package.json"
             test -f "$REPO/server/package-lock.json"
             test -f "$REPO/client/package.json"
 
-            echo "Project files verified."
+            echo "Project source verified."
 
-            # Build React frontend
-            echo "Building React frontend..."
+            # STEP 6: Build frontend
+            echo "[6/9] Building React frontend..."
 
             cd "$REPO/client"
 
             "$NODE/npm" install --no-audit --no-fund
+
             "$NODE/npm" run build
 
             test -f "$REPO/client/dist/index.html"
 
-            echo "Frontend build completed."
+            echo "Frontend build successful."
 
-            # Install backend production dependencies
-            echo "Installing backend dependencies..."
+            # STEP 7: Install backend dependencies
+            echo "[7/9] Installing backend dependencies..."
 
             cd "$REPO/server"
 
@@ -140,10 +141,12 @@ jobs:
 
             echo "Backend dependencies installed."
 
-            # Prepare backend archive without production data
-            echo "Preparing backend files..."
+            # STEP 8: Publish application
+            echo "[8/9] Publishing application files..."
 
-            tar -czf "$STAGING/server-source.tar.gz" \
+            echo "Publishing backend source..."
+
+            tar -czf "$STAGING/backend.tar.gz" \
               --exclude='./.env*' \
               --exclude='./uploads' \
               --exclude='./node_modules' \
@@ -152,13 +155,8 @@ jobs:
               --exclude='./pre-deployment-backup' \
               -C "$REPO/server" .
 
-            # Publish backend source
-            echo "Publishing backend source..."
+            tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
 
-            tar -xzf "$STAGING/server-source.tar.gz" \
-              -C "$APP"
-
-            # Publish backend dependencies
             echo "Publishing backend dependencies..."
 
             mkdir -p "$APP/node_modules"
@@ -166,7 +164,6 @@ jobs:
             cp -a "$REPO/server/node_modules/." \
               "$APP/node_modules/"
 
-            # Publish frontend
             echo "Publishing React frontend..."
 
             mkdir -p "$APP/public"
@@ -175,27 +172,28 @@ jobs:
               "$APP/public/"
 
             # Verify production files
-            echo "Verifying deployed files..."
-
             test -f "$APP/index.js"
             test -f "$APP/package.json"
             test -f "$APP/public/index.html"
             test -d "$APP/uploads"
             test -d "$APP/node_modules"
 
-            echo "Application files verified."
+            echo "Production files verified."
 
-            # Restart Passenger
-            echo "Restarting Node.js application..."
+            # STEP 9: Restart application
+            echo "[9/9] Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
-            # Remove temporary files
+            echo "Passenger restart requested."
+
+            # Clean temporary files after successful deployment
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
-            echo "=================================="
-            echo "DEPLOYMENT COMPLETED SUCCESSFULLY"
-            echo "=================================="
-            echo "Backup location: $BACKUP"
-            echo "Live application: $APP"
+            echo "========================================"
+            echo "DEPLOYMENT SUCCESSFUL!"
+            echo "========================================"
+            echo "Website: https://report.gnitafrica.com"
+            echo "Backup: $BACKUP"
+            echo "Deployment completed."
