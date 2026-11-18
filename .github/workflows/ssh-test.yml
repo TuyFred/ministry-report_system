@@ -4,15 +4,18 @@ name: Test cPanel SSH and GitHub Connection
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - ".github/workflows/ssh-test.yml"
 
 jobs:
   ssh-test:
+    name: Test SSH and GitHub Access
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test SSH connection to cPanel
+      - name: Test SSH connection and GitHub download
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -21,16 +24,14 @@ jobs:
           passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
           timeout: 60s
-          command_timeout: 90s
+          command_timeout: 120s
 
           script: |
             set -e
 
-            echo "=================================="
-            echo "1. SSH CONNECTION TEST"
-            echo "=================================="
-
-            echo "SSH connection successful!"
+            echo "================================"
+            echo "1. SSH CONNECTION"
+            echo "================================"
 
             echo "Connected user:"
             whoami
@@ -38,25 +39,38 @@ jobs:
             echo "Home directory:"
             pwd
 
-            echo "Home directory contents:"
-            ls -la
+            echo "Node.js version:"
+            /home/fbretcba/nodevenv/report/20/bin/node --version
 
             echo ""
-            echo "=================================="
-            echo "2. GITHUB CONNECTION TEST"
-            echo "=================================="
+            echo "================================"
+            echo "2. GITHUB CONNECTION"
+            echo "================================"
 
-            echo "Checking connection to GitHub..."
-
-            curl -I -L \
+            curl -fIL \
               --connect-timeout 20 \
               --max-time 40 \
               https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main
 
             echo ""
-            echo "=================================="
-            echo "3. TEST COMPLETED"
-            echo "=================================="
+            echo "================================"
+            echo "3. DOWNLOAD TEST"
+            echo "================================"
 
-            echo "SSH connection successful."
-            echo "GitHub connection successful."
+            TEST_FILE="/home/fbretcba/github-connection-test.tar.gz"
+
+            curl -fL \
+              --connect-timeout 20 \
+              --max-time 120 \
+              https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main \
+              -o "$TEST_FILE"
+
+            ls -lh "$TEST_FILE"
+
+            tar -tzf "$TEST_FILE" | head -20
+
+            rm -f "$TEST_FILE"
+
+            echo ""
+            echo "GITHUB DOWNLOAD TEST SUCCESSFUL"
+            echo "SSH AND GITHUB CONNECTIONS WORK."
