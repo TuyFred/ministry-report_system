@@ -1,252 +1,32 @@
+# STEP 6: INSTALL VITE AND BUILD FRONTEND
 
-name: Ministry Reporting System - Live Deployment
+echo "[6/9] Preparing React frontend..."
 
-on:
-  workflow_dispatch:
+cd "$REPO/client"
 
-permissions:
-  contents: read
+echo "Checking frontend directory..."
+pwd
+test -f package.json
 
-jobs:
-  deploy:
-    name: Build and Deploy to cPanel
-    runs-on: ubuntu-latest
+echo "Installing frontend dependencies..."
+"$NODE/npm" install \
+  --include=dev \
+  --include=optional \
+  --no-audit \
+  --no-fund
 
-    steps:
-      - name: Deploy application through SSH
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.CPANEL_HOST }}
-          username: ${{ secrets.CPANEL_USER }}
-          key: ${{ secrets.CPANEL_SSH_KEY }}
-          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
-          port: ${{ secrets.CPANEL_PORT }}
-          timeout: 120s
-          command_timeout: 30m
+echo "Checking Vite installation..."
+"$NODE/npm" ls vite
 
-          script: |
-            set -Ee
+echo "Verifying Vite executable..."
+test -f node_modules/vite/bin/vite.js
 
-            trap 'status=$?; echo "DEPLOYMENT FAILED at line $LINENO (exit code $status)"; exit "$status"' ERR
+echo "Checking Vite version..."
+"$NODE/node" node_modules/vite/bin/vite.js --version
 
-            APP="/home/fbretcba/report"
-            NODE="/home/fbretcba/nodevenv/report/20/bin"
+echo "Building React frontend..."
+"$NODE/npm" run build
 
-            STAMP=$(date +%Y%m%d-%H%M%S)
+test -f "$REPO/client/dist/index.html"
 
-            BACKUP="/home/fbretcba/deployment-backups/$STAMP"
-            STAGING="/home/fbretcba/deployment-staging-$STAMP"
-            ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
-
-            echo "=========================================="
-            echo "MINISTRY REPORTING SYSTEM"
-            echo "LIVE DEPLOYMENT STARTED"
-            echo "=========================================="
-
-            # STEP 1: CHECK SERVER TOOLS
-
-            echo "[1/9] Checking server tools..."
-
-            for tool in curl tar cp mkdir touch date; do
-              command -v "$tool"
-              echo "$tool AVAILABLE"
-            done
-
-            test -x "$NODE/node"
-            test -x "$NODE/npm"
-
-            echo "Node version:"
-            "$NODE/node" --version
-
-            echo "NPM version:"
-            "$NODE/npm" --version
-
-            # STEP 2: CHECK APPLICATION DIRECTORIES
-
-            echo "[2/9] Checking cPanel application..."
-
-            test -d "$APP"
-            test -d "$APP/uploads"
-            test -d "$APP/tmp"
-
-            echo "Application directories verified."
-
-            # STEP 3: CREATE BACKUP
-
-            echo "[3/9] Creating production backup..."
-
-            mkdir -p "$BACKUP"
-            mkdir -p "$STAGING/source"
-
-            tar -czf "$BACKUP/application-source.tar.gz" \
-              --exclude='./.env*' \
-              --exclude='./uploads' \
-              --exclude='./node_modules' \
-              --exclude='./public' \
-              --exclude='./tmp' \
-              --exclude='./pre-deployment-backup' \
-              -C "$APP" .
-
-            if [ -d "$APP/public" ]; then
-              tar -czf "$BACKUP/public-files.tar.gz" \
-                -C "$APP" public
-            fi
-
-            echo "Production backup completed."
-            echo "Backup: $BACKUP"
-
-            # STEP 4: DOWNLOAD GITHUB SOURCE
-
-            echo "[4/9] Downloading GitHub repository..."
-
-            curl -fL \
-              --retry 3 \
-              --retry-delay 5 \
-              --connect-timeout 30 \
-              --max-time 300 \
-              "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main" \
-              -o "$ARCHIVE"
-
-            test -s "$ARCHIVE"
-
-            echo "GitHub download successful."
-
-            # STEP 5: EXTRACT AND VERIFY PROJECT
-
-            echo "[5/9] Extracting project..."
-
-            tar -xzf "$ARCHIVE" \
-              --strip-components=1 \
-              -C "$STAGING/source"
-
-            REPO="$STAGING/source"
-
-            test -f "$REPO/server/index.js"
-            test -f "$REPO/server/package.json"
-            test -f "$REPO/server/package-lock.json"
-            test -f "$REPO/client/package.json"
-
-            echo "Backend and frontend source verified."
-
-            # STEP 6: INSTALL VITE AND BUILD FRONTEND
-
-            echo "[6/9] Preparing React frontend..."
-
-            cd "$REPO/client"
-
-            echo "Installing frontend dependencies..."
-
-            "$NODE/npm" install \
-              --include=dev \
-              --include=optional \
-              --bin-links=true \
-              --no-audit \
-              --no-fund
-
-            echo "Installing Vite explicitly..."
-
-            "$NODE/npm" install \
-              --no-save \
-              --include=dev \
-              --include=optional \
-              --bin-links=true \
-              --no-audit \
-              --no-fund \
-              vite@7.2.4
-
-            echo "Checking Vite installation..."
-
-            "$NODE/npm" ls vite
-
-            test -f "node_modules/vite/bin/vite.js"
-
-            echo "Vite version:"
-            "$NODE/node" node_modules/vite/bin/vite.js --version
-
-            echo "Building React frontend..."
-
-            "$NODE/node" node_modules/vite/bin/vite.js build
-
-            test -f "$REPO/client/dist/index.html"
-
-            echo "FRONTEND BUILD SUCCESSFUL."
-
-            # STEP 7: INSTALL BACKEND DEPENDENCIES
-
-            echo "[7/9] Installing backend dependencies..."
-
-            cd "$REPO/server"
-
-            "$NODE/npm" ci \
-              --omit=dev \
-              --no-audit \
-              --no-fund
-
-            test -d "$REPO/server/node_modules"
-
-            echo "Backend dependencies installed."
-
-            # STEP 8: PUBLISH FRONTEND AND BACKEND
-
-            echo "[8/9] Publishing application files..."
-
-            echo "Preparing backend archive..."
-
-            tar -czf "$STAGING/backend.tar.gz" \
-              --exclude='./.env*' \
-              --exclude='./uploads' \
-              --exclude='./node_modules' \
-              --exclude='./public' \
-              --exclude='./tmp' \
-              --exclude='./pre-deployment-backup' \
-              -C "$REPO/server" .
-
-            echo "Publishing backend source..."
-
-            tar -xzf "$STAGING/backend.tar.gz" \
-              -C "$APP"
-
-            echo "Publishing backend dependencies..."
-
-            mkdir -p "$APP/node_modules"
-
-            cp -a "$REPO/server/node_modules/." \
-              "$APP/node_modules/"
-
-            echo "Publishing React frontend..."
-
-            mkdir -p "$APP/public"
-
-            cp -a "$REPO/client/dist/." \
-              "$APP/public/"
-
-            echo "Verifying production files..."
-
-            test -f "$APP/index.js"
-            test -f "$APP/package.json"
-            test -f "$APP/public/index.html"
-            test -d "$APP/uploads"
-            test -d "$APP/node_modules"
-
-            echo "Production files verified."
-
-            # STEP 9: RESTART APPLICATION
-
-            echo "[9/9] Restarting Node.js application..."
-
-            touch "$APP/tmp/restart.txt"
-
-            echo "Passenger restart requested."
-
-            # CLEAN TEMPORARY FILES
-
-            rm -rf "$STAGING"
-            rm -f "$ARCHIVE"
-
-            echo "=========================================="
-            echo "DEPLOYMENT SUCCESSFUL!"
-            echo "=========================================="
-
-            echo "Website: https://report.gnitafrica.com"
-            echo "Backup: $BACKUP"
-            echo "Deployment completed successfully."
+echo "FRONTEND BUILD SUCCESSFUL."
