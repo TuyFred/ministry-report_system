@@ -1,0 +1,32 @@
+
+name: Test cPanel SSH Connection
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/ssh-test.yml"
+
+jobs:
+  ssh-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test SSH connection to cPanel
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          port: ${{ secrets.CPANEL_PORT }}
+          timeout: 30s
+          command_timeout: 30s
+          script: |
+            echo "SSH connection successful!"
+            echo "Connected user:"
+            whoami
+            echo "Home directory:"
+            pwd
+            echo "Home directory contents:"
+            ls -la
+ 
