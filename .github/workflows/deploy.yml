@@ -12,27 +12,30 @@ permissions:
 
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Build and Deploy to cPanel
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get latest GitHub code
+      # Step 1: Get project source code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      # Step 2: Configure Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Build React frontend
+      # Step 3: Build React frontend
+      - name: Install frontend dependencies and build
         run: |
           cd client
           npm install --no-audit --no-fund
           npm run build
 
+      # Step 4: Prepare backend and frontend files
       - name: Prepare deployment package
         run: |
-          mkdir -p deploy-package/backend
           mkdir -p deploy-package/backend/public
 
           rsync -a \
@@ -48,6 +51,9 @@ jobs:
 
           tar -czf deployment.tar.gz -C deploy-package .
 
+          echo "Deployment package prepared."
+
+      # Step 5: Upload files to cPanel
       - name: Upload package to cPanel
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -58,8 +64,13 @@ jobs:
           port: ${{ secrets.CPANEL_PORT }}
           source: deployment.tar.gz
           target: /home/fbretcba/deploy-staging
+          timeout: 120s
+          command_timeout: 10m
+          overwrite: true
+          debug: true
 
-      - name: Install backend and publish application
+      # Step 6: Publish application on cPanel
+      - name: Deploy backend and frontend
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -67,6 +78,8 @@ jobs:
           key: ${{ secrets.CPANEL_SSH_KEY }}
           passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
+          timeout: 120s
+          command_timeout: 10m
           script: |
             set -e
 
@@ -74,22 +87,40 @@ jobs:
             STAGING=/home/fbretcba/deploy-staging
             NODE_ENV_DIR=/home/fbretcba/nodevenv/report/20
 
-            mkdir -p "$APP/public" "$APP/tmp" "$STAGING/extracted"
+            echo "Checking deployment files..."
 
-            tar -xzf "$STAGING/deployment.tar.gz" -C "$STAGING/extracted"
+            test -f "$STAGING/deployment.tar.gz"
+
+            mkdir -p "$STAGING/extracted"
+            mkdir -p "$APP/public"
+            mkdir -p "$APP/tmp"
+            mkdir -p "$APP/uploads"
+
+            tar -xzf "$STAGING/deployment.tar.gz" \
+              -C "$STAGING/extracted"
 
             test -f "$STAGING/extracted/backend/index.js"
+            test -f "$STAGING/extracted/backend/package.json"
             test -f "$STAGING/extracted/backend/package-lock.json"
             test -f "$STAGING/extracted/backend/public/index.html"
+
+            echo "Publishing application files..."
 
             cp -a "$STAGING/extracted/backend/." "$APP/"
 
             export PATH="$NODE_ENV_DIR/bin:$PATH"
 
             cd "$APP"
+
+            echo "Installing production dependencies..."
+
             npm ci --omit=dev --no-audit --no-fund
 
+            echo "Restarting Node.js application..."
+
             touch "$APP/tmp/restart.txt"
+
+            echo "Cleaning temporary deployment files..."
 
             rm -rf "$STAGING"
 
