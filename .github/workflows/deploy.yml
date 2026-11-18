@@ -1,0 +1,96 @@
+
+name: Deploy Ministry Reporting System to cPanel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest GitHub code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build React frontend
+        run: |
+          cd client
+          npm install --no-audit --no-fund
+          npm run build
+
+      - name: Prepare deployment package
+        run: |
+          mkdir -p deploy-package/backend
+          mkdir -p deploy-package/backend/public
+
+          rsync -a \
+            --exclude='.env*' \
+            --exclude='node_modules/' \
+            --exclude='uploads/' \
+            --exclude='public/' \
+            --exclude='pre-deployment-backup/' \
+            --exclude='.git/' \
+            server/ deploy-package/backend/
+
+          cp -a client/dist/. deploy-package/backend/public/
+
+          tar -czf deployment.tar.gz -C deploy-package .
+
+      - name: Upload package to cPanel
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+          port: ${{ secrets.CPANEL_PORT }}
+          source: deployment.tar.gz
+          target: /home/fbretcba/deploy-staging
+
+      - name: Install backend and publish application
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.CPANEL_HOST }}
+          username: ${{ secrets.CPANEL_USER }}
+          key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
+          port: ${{ secrets.CPANEL_PORT }}
+          script: |
+            set -e
+
+            APP=/home/fbretcba/report
+            STAGING=/home/fbretcba/deploy-staging
+            NODE_ENV_DIR=/home/fbretcba/nodevenv/report/20
+
+            mkdir -p "$APP/public" "$APP/tmp" "$STAGING/extracted"
+
+            tar -xzf "$STAGING/deployment.tar.gz" -C "$STAGING/extracted"
+
+            test -f "$STAGING/extracted/backend/index.js"
+            test -f "$STAGING/extracted/backend/package-lock.json"
+            test -f "$STAGING/extracted/backend/public/index.html"
+
+            cp -a "$STAGING/extracted/backend/." "$APP/"
+
+            export PATH="$NODE_ENV_DIR/bin:$PATH"
+
+            cd "$APP"
+            npm ci --omit=dev --no-audit --no-fund
+
+            touch "$APP/tmp/restart.txt"
+
+            rm -rf "$STAGING"
+
+            echo "Deployment completed successfully."
