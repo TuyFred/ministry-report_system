@@ -1,5 +1,5 @@
 
-name: Test cPanel SSH Connection
+name: Test cPanel SSH and GitHub Connection
 
 on:
   workflow_dispatch:
@@ -20,13 +20,43 @@ jobs:
           key: ${{ secrets.CPANEL_SSH_KEY }}
           passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
-          timeout: 30s
-          command_timeout: 30s
+          timeout: 60s
+          command_timeout: 90s
+
           script: |
+            set -e
+
+            echo "=================================="
+            echo "1. SSH CONNECTION TEST"
+            echo "=================================="
+
             echo "SSH connection successful!"
+
             echo "Connected user:"
             whoami
+
             echo "Home directory:"
             pwd
+
             echo "Home directory contents:"
             ls -la
+
+            echo ""
+            echo "=================================="
+            echo "2. GITHUB CONNECTION TEST"
+            echo "=================================="
+
+            echo "Checking connection to GitHub..."
+
+            curl -I -L \
+              --connect-timeout 20 \
+              --max-time 40 \
+              https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main
+
+            echo ""
+            echo "=================================="
+            echo "3. TEST COMPLETED"
+            echo "=================================="
+
+            echo "SSH connection successful."
+            echo "GitHub connection successful."
