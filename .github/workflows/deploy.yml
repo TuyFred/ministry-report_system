@@ -45,7 +45,7 @@ jobs:
             echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
             echo "======================================"
 
-            # STEP 1: CHECK SERVER
+            # STEP 1: CHECK SERVER TOOLS
 
             echo "[1/9] Checking server tools..."
 
@@ -59,7 +59,7 @@ jobs:
             "$NODE/node" --version
             "$NODE/npm" --version
 
-            # STEP 2: CHECK DIRECTORIES
+            # STEP 2: CHECK PRODUCTION DIRECTORIES
 
             echo "[2/9] Checking production directories..."
 
@@ -69,7 +69,7 @@ jobs:
 
             echo "Production directories verified."
 
-            # STEP 3: BACKUP
+            # STEP 3: CREATE PRODUCTION BACKUP
 
             echo "[3/9] Creating production backup..."
 
@@ -91,9 +91,10 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Backup completed: $BACKUP"
+            echo "Production backup completed."
+            echo "Backup location: $BACKUP"
 
-            # STEP 4: DOWNLOAD SOURCE
+            # STEP 4: DOWNLOAD GITHUB SOURCE
 
             echo "[4/9] Downloading GitHub source..."
 
@@ -107,9 +108,9 @@ jobs:
 
             test -s "$ARCHIVE"
 
-            echo "GitHub source downloaded."
+            echo "GitHub source downloaded successfully."
 
-            # STEP 5: EXTRACT SOURCE
+            # STEP 5: EXTRACT AND VERIFY PROJECT
 
             echo "[5/9] Extracting project..."
 
@@ -126,36 +127,57 @@ jobs:
 
             echo "Project source verified."
 
-            # STEP 6: INSTALL FRONTEND AND BUILD
+            # STEP 6: INSTALL FRONTEND AND BUILD REACT
 
-            echo "[6/9] Installing frontend dependencies..."
+            echo "[6/9] Preparing React frontend..."
 
             cd "$REPO/client"
 
-            echo "Frontend location:"
+            echo "Frontend directory:"
             pwd
 
-            echo "Checking package.json..."
+            echo "Checking frontend package..."
             test -f package.json
 
-            echo "Installing Vite and frontend dependencies..."
+            echo "Checking Vite declaration..."
+
+            "$NODE/node" -e "const p=require('./package.json'); console.log('Vite:',p.devDependencies?.vite); if(!p.devDependencies?.vite) process.exit(1)"
+
+            echo "Checking npm configuration..."
+
+            "$NODE/npm" config get dry-run
+            "$NODE/npm" config get global
+            "$NODE/npm" config get omit
+
+            echo "Installing frontend dependencies..."
 
             "$NODE/npm" install \
+              --force \
+              --dry-run=false \
+              --global=false \
+              --package-lock=false \
+              --production=false \
               --include=dev \
               --include=optional \
               --bin-links=true \
               --no-audit \
               --no-fund
 
-            echo "Checking Vite..."
+            echo "Checking installed React..."
 
-            "$NODE/npm" ls vite
+            test -d node_modules/react
+
+            echo "Checking installed Vite..."
 
             test -f node_modules/vite/bin/vite.js
 
+            "$NODE/npm" ls vite --depth=0
+
+            echo "Vite version:"
+
             "$NODE/node" node_modules/vite/bin/vite.js --version
 
-            echo "Building React frontend..."
+            echo "Building frontend..."
 
             "$NODE/npm" run build
 
@@ -163,7 +185,7 @@ jobs:
 
             echo "FRONTEND BUILD SUCCESSFUL."
 
-            # STEP 7: INSTALL BACKEND
+            # STEP 7: INSTALL BACKEND DEPENDENCIES
 
             echo "[7/9] Installing backend dependencies..."
 
@@ -178,9 +200,11 @@ jobs:
 
             echo "Backend dependencies installed."
 
-            # STEP 8: PUBLISH FILES
+            # STEP 8: PUBLISH BACKEND AND FRONTEND
 
             echo "[8/9] Publishing application..."
+
+            echo "Preparing backend archive..."
 
             tar -czf "$STAGING/backend.tar.gz" \
               --exclude='./.env*' \
@@ -211,7 +235,7 @@ jobs:
             cp -a "$REPO/client/dist/." \
               "$APP/public/"
 
-            echo "Verifying published files..."
+            echo "Verifying production files..."
 
             test -f "$APP/index.js"
             test -f "$APP/package.json"
@@ -219,9 +243,9 @@ jobs:
             test -d "$APP/uploads"
             test -d "$APP/node_modules"
 
-            echo "Published files verified."
+            echo "Production files verified."
 
-            # STEP 9: RESTART APPLICATION
+            # STEP 9: RESTART NODE.JS APPLICATION
 
             echo "[9/9] Restarting Node.js application..."
 
@@ -235,7 +259,7 @@ jobs:
             rm -f "$ARCHIVE"
 
             echo "======================================"
-            echo "DEPLOYMENT SUCCESSFUL"
+            echo "DEPLOYMENT SUCCESSFUL!"
             echo "======================================"
 
             echo "Website: https://report.gnitafrica.com"
