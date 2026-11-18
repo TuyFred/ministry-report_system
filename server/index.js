@@ -38,6 +38,25 @@ app.use(cors({
     exposedHeaders: ['Content-Disposition']
 }));
 app.use(express.json());
+
+// Override stale/static manifests when older frontend files are still deployed.
+app.get('/manifest.json', (req, res) => {
+    res.set('Cache-Control', 'no-cache');
+    res.json({
+        short_name: 'Olivet Assembly Africa',
+        name: 'Olivet Assembly Africa',
+        icons: [
+            { src: 'favicon.ico', sizes: '64x64 32x32 24x24 16x16', type: 'image/x-icon' },
+            { src: 'logo192.png', type: 'image/png', sizes: '192x192' },
+            { src: 'logo512.png', type: 'image/png', sizes: '512x512' }
+        ],
+        start_url: '.',
+        display: 'standalone',
+        theme_color: '#000000',
+        background_color: '#ffffff'
+    });
+});
+
 app.use(express.static(frontendDir));
 
 // Serve uploaded files from a stable absolute path.

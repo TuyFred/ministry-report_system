@@ -179,30 +179,13 @@ exports.getReports = async (req, res) => {
             }
         }
 
-        let reports;
-        try {
-            reports = await Report.findAll({
-                where: whereClause,
-                include: [
-                    { model: User, attributes: ['fullname', 'country', 'contact'] },
-                    { model: Attachment }
-                ],
-                order: [['date', 'DESC']]
-            });
-        } catch (attachmentErr) {
-            // Keep report access available if the optional attachments table is missing.
-            if (!String(attachmentErr.message || '').toLowerCase().includes('attachment')) {
-                throw attachmentErr;
-            }
-            console.error('Attachment include failed; loading reports without attachments:', attachmentErr.message);
-            reports = await Report.findAll({
-                where: whereClause,
-                include: [
-                    { model: User, attributes: ['fullname', 'country', 'contact'] }
-                ],
-                order: [['date', 'DESC']]
-            });
-        }
+        const reports = await Report.findAll({
+            where: whereClause,
+            include: [
+                { model: User, attributes: ['fullname', 'country', 'contact'] }
+            ],
+            order: [['date', 'DESC']]
+        });
 
         res.json(reports);
     } catch (err) {
