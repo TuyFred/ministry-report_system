@@ -1,0 +1,6 @@
+          echo "Testing connection to GitHub..."
+
+          curl -I -L --connect-timeout 20 --max-time 40 \
+            https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/main
+
+          echo "GitHub download connection test completed."
