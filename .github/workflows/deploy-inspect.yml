@@ -20,11 +20,13 @@ jobs:
           timeout: 30s
           command_timeout: 60s
           script: |
-            set -eu
+            set -e
 
             echo "===== CHECK REPOSITORY ====="
-            if [ -d /home/fbretcba/repositories/ministry-report_system ]; then
-              cd /home/fbretcba/repositories/ministry-report_system
+            REPO="/home/fbretcba/repositories/ministry-report_system"
+
+            if [ -d "$REPO" ]; then
+              cd "$REPO"
               pwd
               git status --short --branch
               git log -1 --oneline
@@ -33,6 +35,7 @@ jobs:
             fi
 
             echo "===== CHECK PRODUCTION FOLDERS ====="
+
             for dir in \
               /home/fbretcba/report \
               /home/fbretcba/report/public \
@@ -50,13 +53,21 @@ jobs:
             done
 
             echo "===== CHECK NODE ENVIRONMENT ====="
-            if [ -f /home/fbretcba/nodevenv/report/20/bin/activate ]; then
-              . /home/fbretcba/nodevenv/report/20/bin/activate
-              node --version
-              npm --version
-              command -v node
+
+            NODE_DIR="/home/fbretcba/nodevenv/report/20/bin"
+
+            if [ -x "$NODE_DIR/node" ]; then
+              echo "Node.js version:"
+              "$NODE_DIR/node" --version
             else
-              echo "Node environment activation file not found"
+              echo "Node.js executable not found at $NODE_DIR/node"
+            fi
+
+            if [ -x "$NODE_DIR/npm" ]; then
+              echo "NPM version:"
+              "$NODE_DIR/npm" --version
+            else
+              echo "NPM executable not found at $NODE_DIR/npm"
             fi
 
             echo "===== INSPECTION COMPLETE ====="
