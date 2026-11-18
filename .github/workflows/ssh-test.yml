@@ -18,6 +18,7 @@ jobs:
           host: ${{ secrets.CPANEL_HOST }}
           username: ${{ secrets.CPANEL_USER }}
           key: ${{ secrets.CPANEL_SSH_KEY }}
+          passphrase: ${{ secrets.CPANEL_SSH_PASSPHRASE }}
           port: ${{ secrets.CPANEL_PORT }}
           timeout: 30s
           command_timeout: 30s
@@ -29,4 +30,3 @@ jobs:
             pwd
             echo "Home directory contents:"
             ls -la
- 
