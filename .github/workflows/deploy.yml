@@ -1,3 +1,4 @@
+
 name: Ministry Reporting System - Build and cPanel Deployment
 
 on:
@@ -25,8 +26,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: client/package-lock.json
+
+      - name: Check frontend files
+        run: |
+          set -e
+          test -f client/package.json
+          test -f client/package-lock.json
+          echo "Frontend package files found."
 
       - name: Install frontend dependencies
         working-directory: client
@@ -35,13 +41,15 @@ jobs:
       - name: Build React frontend
         working-directory: client
         run: |
+          set -e
           npm run build
           test -f dist/index.html
 
-          # Include the client Apache rules if the project has them.
           if [ -f .htaccess ]; then
             cp .htaccess dist/.htaccess
           fi
+
+          echo "React build completed."
 
       - name: Prepare production package
         run: |
@@ -50,7 +58,6 @@ jobs:
           RELEASE="$RUNNER_TEMP/release"
           mkdir -p "$RELEASE/server" "$RELEASE/public"
 
-          # Do not package environment files, uploads or dependencies.
           tar -czf - \
             --exclude='./.env*' \
             --exclude='./uploads' \
@@ -67,9 +74,11 @@ jobs:
           test -f "$RELEASE/server/package-lock.json"
           test -f "$RELEASE/public/index.html"
 
+          echo "Production package prepared."
+
       - name: Publish production package
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -e
 
@@ -170,7 +179,7 @@ jobs:
 
             echo "cPanel environment verified."
 
-            # 2. Back up live source and frontend.
+            # 2. Back up live application source.
             echo "[2/8] Backing up current application..."
 
             mkdir -p "$BACKUP" "$STAGING"
@@ -193,7 +202,7 @@ jobs:
 
             echo "Backup saved at $BACKUP"
 
-            # 3. Download GitHub production package.
+            # 3. Download release.
             echo "[3/8] Downloading release..."
 
             curl -fL --retry 3 --retry-delay 5 \
@@ -216,14 +225,12 @@ jobs:
             test -f "$REPO/server/package-lock.json"
             test -f "$REPO/public/index.html"
 
-            # 4. Prepare frontend and backend deployment files.
+            # 4. Prepare frontend and backend files.
             echo "[4/8] Preparing deployment files..."
 
             mkdir -p "$STAGING/new-public"
             cp -a "$REPO/public/." "$STAGING/new-public/"
 
-            # Keep the current public .htaccess if the release
-            # does not include a replacement.
             if [ -f "$APP/public/.htaccess" ] &&
                [ ! -f "$STAGING/new-public/.htaccess" ]; then
               cp "$APP/public/.htaccess" "$STAGING/new-public/.htaccess"
@@ -241,14 +248,13 @@ jobs:
             test -s "$STAGING/backend.tar.gz"
             test -f "$STAGING/new-public/index.html"
 
-            # 5. Publish backend source.
+            # 5. Publish backend source and dependencies.
             echo "[5/8] Publishing backend..."
 
             BACKEND_PUBLISHED=1
 
             tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
 
-            # Keep the cPanel node_modules symlink.
             test -L "$APP/node_modules"
 
             cd "$APP"
@@ -259,9 +265,11 @@ jobs:
               --no-fund
 
             test -d "$APP/node_modules"
-            "$NODE/node" -e "require('express'); require('sequelize'); console.log('Backend dependencies verified')"
 
-            # 6. Safely replace frontend.
+            "$NODE/node" -e \
+              "require('express'); require('sequelize'); console.log('Backend dependencies verified')"
+
+            # 6. Replace frontend.
             echo "[6/8] Publishing frontend..."
 
             if [ -d "$APP/public" ]; then
@@ -273,7 +281,7 @@ jobs:
 
             test -f "$APP/public/index.html"
 
-            # 7. Verify production files.
+            # 7. Verify deployment files.
             echo "[7/8] Verifying deployment..."
 
             test -f "$APP/index.js"
@@ -293,7 +301,6 @@ jobs:
 
             echo "Passenger restart requested."
 
-            # Remove temporary files only after success.
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
