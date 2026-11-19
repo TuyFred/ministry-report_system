@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarAlt, FaFilePdf, FaFileExcel, FaChevronLeft, FaChevronRight, FaUsers, FaClock, FaBook, FaPray, FaChurch, FaHeart, FaChartLine } from 'react-icons/fa';
-import { formatDuration, parseHours as parseTime } from '../utils/time';
+import { formatDuration, parseHours as parseTime, formatSubmittedAt } from '../utils/time';
 
 const MonthlyReport = () => {
     const { user } = useContext(AuthContext);
@@ -544,6 +544,7 @@ const MonthlyReport = () => {
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Evangelism:</span>
                                                     <span className="font-semibold text-gray-800">{formatDuration(report.evangelism_hours, { compact: true })}</span>
+                                                    <span className="text-xs text-gray-500 ml-2">Submitted: {formatSubmittedAt(report.createdAt)}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Reached:</span>

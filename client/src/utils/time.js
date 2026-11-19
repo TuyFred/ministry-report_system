@@ -35,3 +35,16 @@ export const formatDuration = (value, options = {}) => {
     if (minutes === 0) return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
     return `${hours} hr ${minutes} min`;
 };
+
+export const formatSubmittedAt = (value) => {
+    if (!value) return 'Time unavailable';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Time unavailable';
+    return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+};

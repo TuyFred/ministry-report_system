@@ -449,8 +449,9 @@ exports.exportPDF = async (req, res) => {
                 doc.text(`Date: ${new Date(report.date).toLocaleDateString()}`, 300, nextY);
                 doc.text(`Email: ${report.User?.email || 'N/A'}`, 50, nextY + 20);
                 doc.text(`Contact: ${report.User?.contact || 'N/A'}`, 300, nextY + 20);
+                doc.text(`Submitted: ${report.createdAt ? new Date(report.createdAt).toLocaleString() : 'N/A'}`, 50, nextY + 40);
 
-                doc.y = nextY + 50; // Move down
+                doc.y = nextY + 70; // Move down
 
                 // Horizontal Line
                 doc.moveTo(50, doc.y).lineTo(550, doc.y).lineWidth(1).strokeColor('#E5E7EB').stroke();
@@ -620,7 +621,7 @@ exports.exportExcel = async (req, res) => {
         const worksheet = workbook.addWorksheet('Ministry Reports');
 
         // Add Title Row
-        worksheet.mergeCells('A1:X1');
+        worksheet.mergeCells('A1:AC1');
         const titleCell = worksheet.getCell('A1');
         titleCell.value = 'MINISTRY REPORTS SYSTEM';
         titleCell.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -631,6 +632,7 @@ exports.exportExcel = async (req, res) => {
         // Define Columns (Keys and Widths only)
         worksheet.columns = [
             { key: 'date', width: 15 },
+            { key: 'submitted_at', width: 24 },
             { key: 'name', width: 25 },
             { key: 'email', width: 28 },
             { key: 'country', width: 15 },
@@ -664,7 +666,7 @@ exports.exportExcel = async (req, res) => {
         // Add Header Row manually at Row 2
         const headerRow = worksheet.getRow(2);
         headerRow.values = [
-            'Date', 'Name', 'Email', 'Country', 'Contact', 'Church',
+            'Report Date', 'Submitted At', 'Name', 'Email', 'Country', 'Contact', 'Church',
             'Evangelism Hours', 'People Reached', 'Contacts Received',
             'Bible Study Sessions', 'Bible Study Attendants', 'Unique Attendants', 'Newcomers',
             'Meditation (min)', 'Prayer (min)', 'Morning Service', 'Regular Service',
@@ -681,13 +683,14 @@ exports.exportExcel = async (req, res) => {
         // AutoFilter
         worksheet.autoFilter = {
             from: { row: 2, column: 1 },
-            to: { row: 2, column: 28 }
+            to: { row: 2, column: 29 }
         };
 
         // Add data rows
         reports.forEach(report => {
             worksheet.addRow({
                 date: new Date(report.date).toLocaleDateString(),
+                submitted_at: report.createdAt ? new Date(report.createdAt).toLocaleString() : 'N/A',
                 name: report.User?.fullname || 'N/A',
                 email: report.User?.email || 'N/A',
                 country: report.User?.country || 'N/A',

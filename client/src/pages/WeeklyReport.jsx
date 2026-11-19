@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarWeek, FaFilePdf, FaFileExcel, FaChevronLeft, FaChevronRight, FaUsers, FaClock, FaBook, FaPray, FaChurch, FaHeart } from 'react-icons/fa';
-import { formatDuration, parseHours } from '../utils/time';
+import { formatDuration, parseHours, formatSubmittedAt } from '../utils/time';
 
 const WeeklyReport = () => {
     const { user } = useContext(AuthContext);
@@ -494,6 +494,7 @@ const WeeklyReport = () => {
                                                 <div>
                                                     <p className="text-gray-600">Evangelism</p>
                                                     <p className="font-bold text-gray-800">{formatDuration(report.evangelism_hours, { compact: true })}</p>
+                                                    <p className="text-xs text-gray-500 mt-1">Submitted: {formatSubmittedAt(report.createdAt)}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-600">People Reached</p>

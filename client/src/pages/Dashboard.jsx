@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
 import ExportReports from '../components/ExportReports';
-import { formatDuration, parseHours } from '../utils/time';
+import { formatDuration, parseHours, formatSubmittedAt } from '../utils/time';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
@@ -185,6 +185,7 @@ const Dashboard = () => {
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted By</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted At</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hours</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">People Reached</th>
                                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -204,6 +205,9 @@ const Dashboard = () => {
                                                     <FaGlobe className="text-indigo-600" />
                                                     {report.User?.country || report.country || 'Country unavailable'}
                                                 </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                                {formatSubmittedAt(report.createdAt)}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                                                 {formatDuration(report.evangelism_hours, { compact: true })}
@@ -230,6 +234,7 @@ const Dashboard = () => {
                                         <div>
                                             <p className="text-sm text-gray-500">{new Date(report.date).toLocaleDateString()}</p>
                                             <h3 className="font-bold text-gray-900">{report.User?.fullname || report.name || 'Unknown member'}</h3>
+                                            <p className="text-xs font-medium text-indigo-600 mt-1">Submitted: {formatSubmittedAt(report.createdAt)}</p>
                                         </div>
                                         <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full flex items-center gap-1">
                                             <FaGlobe className="text-xs" />

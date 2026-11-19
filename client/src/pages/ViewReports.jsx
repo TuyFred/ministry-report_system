@@ -4,7 +4,7 @@ import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaEye, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight, FaEdit, FaFilePdf, FaFileExcel, FaTrash, FaUser, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
-import { formatDuration } from '../utils/time';
+import { formatDuration, formatSubmittedAt } from '../utils/time';
 
 const ViewReports = () => {
     const { user } = useContext(AuthContext);
@@ -463,6 +463,9 @@ const ViewReports = () => {
                                                     day: 'numeric'
                                                 })}
                                             </p>
+                                            <p className="text-xs font-medium text-indigo-600 mt-0.5">
+                                                Submitted: {formatSubmittedAt(report.createdAt)}
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
@@ -513,6 +516,10 @@ const ViewReports = () => {
                                                     <div className="flex justify-between gap-3 text-sm">
                                                         <span className="text-gray-500">Church</span>
                                                         <span className="font-semibold text-gray-800 text-right">{report.church || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-3 text-sm">
+                                                        <span className="text-gray-500">Submitted</span>
+                                                        <span className="font-semibold text-gray-800 text-right">{formatSubmittedAt(report.createdAt)}</span>
                                                     </div>
                                                 </div>
                                             </div>
