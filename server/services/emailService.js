@@ -8,6 +8,11 @@ const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, (character
     "'": '&#39;'
 }[character]));
 
+const getEmailLogoUrl = () => {
+    const clientUrl = String(process.env.CLIENT_URL || 'https://report.gnitafrica.com').replace(/\/+$/, '');
+    return `${clientUrl}/olivet-assembly-africa-logo.png`;
+};
+
 const createOtpEmailHtml = ({ appName, name, otp, expiresMinutes }) => {
     const safeAppName = escapeHtml(appName);
     const safeName = escapeHtml(name || 'there');
@@ -19,7 +24,7 @@ const createOtpEmailHtml = ({ appName, name, otp, expiresMinutes }) => {
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f3f4f6;padding:32px 12px">
     <tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden">
-        <tr><td style="background:#4338ca;padding:26px 32px;color:#fff;font-size:22px;font-weight:bold">${safeAppName}</td></tr>
+        <tr><td style="background:#4338ca;padding:18px 32px;color:#fff;font-size:22px;font-weight:bold"><img src="${escapeHtml(getEmailLogoUrl())}" alt="Olivet Assembly Africa" width="72" height="72" style="display:inline-block;vertical-align:middle;margin-right:12px;border-radius:10px;background:#fff;padding:6px"><span style="vertical-align:middle">${safeAppName}</span></td></tr>
         <tr><td style="padding:32px">
           <h1 style="font-size:22px;margin:0 0 16px">Your verification code</h1>
           <p style="font-size:16px;line-height:1.6;margin:0 0 18px">Hello ${safeName}, use this one-time code to continue:</p>
@@ -159,7 +164,7 @@ const sendReminderEmail = async ({ email, name, country, preferredLanguage, week
     const htmlContent = `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px"><tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden">
-      <tr><td style="background:#4f46e5;padding:24px 32px;color:#fff;font-size:22px;font-weight:bold">${escapeHtml(appName)}</td></tr>
+      <tr><td style="background:#4f46e5;padding:18px 32px;color:#fff;font-size:22px;font-weight:bold"><img src="${escapeHtml(getEmailLogoUrl())}" alt="Olivet Assembly Africa" width="72" height="72" style="display:inline-block;vertical-align:middle;margin-right:12px;border-radius:10px;background:#fff;padding:6px"><span style="vertical-align:middle">${escapeHtml(appName)}</span></td></tr>
       <tr><td style="padding:32px"><p style="line-height:1.7">${htmlBody}</p>
       <div style="border-left:4px solid #6366f1;background:#eef2ff;padding:16px;margin:20px 0"><strong>${texts.verseTitle}</strong><br><em>“${escapeHtml(verse.text)}” — ${verse.reference}</em></div>
       <p>${texts.closing}</p><p>${texts.thankYou}</p><p>${texts.signoff}<br><strong>${texts.team}</strong></p></td></tr></table></td></tr></table></body></html>`;
@@ -198,7 +203,7 @@ const sendLeaderSummaryEmail = async ({ email, name, country, weekStart, weekEnd
     const htmlContent = `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px"><tr><td align="center">
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fff;border-radius:16px;overflow:hidden">
-      <tr><td style="background:#4f46e5;padding:24px 32px;color:#fff;font-size:22px;font-weight:bold">Ministry Report System</td></tr>
+      <tr><td style="background:#4f46e5;padding:18px 32px;color:#fff;font-size:22px;font-weight:bold"><img src="${escapeHtml(getEmailLogoUrl())}" alt="Olivet Assembly Africa" width="72" height="72" style="display:inline-block;vertical-align:middle;margin-right:12px;border-radius:10px;background:#fff;padding:6px"><span style="vertical-align:middle">Ministry Report System</span></td></tr>
       <tr><td style="padding:32px"><p style="line-height:1.7">${summaryMessage}</p><p><strong>Reporting period:</strong> ${escapeHtml(weekStart)}–${escapeHtml(weekEnd)}</p>
       <h3>Reporting Summary</h3><ul><li>Expected members: ${expectedMembers}</li><li>Submitted reports: ${submittedReports}</li><li>Missing reports: ${missedCount}</li><li>Completion rate: ${completionRate}%</li></ul>
       ${missedCount > 0 ? `<h3>Members Who Have Not Reported</h3><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><thead><tr><th style="padding:8px;border:1px solid #e5e7eb;text-align:left">No.</th><th style="padding:8px;border:1px solid #e5e7eb;text-align:left">Member</th><th style="padding:8px;border:1px solid #e5e7eb;text-align:left">Email</th></tr></thead><tbody>${rows}</tbody></table>` : '<p>All expected members submitted a report.</p>'}

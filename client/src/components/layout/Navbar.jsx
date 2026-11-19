@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
 import { FaBars, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
-import BrandLogo from '../BrandLogo';
 
 const Navbar = ({ toggleSidebar, showSidebarToggle = true }) => {
     const { user, logout } = useContext(AuthContext);
@@ -45,9 +44,8 @@ const Navbar = ({ toggleSidebar, showSidebarToggle = true }) => {
                         <FaBars className="h-6 w-6" />
                     </button>
                 )}
-                <div className="flex items-center gap-2">
-                    <BrandLogo compact />
-                    <span className="hidden text-xl font-bold text-gray-800 sm:inline">Olivet Assembly Africa</span>
+                <div className="hidden sm:block">
+                    <p className="text-sm font-bold text-gray-800">Ministry Report System</p>
                 </div>
             </div>
             <div className="flex items-center space-x-4">

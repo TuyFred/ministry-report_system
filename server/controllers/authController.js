@@ -174,7 +174,11 @@ exports.login = async (req, res) => {
         }
 
         // Check password
-        const isMatch = await bcrypt.compare(password, user.password);
+        if (typeof user.password !== 'string' || !user.password) {
+            console.error('Login error: user account has no valid password hash.');
+            return res.status(400).json({ msg: 'Invalid Credentials' });
+        }
+        const isMatch = await bcrypt.compare(String(password), user.password);
         if (!isMatch) {
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
@@ -210,21 +214,25 @@ exports.login = async (req, res) => {
             }
         };
 
-        jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' }, (err, token) => {
-            if (err) throw err;
-            res.json({
-                token,
-                user: {
-                    id: user.id,
-                    fullname: user.fullname,
-                    email: user.email,
-                    role: user.role,
-                    country: user.country,
-                    profile_image: user.profile_image,
-                    createdAt: user.createdAt,
-                    updatedAt: user.updatedAt
-                }
-            });
+        let token;
+        try {
+            token = jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+        } catch (tokenError) {
+            console.error('Login token error:', tokenError.message);
+            return res.status(500).json({ msg: 'Unable to start your session. Please try again.' });
+        }
+        return res.json({
+            token,
+            user: {
+                id: user.id,
+                fullname: user.fullname,
+                email: user.email,
+                role: user.role,
+                country: user.country,
+                profile_image: user.profile_image,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt
+            }
         });
 
     } catch (err) {
