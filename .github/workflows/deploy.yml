@@ -1,74 +1,64 @@
-
-name: Ministry Reporting System - GitHub Build and cPanel Deployment
+name: Ministry Reporting System - Build and cPanel Deployment
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
   contents: write
 
-jobs:
+concurrency:
+  group: ministry-report-production
+  cancel-in-progress: false
 
-  # JOB 1: BUILD REACT ON GITHUB
+jobs:
   build:
-    name: Build Frontend on GitHub
+    name: Build React and prepare release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Get source code
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Install Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: client/package-lock.json
 
       - name: Install frontend dependencies
         working-directory: client
-        run: |
-          echo "Installing React dependencies..."
-          npm install --include=dev --no-audit --no-fund
+        run: npm ci --include=dev --no-audit --no-fund
 
-      - name: Verify Vite installation
-        working-directory: client
-        run: |
-          npm ls vite
-          test -f node_modules/vite/bin/vite.js
-          npx vite --version
-
-      - name: Build React application
+      - name: Build React frontend
         working-directory: client
         run: |
           npm run build
           test -f dist/index.html
-          echo "FRONTEND BUILD SUCCESSFUL"
+
+          # Include the client Apache rules if the project has them.
+          if [ -f .htaccess ]; then
+            cp .htaccess dist/.htaccess
+          fi
 
       - name: Prepare production package
         run: |
           set -e
 
           RELEASE="$RUNNER_TEMP/release"
+          mkdir -p "$RELEASE/server" "$RELEASE/public"
 
-          mkdir -p "$RELEASE/server"
-          mkdir -p "$RELEASE/public"
-
-          echo "Copying backend source..."
-
+          # Do not package environment files, uploads or dependencies.
           tar -czf - \
             --exclude='./.env*' \
             --exclude='./uploads' \
             --exclude='./node_modules' \
             --exclude='./tmp' \
             --exclude='./.git' \
-            --exclude='./pre-deployment-backup' \
+            --exclude='./.htaccess' \
             -C server . | tar -xzf - -C "$RELEASE/server"
-
-          echo "Copying built React frontend..."
 
           cp -a client/dist/. "$RELEASE/public/"
 
@@ -77,26 +67,20 @@ jobs:
           test -f "$RELEASE/server/package-lock.json"
           test -f "$RELEASE/public/index.html"
 
-          echo "Production package verified."
-
-      - name: Publish production package to deployment branch
+      - name: Publish production package
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
 
-          RELEASE="$RUNNER_TEMP/release"
-
-          cd "$RELEASE"
+          cd "$RUNNER_TEMP/release"
 
           git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
 
           git add -A
-
           git commit -m "Production deployment package"
-
           git branch -M production-build
 
           git remote add origin \
@@ -104,16 +88,13 @@ jobs:
 
           git push --force origin production-build
 
-          echo "Production package published."
-
-  # JOB 2: DEPLOY TO CPANEL
   deploy:
     name: Deploy to cPanel
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Connect to cPanel and deploy
+      - name: Deploy through SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.CPANEL_HOST }}
@@ -125,9 +106,7 @@ jobs:
           command_timeout: 30m
 
           script: |
-            set -Ee
-
-            trap 'status=$?; echo "DEPLOYMENT FAILED at line $LINENO (exit code $status)"; exit "$status"' ERR
+            set -Eeuo pipefail
 
             APP="/home/fbretcba/report"
             NODE="/home/fbretcba/nodevenv/report/20/bin"
@@ -137,37 +116,64 @@ jobs:
             STAGING="/home/fbretcba/deployment-staging-$STAMP"
             ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
 
+            BACKEND_PUBLISHED=0
+            PUBLIC_SWAPPED=0
+
+            rollback() {
+              STATUS=$?
+              set +e
+
+              echo "DEPLOYMENT FAILED. Attempting rollback..."
+
+              if [ "$BACKEND_PUBLISHED" = "1" ] &&
+                 [ -s "$BACKUP/application-source.tar.gz" ]; then
+                echo "Restoring previous backend source..."
+                tar -xzf "$BACKUP/application-source.tar.gz" -C "$APP"
+              fi
+
+              if [ "$PUBLIC_SWAPPED" = "1" ] &&
+                 [ -d "$STAGING/previous-public" ]; then
+                echo "Restoring previous frontend..."
+                rm -rf "$APP/public"
+                mv "$STAGING/previous-public" "$APP/public"
+              fi
+
+              echo "Backup location: $BACKUP"
+              echo "Rollback attempt finished. Exit code: $STATUS"
+              exit "$STATUS"
+            }
+
+            trap rollback ERR
+
             echo "======================================"
-            echo "MINISTRY REPORTING SYSTEM"
-            echo "GITHUB BUILD DEPLOYMENT"
+            echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
             echo "======================================"
 
-            # STEP 1: CHECK ENVIRONMENT
+            # 1. Verify cPanel environment.
+            echo "[1/8] Checking environment..."
 
-            echo "[1/8] Checking cPanel environment..."
-
-            for tool in curl tar cp mkdir touch date rm; do
+            for tool in curl tar cp mkdir touch date mv rm; do
               command -v "$tool"
             done
 
             test -x "$NODE/node"
             test -x "$NODE/npm"
-
             "$NODE/node" --version
             "$NODE/npm" --version
 
             test -d "$APP"
+            test -f "$APP/.env"
             test -d "$APP/uploads"
             test -d "$APP/tmp"
+            test -d "$APP/node_modules"
+            test -L "$APP/node_modules"
 
             echo "cPanel environment verified."
 
-            # STEP 2: BACKUP LIVE APPLICATION
+            # 2. Back up live source and frontend.
+            echo "[2/8] Backing up current application..."
 
-            echo "[2/8] Backing up production application..."
-
-            mkdir -p "$BACKUP"
-            mkdir -p "$STAGING"
+            mkdir -p "$BACKUP" "$STAGING"
 
             tar -czf "$BACKUP/application-source.tar.gz" \
               --exclude='./.env*' \
@@ -176,6 +182,7 @@ jobs:
               --exclude='./public' \
               --exclude='./tmp' \
               --exclude='./.git' \
+              --exclude='./.htaccess' \
               --exclude='./pre-deployment-backup' \
               -C "$APP" .
 
@@ -184,17 +191,13 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Backup completed: $BACKUP"
+            echo "Backup saved at $BACKUP"
 
-            # STEP 3: DOWNLOAD GITHUB BUILD
+            # 3. Download GitHub production package.
+            echo "[3/8] Downloading release..."
 
-            echo "[3/8] Downloading production package..."
-
-            curl -fL \
-              --retry 3 \
-              --retry-delay 5 \
-              --connect-timeout 30 \
-              --max-time 300 \
+            curl -fL --retry 3 --retry-delay 5 \
+              --connect-timeout 30 --max-time 300 \
               "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/production-build" \
               -o "$ARCHIVE"
 
@@ -213,88 +216,91 @@ jobs:
             test -f "$REPO/server/package-lock.json"
             test -f "$REPO/public/index.html"
 
-            echo "GitHub production package verified."
+            # 4. Prepare frontend and backend deployment files.
+            echo "[4/8] Preparing deployment files..."
 
-            # STEP 4: INSTALL BACKEND DEPENDENCIES
+            mkdir -p "$STAGING/new-public"
+            cp -a "$REPO/public/." "$STAGING/new-public/"
 
-            echo "[4/8] Installing backend dependencies..."
-
-            cd "$REPO/server"
-
-            "$NODE/npm" ci \
-              --omit=dev \
-              --no-audit \
-              --no-fund
-
-            test -d node_modules
-
-            echo "Backend dependencies installed."
-
-            # STEP 5: PUBLISH BACKEND SOURCE
-
-            echo "[5/8] Publishing backend..."
+            # Keep the current public .htaccess if the release
+            # does not include a replacement.
+            if [ -f "$APP/public/.htaccess" ] &&
+               [ ! -f "$STAGING/new-public/.htaccess" ]; then
+              cp "$APP/public/.htaccess" "$STAGING/new-public/.htaccess"
+            fi
 
             tar -czf "$STAGING/backend.tar.gz" \
               --exclude='./.env*' \
               --exclude='./uploads' \
               --exclude='./node_modules' \
               --exclude='./tmp' \
+              --exclude='./.git' \
+              --exclude='./.htaccess' \
               -C "$REPO/server" .
 
-            tar -xzf "$STAGING/backend.tar.gz" \
-              -C "$APP"
+            test -s "$STAGING/backend.tar.gz"
+            test -f "$STAGING/new-public/index.html"
 
-            echo "Publishing backend dependencies..."
+            # 5. Publish backend source.
+            echo "[5/8] Publishing backend..."
 
-            mkdir -p "$APP/node_modules"
+            BACKEND_PUBLISHED=1
 
-            cp -a "$REPO/server/node_modules/." \
-              "$APP/node_modules/"
+            tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
 
-            # STEP 6: PUBLISH FRONTEND
+            # Keep the cPanel node_modules symlink.
+            test -L "$APP/node_modules"
 
-            echo "[6/8] Publishing React frontend..."
+            cd "$APP"
 
-            mkdir -p "$APP/public"
+            "$NODE/npm" install \
+              --omit=dev \
+              --no-audit \
+              --no-fund
 
-            rm -rf "$APP/public"
+            test -d "$APP/node_modules"
+            "$NODE/node" -e "require('express'); require('sequelize'); console.log('Backend dependencies verified')"
 
-            mkdir -p "$APP/public"
+            # 6. Safely replace frontend.
+            echo "[6/8] Publishing frontend..."
 
-            cp -a "$REPO/public/." "$APP/public/"
+            if [ -d "$APP/public" ]; then
+              mv "$APP/public" "$STAGING/previous-public"
+            fi
+
+            PUBLIC_SWAPPED=1
+            mv "$STAGING/new-public" "$APP/public"
 
             test -f "$APP/public/index.html"
 
-            echo "Frontend published successfully."
-
-            # STEP 7: VERIFY PRODUCTION FILES
-
-            echo "[7/8] Verifying production application..."
+            # 7. Verify production files.
+            echo "[7/8] Verifying deployment..."
 
             test -f "$APP/index.js"
             test -f "$APP/package.json"
             test -f "$APP/public/index.html"
-            test -d "$APP/node_modules"
+            test -f "$APP/.env"
             test -d "$APP/uploads"
+            test -d "$APP/tmp"
+            test -L "$APP/node_modules"
 
             echo "Production files verified."
 
-            # STEP 8: RESTART PASSENGER
-
+            # 8. Restart Passenger.
             echo "[8/8] Restarting Node.js application..."
 
             touch "$APP/tmp/restart.txt"
 
             echo "Passenger restart requested."
 
-            # REMOVE TEMPORARY DEPLOYMENT FILES
-
+            # Remove temporary files only after success.
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
 
-            echo "======================================"
-            echo "DEPLOYMENT SUCCESSFUL!"
-            echo "======================================"
+            trap - ERR
 
+            echo "======================================"
+            echo "DEPLOYMENT SUCCESSFUL"
             echo "Website: https://report.gnitafrica.com"
             echo "Backup: $BACKUP"
+            echo "======================================"
