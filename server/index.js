@@ -19,7 +19,7 @@ const frontendIndex = path.join(frontendDir, 'index.html');
 app.use(cors({
     origin: (origin, callback) => {
         const allowedOrigins = [
-            'http://localhost:3000', 
+            'http://localhost:3000',
             'http://localhost:5173',
             'https://ministry-report-system.vercel.app',
             'https://gnitafrica.com',
@@ -134,9 +134,75 @@ app.use((req, res, next) => {
     });
 });
 
+const runAutomaticWeeklyReminders = async () => {
+    try {
+        const now = new Date();
+        if (now.getUTCDay() !== 0) return;
+
+        const { Op } = require('sequelize');
+        const Report = require('./models/Report');
+        const User = require('./models/User');
+        const ReportReminder = require('./models/ReportReminder');
+        const { sendReminderEmail } = require('./services/emailService');
+        const weekEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
+        const weekStart = new Date(weekEnd);
+        weekStart.setUTCDate(weekEnd.getUTCDate() - 6);
+        const start = weekStart.toISOString().split('T')[0];
+        const end = weekEnd.toISOString().split('T')[0];
+
+        const users = await User.findAll({ where: { role: { [Op.ne]: 'admin' } } });
+        for (const user of users) {
+            const reports = await Report.findAll({
+                attributes: ['date'],
+                where: { user_id: user.id, date: { [Op.between]: [start, end] } }
+            });
+            const submitted = new Set(reports.map(report => report.date)).size;
+            if (submitted >= 7) continue;
+
+            const [reminder] = await ReportReminder.findOrCreate({
+                where: { user_id: user.id, week_start: start, week_end: end },
+                defaults: {
+                    user_id: user.id,
+                    week_start: start,
+                    week_end: end,
+                    expected_reports: 7,
+                    submitted_reports: submitted,
+                    missed_reports: 7 - submitted
+                }
+            });
+            if (reminder.sent_at) continue;
+
+            try {
+                const delivery = await sendReminderEmail({
+                    email: user.email,
+                    name: user.fullname,
+                    weekStart: start,
+                    weekEnd: end,
+                    submittedReports: submitted,
+                    missedReports: 7 - submitted
+                });
+                await reminder.update({
+                    email_status: delivery.deliveryStatus,
+                    message_id: delivery.messageId,
+                    sent_at: new Date()
+                });
+            } catch (error) {
+                await reminder.update({ email_status: 'failed', sent_at: new Date() });
+                console.error(`Weekly reminder failed for ${user.email}:`, error.message);
+            }
+        }
+    } catch (error) {
+        console.error('Automatic weekly reminder sweep error:', error.message);
+    }
+};
+
 connectDB().then(async () => {
     const EmailOtp = require('./models/EmailOtp');
+    const ReportReminder = require('./models/ReportReminder');
     await EmailOtp.sync();
+    await ReportReminder.sync();
+    await runAutomaticWeeklyReminders();
+    setInterval(runAutomaticWeeklyReminders, 6 * 60 * 60 * 1000);
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });

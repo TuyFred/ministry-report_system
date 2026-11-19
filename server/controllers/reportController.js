@@ -4,6 +4,17 @@ const User = require('../models/User');
 const { Op, fn, col, literal } = require('sequelize');
 const PDFDocument = require('pdfkit');
 const ExcelJS = require('exceljs');
+const ReportReminder = require('../models/ReportReminder');
+
+const formatHoursForExport = (value) => {
+    const totalMinutes = Math.round((parseFloat(value) || 0) * 60);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (!hours && !minutes) return '0 min';
+    if (!hours) return `${minutes} min`;
+    if (!minutes) return `${hours} hr`;
+    return `${hours} hr ${minutes} min`;
+};
 
 const getUtcDayOfWeek = (dateStr) => {
     if (!dateStr || typeof dateStr !== 'string') return null;
@@ -83,8 +94,8 @@ exports.createReport = async (req, res) => {
         });
 
         if (existingReport) {
-            return res.status(400).json({ 
-                msg: 'You have already submitted a report for this date. Please edit the existing report or choose a different date.' 
+            return res.status(400).json({
+                msg: 'You have already submitted a report for this date. Please edit the existing report or choose a different date.'
             });
         }
 
@@ -141,7 +152,7 @@ exports.getReports = async (req, res) => {
         } else if (req.user.role === 'leader') {
             // Leader sees reports from their country
             userWhereClause.country = req.user.country;
-            
+
             const countryUsers = await User.findAll({ where: userWhereClause, attributes: ['id'] });
             const userIds = countryUsers.map(u => u.id);
 
@@ -159,12 +170,12 @@ exports.getReports = async (req, res) => {
             if (country) {
                 userWhereClause.country = country;
             }
-            
+
             // If we have user search criteria or country filter, we need to find matching users first
             if (searchQuery || country) {
                  const users = await User.findAll({ where: userWhereClause, attributes: ['id'] });
                  const userIds = users.map(u => u.id);
-                 
+
                  if (userId) {
                      if (userIds.includes(parseInt(userId))) {
                          whereClause.user_id = userId;
@@ -182,7 +193,7 @@ exports.getReports = async (req, res) => {
         const reports = await Report.findAll({
             where: whereClause,
             include: [
-                { model: User, attributes: ['fullname', 'country', 'contact'] }
+                { model: User, attributes: ['id', 'fullname', 'email', 'country', 'contact'] }
             ],
             order: [['date', 'DESC']]
         });
@@ -198,7 +209,7 @@ exports.getReports = async (req, res) => {
 exports.updateReport = async (req, res) => {
     try {
         const report = await Report.findByPk(req.params.id);
-        
+
         if (!report) {
             return res.status(404).json({ msg: 'Report not found' });
         }
@@ -206,7 +217,7 @@ exports.updateReport = async (req, res) => {
         // Check if user owns this report
         if (report.user_id !== req.user.id) {
             let authorized = false;
-            
+
             if (req.user.role === 'leader') {
                 const reportUser = await User.findByPk(report.user_id);
                 if (reportUser && reportUser.country === req.user.country) {
@@ -224,8 +235,8 @@ exports.updateReport = async (req, res) => {
         const {
             date, name, country, church, evangelism_hours, people_reached, contacts_received,
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
-            meditation_time, prayer_time, morning_service, regular_service, sermons_listened, 
-            articles_written, exercise_time, sermon_reflection, reflections, thanksgiving, 
+            meditation_time, prayer_time, morning_service, regular_service, sermons_listened,
+            articles_written, exercise_time, sermon_reflection, reflections, thanksgiving,
             repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         } = req.body;
 
@@ -263,8 +274,8 @@ exports.updateReport = async (req, res) => {
         await report.update({
             date, name, country, church, evangelism_hours, people_reached, contacts_received,
             bible_study_sessions, bible_study_attendants, unique_attendants, newcomers,
-            meditation_time, prayer_time, morning_service, regular_service, sermons_listened, 
-            articles_written, exercise_time, sermon_reflection, reflections, thanksgiving, 
+            meditation_time, prayer_time, morning_service, regular_service, sermons_listened,
+            articles_written, exercise_time, sermon_reflection, reflections, thanksgiving,
             repentance, prayer_requests, other_work, tomorrow_tasks, other_activities
         });
 
@@ -339,7 +350,7 @@ exports.exportPDF = async (req, res) => {
         } else if (req.user.role === 'leader') {
             // Leader sees reports from their country
             userWhereClause.country = req.user.country;
-            
+
             const countryUsers = await User.findAll({ where: userWhereClause, attributes: ['id'] });
             const userIds = countryUsers.map(u => u.id);
 
@@ -357,12 +368,12 @@ exports.exportPDF = async (req, res) => {
             if (country) {
                 userWhereClause.country = country;
             }
-            
+
             // If we have user search criteria or country filter, we need to find matching users first
             if (searchQuery || country) {
                  const users = await User.findAll({ where: userWhereClause, attributes: ['id'] });
                  const userIds = users.map(u => u.id);
-                 
+
                  if (userId) {
                      if (userIds.includes(parseInt(userId))) {
                          whereClause.user_id = userId;
@@ -379,7 +390,7 @@ exports.exportPDF = async (req, res) => {
 
         const reports = await Report.findAll({
             where: whereClause,
-            include: [{ model: User, attributes: ['fullname', 'country'] }],
+            include: [{ model: User, attributes: ['id', 'fullname', 'email', 'country', 'contact'] }],
             order: [['date', 'ASC']]
         });
 
@@ -395,8 +406,8 @@ exports.exportPDF = async (req, res) => {
         res.setHeader('Expires', '0');
 
         // Create PDF
-        const doc = new PDFDocument({ 
-            margin: 50, 
+        const doc = new PDFDocument({
+            margin: 50,
             size: 'A4',
             bufferPages: true,
             autoFirstPage: true
@@ -429,16 +440,18 @@ exports.exportPDF = async (req, res) => {
                 // Basic Info Grid
                 const startY = doc.y;
                 doc.fontSize(12).fillColor('#111827');
-                
+
                 doc.text(`Name: ${report.User?.fullname || 'N/A'}`, 50, startY);
                 doc.text(`Country: ${report.User?.country || 'N/A'}`, 300, startY);
-                
+
                 const nextY = startY + 20;
                 doc.text(`Church: ${report.church || 'N/A'}`, 50, nextY);
                 doc.text(`Date: ${new Date(report.date).toLocaleDateString()}`, 300, nextY);
-                
-                doc.y = nextY + 30; // Move down
-                
+                doc.text(`Email: ${report.User?.email || 'N/A'}`, 50, nextY + 20);
+                doc.text(`Contact: ${report.User?.contact || 'N/A'}`, 300, nextY + 20);
+
+                doc.y = nextY + 50; // Move down
+
                 // Horizontal Line
                 doc.moveTo(50, doc.y).lineTo(550, doc.y).lineWidth(1).strokeColor('#E5E7EB').stroke();
                 doc.moveDown(2);
@@ -452,7 +465,7 @@ exports.exportPDF = async (req, res) => {
                 // Column 1: Evangelism
                 doc.fontSize(14).fillColor('#7C3AED').text('Evangelism', col1X, metricsTop);
                 doc.fontSize(10).fillColor('#374151');
-                doc.text(`Hours: ${report.evangelism_hours || 0}`, col1X, metricsTop + 25);
+                doc.text(`Hours: ${formatHoursForExport(report.evangelism_hours)}`, col1X, metricsTop + 25);
                 doc.text(`Reached: ${report.people_reached || 0}`, col1X, metricsTop + 40);
                 doc.text(`Contacts: ${report.contacts_received || 0}`, col1X, metricsTop + 55);
 
@@ -467,9 +480,9 @@ exports.exportPDF = async (req, res) => {
                 // Column 3: Spiritual Life
                 doc.fontSize(14).fillColor('#7C3AED').text('Spiritual Life', col3X, metricsTop);
                 doc.fontSize(10).fillColor('#374151');
-                doc.text(`Meditation: ${report.meditation_time || 0}m`, col3X, metricsTop + 25);
-                doc.text(`Prayer: ${report.prayer_time || 0}m`, col3X, metricsTop + 40);
-                doc.text(`Exercise: ${report.exercise_time || 0}m`, col3X, metricsTop + 55);
+                doc.text(`Meditation: ${formatHoursForExport(report.meditation_time)}`, col3X, metricsTop + 25);
+                doc.text(`Prayer: ${formatHoursForExport(report.prayer_time)}`, col3X, metricsTop + 40);
+                doc.text(`Exercise: ${formatHoursForExport(report.exercise_time)}`, col3X, metricsTop + 55);
                 doc.text(`Sermons: ${report.sermons_listened || 0}`, col3X, metricsTop + 70);
                 doc.text(`Articles: ${report.articles_written || 0}`, col3X, metricsTop + 85);
 
@@ -481,7 +494,12 @@ exports.exportPDF = async (req, res) => {
                 const sections = [
                     { title: 'Reflections', content: report.reflections },
                     { title: 'Thanksgiving', content: report.thanksgiving },
-                    { title: 'Prayer Requests', content: report.prayer_requests }
+                    { title: 'Repentance', content: report.repentance },
+                    { title: 'Prayer Requests', content: report.prayer_requests },
+                    { title: 'Other Work', content: report.other_work },
+                    { title: 'Tomorrow Tasks', content: report.tomorrow_tasks },
+                    { title: 'Sermon Reflection', content: report.sermon_reflection },
+                    { title: 'Other Activities', content: report.other_activities }
                 ];
 
                 sections.forEach(section => {
@@ -541,7 +559,7 @@ exports.exportExcel = async (req, res) => {
         } else if (req.user.role === 'leader') {
             // Leader sees reports from their country
             userWhereClause.country = req.user.country;
-            
+
             const countryUsers = await User.findAll({ where: userWhereClause, attributes: ['id'] });
             const userIds = countryUsers.map(u => u.id);
 
@@ -559,12 +577,12 @@ exports.exportExcel = async (req, res) => {
             if (country) {
                 userWhereClause.country = country;
             }
-            
+
             // If we have user search criteria or country filter, we need to find matching users first
             if (searchQuery || country) {
                  const users = await User.findAll({ where: userWhereClause, attributes: ['id'] });
                  const userIds = users.map(u => u.id);
-                 
+
                  if (userId) {
                      if (userIds.includes(parseInt(userId))) {
                          whereClause.user_id = userId;
@@ -581,7 +599,7 @@ exports.exportExcel = async (req, res) => {
 
         const reports = await Report.findAll({
             where: whereClause,
-            include: [{ model: User, attributes: ['fullname', 'country'] }],
+            include: [{ model: User, attributes: ['id', 'fullname', 'email', 'country', 'contact'] }],
             order: [['date', 'ASC']]
         });
 
@@ -614,7 +632,9 @@ exports.exportExcel = async (req, res) => {
         worksheet.columns = [
             { key: 'date', width: 15 },
             { key: 'name', width: 25 },
+            { key: 'email', width: 28 },
             { key: 'country', width: 15 },
+            { key: 'contact', width: 18 },
             { key: 'church', width: 20 },
             { key: 'evangelism_hours', width: 18 },
             { key: 'people_reached', width: 15 },
@@ -636,17 +656,20 @@ exports.exportExcel = async (req, res) => {
             { key: 'prayer_requests', width: 40 },
             { key: 'other_work', width: 40 },
             { key: 'tomorrow_tasks', width: 40 }
+            ,
+            { key: 'sermon_reflection', width: 40 },
+            { key: 'other_activities', width: 40 }
         ];
 
         // Add Header Row manually at Row 2
         const headerRow = worksheet.getRow(2);
         headerRow.values = [
-            'Date', 'Name', 'Country', 'Church', 
+            'Date', 'Name', 'Email', 'Country', 'Contact', 'Church',
             'Evangelism Hours', 'People Reached', 'Contacts Received',
             'Bible Study Sessions', 'Bible Study Attendants', 'Unique Attendants', 'Newcomers',
             'Meditation (min)', 'Prayer (min)', 'Morning Service', 'Regular Service',
             'Sermons Listened', 'Articles Written', 'Exercise (min)',
-            'Reflections', 'Thanksgiving', 'Repentance', 'Prayer Requests', 'Other Work', 'Tomorrow Tasks'
+            'Reflections', 'Thanksgiving', 'Repentance', 'Prayer Requests', 'Other Work', 'Tomorrow Tasks', 'Sermon Reflection', 'Other Activities'
         ];
 
         // Style Header Row
@@ -658,7 +681,7 @@ exports.exportExcel = async (req, res) => {
         // AutoFilter
         worksheet.autoFilter = {
             from: { row: 2, column: 1 },
-            to: { row: 2, column: 24 }
+            to: { row: 2, column: 28 }
         };
 
         // Add data rows
@@ -666,7 +689,9 @@ exports.exportExcel = async (req, res) => {
             worksheet.addRow({
                 date: new Date(report.date).toLocaleDateString(),
                 name: report.User?.fullname || 'N/A',
+                email: report.User?.email || 'N/A',
                 country: report.User?.country || 'N/A',
+                contact: report.User?.contact || 'N/A',
                 church: report.church || 'N/A',
                 evangelism_hours: report.evangelism_hours || 0,
                 people_reached: report.people_reached || 0,
@@ -687,7 +712,9 @@ exports.exportExcel = async (req, res) => {
                 repentance: report.repentance || '',
                 prayer_requests: report.prayer_requests || '',
                 other_work: report.other_work || '',
-                tomorrow_tasks: report.tomorrow_tasks || ''
+                tomorrow_tasks: report.tomorrow_tasks || '',
+                sermon_reflection: report.sermon_reflection || '',
+                other_activities: report.other_activities || ''
             });
         });
 
@@ -729,7 +756,7 @@ exports.exportExcel = async (req, res) => {
 exports.getAnalytics = async (req, res) => {
     try {
         const { range } = req.query; // week, month, year
-        
+
         // Calculate date range
         const endDate = new Date();
         let startDate = new Date();
@@ -771,7 +798,7 @@ exports.getAnalytics = async (req, res) => {
                 user_id: { [Op.in]: userIds },
                 date: { [Op.between]: [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]] }
             },
-            include: [{ model: User, attributes: ['id', 'fullname'] }]
+            include: [{ model: User, attributes: ['id', 'fullname', 'email', 'country', 'contact'] }]
         });
 
         // Calculate statistics for each user
@@ -790,11 +817,11 @@ exports.getAnalytics = async (req, res) => {
 
             let currentStreak = 0;
             let checkDate = new Date();
-            
+
             for (let i = 0; i < sortedDates.length; i++) {
                 const reportDate = sortedDates[i].toISOString().split('T')[0];
                 const expectedDate = checkDate.toISOString().split('T')[0];
-                
+
                 if (reportDate === expectedDate) {
                     currentStreak++;
                     checkDate.setDate(checkDate.getDate() - 1);
@@ -804,8 +831,8 @@ exports.getAnalytics = async (req, res) => {
             }
 
             // Get last report date
-            const lastReportDate = sortedDates.length > 0 
-                ? sortedDates[0].toLocaleDateString() 
+            const lastReportDate = sortedDates.length > 0
+                ? sortedDates[0].toLocaleDateString()
                 : null;
 
             // Calculate missed days
@@ -814,6 +841,9 @@ exports.getAnalytics = async (req, res) => {
             return {
                 id: user.id,
                 fullname: user.fullname,
+                email: user.email,
+                country: user.country,
+                role: user.role,
                 reportsSubmitted,
                 completionRate,
                 currentStreak,
@@ -839,7 +869,7 @@ exports.getAnalytics = async (req, res) => {
             const countries = [...new Set(users.map(u => u.country))];
             countryStats = countries.map(country => {
                 const countryUsers = userStats.filter(u => users.find(user => user.id === u.id).country === country);
-                const avgCompletion = countryUsers.length > 0 
+                const avgCompletion = countryUsers.length > 0
                     ? Math.round(countryUsers.reduce((sum, u) => sum + u.completionRate, 0) / countryUsers.length)
                     : 0;
                 return {
@@ -854,7 +884,7 @@ exports.getAnalytics = async (req, res) => {
         const totalMembers = users.length;
         const totalReports = reports.length;
         const totalEvangelismHours = userStats.reduce((sum, stat) => sum + stat.totalEvangelismHours, 0); // Calculate grand total
-        const averageCompletion = totalMembers > 0 
+        const averageCompletion = totalMembers > 0
             ? Math.round(userStats.reduce((sum, stat) => sum + stat.completionRate, 0) / totalMembers)
             : 0;
         const topStreak = userStats.length > 0
@@ -884,6 +914,213 @@ exports.getAnalytics = async (req, res) => {
     }
 };
 
+const formatDateOnly = (date) => date.toISOString().split('T')[0];
+
+const getPreviousReportingWeek = (referenceDate = new Date()) => {
+    const today = new Date(Date.UTC(
+        referenceDate.getUTCFullYear(),
+        referenceDate.getUTCMonth(),
+        referenceDate.getUTCDate()
+    ));
+    const day = today.getUTCDay();
+    const weekEnd = new Date(today);
+    weekEnd.setUTCDate(today.getUTCDate() - ((day + 1) % 7));
+    const weekStart = new Date(weekEnd);
+    weekStart.setUTCDate(weekEnd.getUTCDate() - 6);
+    return { weekStart: formatDateOnly(weekStart), weekEnd: formatDateOnly(weekEnd) };
+};
+
+exports.getReportReminders = async (req, res) => {
+    try {
+        if (!['admin', 'leader'].includes(req.user.role)) {
+            return res.status(403).json({ msg: 'Not authorized.' });
+        }
+        const reminders = await ReportReminder.findAll({
+            include: [{ model: User, as: 'User', attributes: ['id', 'fullname', 'email', 'country'] }],
+            order: [['sent_at', 'DESC'], ['createdAt', 'DESC']],
+            limit: 500
+        });
+        const filtered = req.user.role === 'leader'
+            ? reminders.filter(reminder => reminder.User?.country === req.user.country)
+            : reminders;
+        res.json(filtered);
+    } catch (err) {
+        console.error('Reminder history error:', err.message);
+        res.status(500).json({ msg: 'Unable to load reminder history.' });
+    }
+};
+
+exports.sendWeeklyReportReminders = async (req, res) => {
+    try {
+        if (!['admin', 'leader'].includes(req.user.role)) {
+            return res.status(403).json({ msg: 'Not authorized.' });
+        }
+        const { weekStart, weekEnd, country, userId } = req.body || {};
+        const selectedWeek = weekStart && weekEnd
+            ? { weekStart, weekEnd }
+            : getPreviousReportingWeek();
+        const userWhere = { role: { [Op.ne]: 'admin' } };
+        if (req.user.role === 'leader') userWhere.country = req.user.country;
+        if (country) userWhere.country = country;
+        if (userId) userWhere.id = userId;
+
+        const users = await User.findAll({ where: userWhere });
+        const { sendReminderEmail } = require('../services/emailService');
+        const sent = [];
+        const skipped = [];
+
+        for (const user of users) {
+            const reports = await Report.findAll({
+                attributes: ['date'],
+                where: {
+                    user_id: user.id,
+                    date: { [Op.between]: [selectedWeek.weekStart, selectedWeek.weekEnd] }
+                }
+            });
+            const uniqueDays = new Set(reports.map(report => report.date)).size;
+            const missedReports = Math.max(0, 7 - uniqueDays);
+            if (missedReports === 0) {
+                skipped.push({ id: user.id, fullname: user.fullname, reason: 'All reports submitted' });
+                continue;
+            }
+
+            const [reminder, created] = await ReportReminder.findOrCreate({
+                where: { user_id: user.id, week_start: selectedWeek.weekStart, week_end: selectedWeek.weekEnd },
+                defaults: {
+                    user_id: user.id,
+                    week_start: selectedWeek.weekStart,
+                    week_end: selectedWeek.weekEnd,
+                    expected_reports: 7,
+                    submitted_reports: uniqueDays,
+                    missed_reports: missedReports,
+                    email_status: 'queued'
+                }
+            });
+            if (!created && reminder.sent_at) {
+                skipped.push({ id: user.id, fullname: user.fullname, reason: 'Reminder already sent' });
+                continue;
+            }
+            await reminder.update({
+                submitted_reports: uniqueDays,
+                missed_reports: missedReports
+            });
+
+            try {
+                const delivery = await sendReminderEmail({
+                    email: user.email,
+                    name: user.fullname,
+                    weekStart: selectedWeek.weekStart,
+                    weekEnd: selectedWeek.weekEnd,
+                    submittedReports: uniqueDays,
+                    missedReports
+                });
+                await reminder.update({
+                    email_status: delivery.deliveryStatus,
+                    message_id: delivery.messageId,
+                    sent_at: new Date()
+                });
+                sent.push({ id: user.id, fullname: user.fullname, email: user.email, missedReports });
+            } catch (error) {
+                await reminder.update({ email_status: 'failed', sent_at: new Date() });
+                skipped.push({ id: user.id, fullname: user.fullname, reason: error.code || error.message });
+            }
+        }
+        res.json({ weekStart: selectedWeek.weekStart, weekEnd: selectedWeek.weekEnd, sent, skipped });
+    } catch (err) {
+        console.error('Send weekly reminders error:', err.message);
+        res.status(500).json({ msg: 'Unable to send weekly reminders.' });
+    }
+};
+
+exports.exportPerformanceExcel = async (req, res) => {
+    try {
+        if (!['admin', 'leader'].includes(req.user.role)) {
+            return res.status(403).json({ msg: 'Not authorized.' });
+        }
+        const scope = req.params.scope === 'country' ? 'country' : 'member';
+        const { startDate, endDate } = req.query;
+        const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const end = endDate || new Date().toISOString().split('T')[0];
+        const userWhere = req.user.role === 'leader'
+            ? { country: req.user.country, role: { [Op.ne]: 'admin' } }
+            : { role: { [Op.ne]: 'admin' } };
+        const users = await User.findAll({ where: userWhere });
+        const reports = await Report.findAll({
+            where: {
+                user_id: { [Op.in]: users.map(user => user.id) },
+                date: { [Op.between]: [start, end] }
+            }
+        });
+        const expectedDays = Math.max(1, Math.ceil((new Date(end) - new Date(start)) / 86400000) + 1);
+        const userStats = users.map(user => {
+            const userReports = reports.filter(report => report.user_id === user.id);
+            const uniqueDates = new Set(userReports.map(report => report.date)).size;
+            return {
+                name: user.fullname,
+                email: user.email,
+                country: user.country,
+                reportsSubmitted: uniqueDates,
+                completionRate: Math.min(100, Math.round((uniqueDates / expectedDays) * 100)),
+                evangelismHours: userReports.reduce((sum, report) => sum + (parseFloat(report.evangelism_hours) || 0), 0),
+                peopleReached: userReports.reduce((sum, report) => sum + (parseInt(report.people_reached) || 0), 0)
+            };
+        });
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'Ministry Report System';
+        const worksheet = workbook.addWorksheet(scope === 'country' ? 'Country Performance' : 'Member Performance');
+        if (scope === 'country') {
+            worksheet.columns = [
+                { header: 'Country', key: 'country', width: 22 },
+                { header: 'Members', key: 'members', width: 12 },
+                { header: 'Reports Submitted', key: 'reportsSubmitted', width: 20 },
+                { header: 'Average Completion', key: 'completionRate', width: 20 },
+                { header: 'Evangelism Hours', key: 'evangelismHours', width: 20 },
+                { header: 'People Reached', key: 'peopleReached', width: 18 }
+            ];
+            const countryNames = [...new Set(userStats.map(stat => stat.country).filter(Boolean))];
+            countryNames.forEach(country => {
+                const countryStats = userStats.filter(stat => stat.country === country);
+                worksheet.addRow({
+                    country,
+                    members: countryStats.length,
+                    reportsSubmitted: countryStats.reduce((sum, stat) => sum + stat.reportsSubmitted, 0),
+                    completionRate: `${Math.round(countryStats.reduce((sum, stat) => sum + stat.completionRate, 0) / countryStats.length)}%`,
+                    evangelismHours: Number(countryStats.reduce((sum, stat) => sum + stat.evangelismHours, 0).toFixed(2)),
+                    peopleReached: countryStats.reduce((sum, stat) => sum + stat.peopleReached, 0)
+                });
+            });
+        } else {
+            worksheet.columns = [
+                { header: 'Member', key: 'name', width: 24 },
+                { header: 'Email', key: 'email', width: 28 },
+                { header: 'Country', key: 'country', width: 18 },
+                { header: 'Reports Submitted', key: 'reportsSubmitted', width: 20 },
+                { header: 'Completion', key: 'completionRate', width: 14 },
+                { header: 'Evangelism Hours', key: 'evangelismHours', width: 20 },
+                { header: 'People Reached', key: 'peopleReached', width: 18 }
+            ];
+            userStats.sort((a, b) => b.completionRate - a.completionRate).forEach(stat => {
+                worksheet.addRow({
+                    ...stat,
+                    completionRate: `${stat.completionRate}%`,
+                    evangelismHours: Number(stat.evangelismHours.toFixed(2))
+                });
+            });
+        }
+        worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+        worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
+        worksheet.autoFilter = { from: 'A1', to: `${String.fromCharCode(64 + worksheet.columnCount)}1` };
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="${scope}_performance_${start}_to_${end}.xlsx"`);
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (err) {
+        console.error('Performance export error:', err.message);
+        res.status(500).json({ msg: 'Unable to export performance report.' });
+    }
+};
+
 // Delete Report
 exports.deleteReport = async (req, res) => {
     try {
@@ -908,18 +1145,18 @@ exports.deleteReport = async (req, res) => {
                     authorized = true;
                 }
             }
-        } 
+        }
         // Members are NOT authorized to delete reports
-        
+
         if (!authorized) {
             return res.status(403).json({ msg: 'Not authorized to delete this report' });
         }
 
         // Delete attachments first (optional, but good practice to clean up files)
-        // For now, we just delete the database record. 
+        // For now, we just delete the database record.
         // In a real app, you'd delete files from 'uploads/' too.
         await Attachment.destroy({ where: { report_id: report.id } });
-        
+
         await report.destroy();
 
         res.json({ msg: 'Report removed' });

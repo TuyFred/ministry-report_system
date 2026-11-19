@@ -68,4 +68,39 @@ const sendOtpEmail = async ({ email, name, otp, expiresMinutes }) => {
     return { messageId, deliveryStatus: 'queued' };
 };
 
-module.exports = { sendOtpEmail };
+const sendReminderEmail = async ({ email, name, weekStart, weekEnd, submittedReports, missedReports }) => {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
+    if (!apiKey || !senderEmail) {
+        const error = new Error('Brevo email is not configured.');
+        error.code = 'EMAIL_NOT_CONFIGURED';
+        throw error;
+    }
+
+    const appName = process.env.APP_NAME || 'Ministry Reports';
+    const safeName = escapeHtml(name || 'Member');
+    const safeWeekStart = escapeHtml(weekStart);
+    const safeWeekEnd = escapeHtml(weekEnd);
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+        sender: {
+            email: senderEmail,
+            name: process.env.BREVO_SENDER_NAME || appName
+        },
+        to: [{ email, name: name || undefined }],
+        subject: `Weekly report reminder: ${weekStart} to ${weekEnd}`,
+        htmlContent: `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px"><tr><td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border-radius:16px">
+          <tr><td style="background:#4f46e5;padding:24px 32px;color:#fff;font-size:22px;font-weight:bold">${escapeHtml(appName)}</td></tr>
+          <tr><td style="padding:32px"><h1 style="margin-top:0">Your weekly report is incomplete</h1>
+          <p>Hello ${safeName},</p><p>The reporting week <strong>${safeWeekStart}</strong> to <strong>${safeWeekEnd}</strong> has ended. You submitted <strong>${submittedReports}</strong> report(s), with <strong>${missedReports}</strong> reporting day(s) missing.</p>
+          <p>Please submit the remaining reports as soon as possible.</p></td></tr></table></td></tr></table></body></html>`,
+        textContent: `Hello ${name || 'Member'}, your reporting week (${weekStart} to ${weekEnd}) is incomplete. Submitted: ${submittedReports}. Missing: ${missedReports}. Please submit the remaining reports.`
+    }, {
+        headers: { 'api-key': apiKey, accept: 'application/json', 'content-type': 'application/json' },
+        timeout: 15000
+    });
+    return { messageId: response.data?.messageId || null, deliveryStatus: 'queued' };
+};
+
+module.exports = { sendOtpEmail, sendReminderEmail };

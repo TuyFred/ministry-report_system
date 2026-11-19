@@ -26,7 +26,7 @@ const Dashboard = () => {
                 // Fetch reports
                 const reportsRes = await axios.get(`${API_URL}/api/reports`);
                 setReports(reportsRes.data);
-                
+
                 // Calculate stats
                 const totalHours = reportsRes.data.reduce((sum, r) => sum + parseHours(r.evangelism_hours), 0);
                 const totalReached = reportsRes.data.reduce((sum, r) => sum + (r.people_reached || 0), 0);
@@ -49,7 +49,7 @@ const Dashboard = () => {
     const indexOfLastReport = currentPage * reportsPerPage;
     const indexOfFirstReport = indexOfLastReport - reportsPerPage;
     const totalPages = Math.ceil(reports.length / reportsPerPage);
-    
+
     const getCurrentPageReports = () => {
         return reports.slice(indexOfFirstReport, indexOfLastReport);
     };
@@ -61,9 +61,9 @@ const Dashboard = () => {
                 <div className="flex items-center gap-5">
                     <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                         {user?.profile_image ? (
-                            <img 
+                            <img
                                 src={`${API_URL}/${user.profile_image}`}
-                                alt="Profile" 
+                                alt="Profile"
                                 className="w-full h-full object-cover"
                                 key={user.id}
                                 onError={(e) => {
@@ -91,7 +91,7 @@ const Dashboard = () => {
                         </p>
                     </div>
                 </div>
-                
+
                 {(user?.role === 'member' || user?.role === 'leader') && (
                     <Link to="/report-form">
                         <button className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl flex items-center gap-2">
@@ -197,12 +197,12 @@ const Dashboard = () => {
                                                 {new Date(report.date).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                                {report.User ? report.User.fullname : 'N/A'}
+                                                {report.User?.fullname || report.name || 'Unknown member'}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 <span className="flex items-center gap-1">
                                                     <FaGlobe className="text-indigo-600" />
-                                                    {report.User ? report.User.country : 'N/A'}
+                                                    {report.User?.country || report.country || 'Country unavailable'}
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
@@ -229,14 +229,14 @@ const Dashboard = () => {
                                     <div className="flex justify-between items-start mb-3">
                                         <div>
                                             <p className="text-sm text-gray-500">{new Date(report.date).toLocaleDateString()}</p>
-                                            <h3 className="font-bold text-gray-900">{report.User ? report.User.fullname : 'N/A'}</h3>
+                                            <h3 className="font-bold text-gray-900">{report.User?.fullname || report.name || 'Unknown member'}</h3>
                                         </div>
                                         <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-semibold rounded-full flex items-center gap-1">
                                             <FaGlobe className="text-xs" />
-                                            {report.User ? report.User.country : 'N/A'}
+                                            {report.User?.country || report.country || 'Country unavailable'}
                                         </span>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div className="bg-white p-3 rounded-lg border border-gray-100">
                                             <p className="text-xs text-gray-500 mb-1">Hours</p>

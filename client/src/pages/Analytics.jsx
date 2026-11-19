@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
-import { FaChartLine, FaTrophy, FaExclamationTriangle, FaCheckCircle, FaCalendarCheck, FaUsers, FaFire, FaChevronLeft, FaChevronRight, FaFilePdf, FaFileExcel } from 'react-icons/fa';
+import { FaChartLine, FaTrophy, FaExclamationTriangle, FaCheckCircle, FaCalendarCheck, FaUsers, FaFire, FaChevronLeft, FaChevronRight, FaFilePdf, FaFileExcel, FaEnvelope, FaFilter } from 'react-icons/fa';
 import { formatDuration } from '../utils/time';
 
 const Analytics = () => {
@@ -10,7 +10,12 @@ const Analytics = () => {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [timeRange, setTimeRange] = useState('month'); // week, month, year
-    
+    const [countryFilter, setCountryFilter] = useState('');
+    const [memberSearch, setMemberSearch] = useState('');
+    const [completionFilter, setCompletionFilter] = useState('all');
+    const [reminders, setReminders] = useState([]);
+    const [sendingReminders, setSendingReminders] = useState(false);
+
     // Pagination State
     const [countryPage, setCountryPage] = useState(1);
     const [membersPage, setMembersPage] = useState(1);
@@ -21,7 +26,37 @@ const Analytics = () => {
     useEffect(() => {
         fetchAnalytics();
         fetchMembersAndReports();
+        fetchReminders();
     }, [timeRange]);
+
+    const fetchReminders = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/api/reports/reminders`, {
+                headers: { 'x-auth-token': token }
+            });
+            setReminders(response.data);
+        } catch (error) {
+            console.error('Error fetching reminders:', error);
+        }
+    };
+
+    const sendWeeklyReminders = async () => {
+        if (!window.confirm('Send reminders to every member with missed reports for the previous week?')) return;
+        setSendingReminders(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${API_URL}/api/reports/reminders/send`, {}, {
+                headers: { 'x-auth-token': token }
+            });
+            await fetchReminders();
+            alert(`Reminders sent: ${response.data.sent.length}. Skipped: ${response.data.skipped.length}.`);
+        } catch (error) {
+            alert(error.response?.data?.msg || 'Unable to send weekly reminders.');
+        } finally {
+            setSendingReminders(false);
+        }
+    };
 
     const fetchAnalytics = async () => {
         setLoading(true);
@@ -42,13 +77,13 @@ const Analytics = () => {
     const fetchMembersAndReports = async () => {
         try {
             const token = localStorage.getItem('token');
-            
+
             // Fetch members (filtered by country for leaders)
             const membersRes = await axios.get(`${API_URL}/api/users`, {
                 headers: { 'x-auth-token': token }
             });
             setMembers(membersRes.data);
-            
+
             // Fetch all reports (filtered by country for leaders)
             const reportsRes = await axios.get(`${API_URL}/api/reports`, {
                 headers: { 'x-auth-token': token }
@@ -62,11 +97,11 @@ const Analytics = () => {
     const handleExport = async (type) => {
         try {
             const token = localStorage.getItem('token');
-            
+
             // Calculate dates based on timeRange
             const endDate = new Date();
             let startDate = new Date();
-            
+
             if (timeRange === 'week') {
                 startDate.setDate(endDate.getDate() - 7);
             } else if (timeRange === 'month') {
@@ -81,7 +116,7 @@ const Analytics = () => {
             };
 
             const response = await axios.get(`${API_URL}/api/reports/export/${type}`, {
-                headers: { 
+                headers: {
                     'x-auth-token': token,
                     'Accept': type === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
                 },
@@ -90,20 +125,20 @@ const Analytics = () => {
             });
 
             // Create blob with explicit MIME type
-            const mimeType = type === 'pdf' 
-                ? 'application/pdf' 
+            const mimeType = type === 'pdf'
+                ? 'application/pdf'
                 : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
             const blob = new Blob([response.data], { type: mimeType });
 
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            
+
             // Generate filename with proper extension
             const extension = type === 'pdf' ? 'pdf' : 'xlsx';
             const filename = `ministry_analytics_${timeRange}.${extension}`;
             link.setAttribute('download', filename);
-            
+
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -111,6 +146,38 @@ const Analytics = () => {
         } catch (error) {
             console.error('Export failed:', error);
             alert('Failed to export analytics. Please try again.');
+        }
+    };
+
+    const handlePerformanceExport = async (scope) => {
+        try {
+            const token = localStorage.getItem('token');
+            const endDate = new Date();
+            const startDate = new Date();
+            if (timeRange === 'week') startDate.setDate(endDate.getDate() - 7);
+            else if (timeRange === 'month') startDate.setMonth(endDate.getMonth() - 1);
+            else startDate.setFullYear(endDate.getFullYear() - 1);
+            const response = await axios.get(
+                `${API_URL}/api/reports/export/performance/excel/${scope}`,
+                {
+                    headers: { 'x-auth-token': token },
+                    params: {
+                        startDate: startDate.toISOString().split('T')[0],
+                        endDate: endDate.toISOString().split('T')[0]
+                    },
+                    responseType: 'blob'
+                }
+            );
+            const url = window.URL.createObjectURL(response.data);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${scope}_performance_${timeRange}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            alert(error.response?.data?.msg || 'Unable to export performance report.');
         }
     };
 
@@ -139,16 +206,16 @@ const Analytics = () => {
 
         return (
             <div className="flex justify-center items-center mt-4 gap-2">
-                <button 
-                    onClick={() => setPage(currentPage - 1)} 
+                <button
+                    onClick={() => setPage(currentPage - 1)}
                     disabled={currentPage === 1}
                     className={`p-2 rounded-full ${currentPage === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-indigo-600 hover:bg-indigo-50'}`}
                 >
                     <FaChevronLeft />
                 </button>
                 <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
-                <button 
-                    onClick={() => setPage(currentPage + 1)} 
+                <button
+                    onClick={() => setPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
                     className={`p-2 rounded-full ${currentPage === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-indigo-600 hover:bg-indigo-50'}`}
                 >
@@ -172,7 +239,7 @@ const Analytics = () => {
     // Calculate member performance stats
     const getMemberStats = () => {
         const memberMap = new Map();
-        
+
         members.forEach(member => {
             memberMap.set(member.id, {
                 ...member,
@@ -180,10 +247,11 @@ const Analytics = () => {
                 lastReportDate: null
             });
         });
-        
+
         reports.forEach(report => {
-            if (report.userId && memberMap.has(report.userId)) {
-                const memberData = memberMap.get(report.userId);
+            const reportUserId = report.user_id || report.userId;
+            if (reportUserId && memberMap.has(reportUserId)) {
+                const memberData = memberMap.get(reportUserId);
                 memberData.reportCount += 1;
                 const reportDate = new Date(report.date);
                 if (!memberData.lastReportDate || reportDate > memberData.lastReportDate) {
@@ -191,21 +259,22 @@ const Analytics = () => {
                 }
             }
         });
-        
+
         return Array.from(memberMap.values());
     };
-    
+
     const memberStats = getMemberStats();
-    
+
     // Top performers (sorted by report count)
     const topPerformers = memberStats
         .filter(m => m.reportCount > 0)
         .sort((a, b) => b.reportCount - a.reportCount);
-    
+    const filteredTopPerformersLocal = topPerformers.filter(matchesMemberFilters);
+
     // Needs attention (members with no reports or not reported in last 7 days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const needsAttention = memberStats
         .filter(m => m.reportCount === 0 || !m.lastReportDate || m.lastReportDate < sevenDaysAgo)
         .sort((a, b) => {
@@ -213,21 +282,44 @@ const Analytics = () => {
             if (a.reportCount > 0 && b.reportCount === 0) return 1;
             return (a.lastReportDate || new Date(0)) - (b.lastReportDate || new Date(0));
         });
-    
+    const filteredNeedsAttentionLocal = needsAttention.filter(matchesMemberFilters);
+
     // Pagination for performers
     const performersIndexOfLast = performersPage * itemsPerPage;
     const performersIndexOfFirst = performersIndexOfLast - itemsPerPage;
-    const performersTotalPages = Math.ceil(topPerformers.length / itemsPerPage);
-    const currentPerformers = topPerformers.slice(performersIndexOfFirst, performersIndexOfLast);
-    
+    const performersTotalPages = Math.ceil(filteredTopPerformersLocal.length / itemsPerPage);
+    const currentPerformers = filteredTopPerformersLocal.slice(performersIndexOfFirst, performersIndexOfLast);
+
     // Pagination for needs attention
     const needsAttentionIndexOfLast = needsAttentionPage * itemsPerPage;
     const needsAttentionIndexOfFirst = needsAttentionIndexOfLast - itemsPerPage;
-    const needsAttentionTotalPages = Math.ceil(needsAttention.length / itemsPerPage);
-    const currentNeedsAttention = needsAttention.slice(needsAttentionIndexOfFirst, needsAttentionIndexOfLast);
+    const needsAttentionTotalPages = Math.ceil(filteredNeedsAttentionLocal.length / itemsPerPage);
+    const currentNeedsAttention = filteredNeedsAttentionLocal.slice(needsAttentionIndexOfFirst, needsAttentionIndexOfLast);
 
     const currentCountryStats = paginateData(analytics?.countryStats, countryPage);
     const currentAllStats = paginateData(analytics?.allStats, membersPage);
+    const countryOptions = [...new Set((analytics?.allStats || []).map(member => member.country).filter(Boolean))].sort();
+    const matchesMemberFilters = (member) => {
+        const matchesCountry = !countryFilter || member.country === countryFilter;
+        const search = memberSearch.trim().toLowerCase();
+        const matchesSearch = !search ||
+            member.fullname?.toLowerCase().includes(search) ||
+            member.email?.toLowerCase().includes(search);
+        const matchesCompletion =
+            completionFilter === 'all' ||
+            (completionFilter === 'excellent' && member.completionRate >= 90) ||
+            (completionFilter === 'good' && member.completionRate >= 70 && member.completionRate < 90) ||
+            (completionFilter === 'needs-improvement' && member.completionRate < 70);
+        return matchesCountry && matchesSearch && matchesCompletion;
+    };
+    const filteredAllStats = (analytics?.allStats || []).filter(matchesMemberFilters);
+    const filteredCountryStats = (analytics?.countryStats || []).filter(stat =>
+        !countryFilter || stat.country === countryFilter
+    );
+    const filteredTopPerformers = (analytics?.topPerformers || []).filter(matchesMemberFilters);
+    const filteredNeedsAttention = (analytics?.needsAttention || []).filter(matchesMemberFilters);
+    const paginatedAllStats = paginateData(filteredAllStats, membersPage);
+    const paginatedCountryStats = paginateData(filteredCountryStats, countryPage);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 p-4">
@@ -274,16 +366,16 @@ const Analytics = () => {
                             >
                                 Year
                             </button>
-                            
+
                             {/* Export Buttons */}
-                            <button 
+                            <button
                                 onClick={() => handleExport('pdf')}
                                 className="px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all shadow-lg flex items-center gap-2"
                             >
                                 <FaFilePdf />
                                 PDF
                             </button>
-                            <button 
+                            <button
                                 onClick={() => handleExport('excel')}
                                 className="px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-all shadow-lg flex items-center gap-2"
                             >
@@ -293,6 +385,112 @@ const Analytics = () => {
                         </div>
                     </div>
                 </div>
+
+                <div className="bg-white rounded-2xl shadow-lg p-5 mb-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <FaFilter className="text-indigo-600" />
+                        <h2 className="text-lg font-bold text-gray-800">Analytics Filters</h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <input
+                            type="search"
+                            value={memberSearch}
+                            onChange={(event) => { setMemberSearch(event.target.value); setMembersPage(1); setPerformersPage(1); setNeedsAttentionPage(1); }}
+                            placeholder="Search member or email"
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <select
+                            value={countryFilter}
+                            onChange={(event) => { setCountryFilter(event.target.value); setCountryPage(1); setMembersPage(1); setPerformersPage(1); setNeedsAttentionPage(1); }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="">All countries</option>
+                            {countryOptions.map(country => <option key={country} value={country}>{country}</option>)}
+                        </select>
+                        <select
+                            value={completionFilter}
+                            onChange={(event) => { setCompletionFilter(event.target.value); setMembersPage(1); setNeedsAttentionPage(1); }}
+                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="all">All performance levels</option>
+                            <option value="excellent">Excellent (90%+)</option>
+                            <option value="good">Good (70-89%)</option>
+                            <option value="needs-improvement">Needs improvement (&lt;70%)</option>
+                        </select>
+                        <button
+                            type="button"
+                            onClick={() => { setCountryFilter(''); setMemberSearch(''); setCompletionFilter('all'); }}
+                            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold"
+                        >
+                            Clear Filters
+                        </button>
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-4">
+                        <button
+                            type="button"
+                            onClick={() => handlePerformanceExport('member')}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold"
+                        >
+                            Download Member Performance
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handlePerformanceExport('country')}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
+                        >
+                            Download Country Performance
+                        </button>
+                        <button
+                            type="button"
+                            onClick={sendWeeklyReminders}
+                            disabled={sendingReminders}
+                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold flex items-center gap-2 disabled:opacity-60"
+                        >
+                            <FaEnvelope />
+                            {sendingReminders ? 'Sending...' : 'Send Missed-Week Emails'}
+                        </button>
+                    </div>
+                </div>
+
+                {reminders.length > 0 && (
+                    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                            <FaEnvelope className="text-red-500" />
+                            Weekly Reminder History
+                        </h2>
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Member</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Country</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Week</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Missing</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {reminders.slice(0, 10).map(reminder => (
+                                        <tr key={reminder.id}>
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{reminder.User?.fullname || 'Unknown member'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{reminder.User?.email || 'N/A'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{reminder.User?.country || 'N/A'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{reminder.week_start} to {reminder.week_end}</td>
+                                            <td className="px-4 py-3 text-sm text-red-700 font-semibold">{reminder.missed_reports} days</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                                                    reminder.email_status === 'queued' ? 'bg-yellow-100 text-yellow-800' :
+                                                    reminder.email_status === 'failed' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                                                }`}>{reminder.email_status}</span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 {/* Overview Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
@@ -324,13 +522,13 @@ const Analytics = () => {
                 </div>
 
                 {/* Country Performance (Admin Only) */}
-                {analytics?.countryStats && analytics.countryStats.length > 0 && (
+                {filteredCountryStats.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
                         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                             <FaTrophy className="text-indigo-500" />
                             Country Performance Ranking
                         </h2>
-                        
+
                         {/* Desktop Table */}
                         <div className="hidden md:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
@@ -343,7 +541,7 @@ const Analytics = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
-                                    {currentCountryStats.map((stat, index) => {
+                                    {paginatedCountryStats.map((stat, index) => {
                                         const globalIndex = (countryPage - 1) * itemsPerPage + index;
                                         return (
                                         <tr key={stat.country}>
@@ -376,7 +574,7 @@ const Analytics = () => {
 
                         {/* Mobile Cards */}
                         <div className="md:hidden space-y-3">
-                            {currentCountryStats.map((stat, index) => {
+                            {paginatedCountryStats.map((stat, index) => {
                                 const globalIndex = (countryPage - 1) * itemsPerPage + index;
                                 return (
                                     <div key={stat.country} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
@@ -408,7 +606,7 @@ const Analytics = () => {
                             })}
                         </div>
 
-                        {renderPagination(analytics.countryStats.length, countryPage, setCountryPage)}
+                        {renderPagination(filteredCountryStats.length, countryPage, setCountryPage)}
                     </div>
                 )}
 
@@ -422,8 +620,8 @@ const Analytics = () => {
                         Members who consistently submit reports daily perform best!
                     </p>
                     <div className="space-y-3">
-                        {analytics?.topPerformers && analytics.topPerformers.length > 0 ? (
-                            analytics.topPerformers.map((member, index) => (
+                        {filteredTopPerformers.length > 0 ? (
+                            filteredTopPerformers.map((member, index) => (
                                 <div
                                     key={member.id}
                                     className={`flex items-center justify-between p-4 rounded-xl border-2 ${getPerformanceBg(
@@ -475,8 +673,8 @@ const Analytics = () => {
                         Members who missed reporting - encourage daily submission for better performance
                     </p>
                     <div className="space-y-3">
-                        {analytics?.needsAttention && analytics.needsAttention.length > 0 ? (
-                            analytics.needsAttention.map((member) => (
+                        {filteredNeedsAttention.length > 0 ? (
+                            filteredNeedsAttention.map((member) => (
                                 <div
                                     key={member.id}
                                     className="flex items-center justify-between p-4 rounded-xl bg-red-50 border-2 border-red-200"
@@ -513,13 +711,15 @@ const Analytics = () => {
                         <FaUsers className="text-indigo-600" />
                         All Members Performance
                     </h2>
-                    
+
                     {/* Desktop Table */}
                     <div className="hidden md:block overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evangelism Hours</th>
@@ -528,13 +728,15 @@ const Analytics = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                                {currentAllStats.map((member) => (
+                                {paginatedAllStats.map((member) => (
                                     <tr key={member.id}>
                                         <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{member.fullname}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{member.email || 'N/A'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{member.country || 'N/A'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                                member.completionRate >= 90 ? 'bg-green-100 text-green-800' : 
-                                                member.completionRate >= 70 ? 'bg-yellow-100 text-yellow-800' : 
+                                                member.completionRate >= 90 ? 'bg-green-100 text-green-800' :
+                                                member.completionRate >= 70 ? 'bg-yellow-100 text-yellow-800' :
                                                 'bg-red-100 text-red-800'
                                             }`}>
                                                 {member.completionRate}%
@@ -552,22 +754,24 @@ const Analytics = () => {
 
                     {/* Mobile Cards */}
                     <div className="md:hidden space-y-4">
-                        {currentAllStats.map((member) => (
+                        {paginatedAllStats.map((member) => (
                             <div key={member.id} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
                                 <div className="flex justify-between items-start mb-3">
                                     <div>
                                         <h3 className="font-bold text-gray-900">{member.fullname}</h3>
+                                        <p className="text-xs text-gray-600">{member.email || 'N/A'}</p>
+                                        <p className="text-xs text-gray-500">{member.country || 'N/A'}</p>
                                         <p className="text-xs text-gray-500">Last: {member.lastReportDate || 'Never'}</p>
                                     </div>
                                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                                        member.completionRate >= 90 ? 'bg-green-100 text-green-800' : 
-                                        member.completionRate >= 70 ? 'bg-yellow-100 text-yellow-800' : 
+                                        member.completionRate >= 90 ? 'bg-green-100 text-green-800' :
+                                        member.completionRate >= 70 ? 'bg-yellow-100 text-yellow-800' :
                                         'bg-red-100 text-red-800'
                                     }`}>
                                         {member.completionRate}%
                                     </span>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-3 text-sm">
                                     <div className="bg-white p-2 rounded border border-gray-100">
                                         <p className="text-xs text-gray-500">Reports</p>
@@ -586,11 +790,11 @@ const Analytics = () => {
                         ))}
                     </div>
 
-                    {renderPagination(analytics?.allStats?.length || 0, membersPage, setMembersPage)}
+                    {renderPagination(filteredAllStats.length, membersPage, setMembersPage)}
                 </div>
 
                 {/* Top Performers Section */}
-                {topPerformers.length > 0 && (
+                {filteredTopPerformersLocal.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
                         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-yellow-50 to-amber-50">
                             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -648,7 +852,7 @@ const Analytics = () => {
                         {/* Pagination for Top Performers */}
                         <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-yellow-50">
                                 <div className="text-sm text-gray-600">
-                                    Showing {performersIndexOfFirst + 1} to {Math.min(performersIndexOfLast, topPerformers.length)} of {topPerformers.length} members
+                                    Showing {performersIndexOfFirst + 1} to {Math.min(performersIndexOfLast, filteredTopPerformersLocal.length)} of {filteredTopPerformersLocal.length} members
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
@@ -684,7 +888,7 @@ const Analytics = () => {
                 )}
 
                 {/* Needs Attention Section */}
-                {needsAttention.length > 0 && (
+                {filteredNeedsAttentionLocal.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
                         <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-red-50 to-orange-50">
                             <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
@@ -719,8 +923,8 @@ const Analytics = () => {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{member.country}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                                    member.reportCount === 0 
-                                                        ? 'bg-red-100 text-red-800' 
+                                                    member.reportCount === 0
+                                                        ? 'bg-red-100 text-red-800'
                                                         : 'bg-orange-100 text-orange-800'
                                                 }`}>
                                                     {member.reportCount} reports
@@ -747,7 +951,7 @@ const Analytics = () => {
                         {/* Pagination for Needs Attention */}
                         <div className="p-4 border-t border-gray-200 flex items-center justify-between bg-red-50">
                                 <div className="text-sm text-gray-600">
-                                    Showing {needsAttentionIndexOfFirst + 1} to {Math.min(needsAttentionIndexOfLast, needsAttention.length)} of {needsAttention.length} members
+                                    Showing {needsAttentionIndexOfFirst + 1} to {Math.min(needsAttentionIndexOfLast, filteredNeedsAttentionLocal.length)} of {filteredNeedsAttentionLocal.length} members
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <button
