@@ -503,10 +503,18 @@ const ViewReports = () => {
                                     <div className="p-4 pt-0 border-t border-gray-100">
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                             {/* Basic Info */}
-                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-3 rounded-xl">
-                                                <h4 className="font-semibold text-indigo-900 mb-2">Basic Information</h4>
-                                                <p className="text-sm text-gray-700"><strong>Country:</strong> {report.country || report.User?.country || 'N/A'}</p>
-                                                <p className="text-sm text-gray-700"><strong>Church:</strong> {report.church || 'N/A'}</p>
+                                            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-xl border border-indigo-100">
+                                                <h4 className="font-semibold text-indigo-900 mb-3">Basic Information</h4>
+                                                <div className="space-y-2">
+                                                    <div className="flex justify-between gap-3 text-sm">
+                                                        <span className="text-gray-500">Country</span>
+                                                        <span className="font-semibold text-gray-800 text-right">{report.country || report.User?.country || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between gap-3 text-sm">
+                                                        <span className="text-gray-500">Church</span>
+                                                        <span className="font-semibold text-gray-800 text-right">{report.church || 'N/A'}</span>
+                                                    </div>
+                                                </div>
                                             </div>
 
                                             {/* Ministry Stats */}
@@ -535,10 +543,46 @@ const ViewReports = () => {
                                             </div>
 
                                             {/* Service Attendance */}
-                                            <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-3 rounded-xl">
-                                                <h4 className="font-semibold text-pink-900 mb-2">Service Attendance</h4>
-                                                <p className="text-sm text-gray-700"><strong>Morning:</strong> {report.morning_service || 'N/A'}</p>
-                                                <p className="text-sm text-gray-700"><strong>Regular:</strong> {report.regular_service || 'N/A'}</p>
+                                            <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-xl border border-pink-100">
+                                                <h4 className="font-semibold text-pink-900 mb-3">Service Attendance</h4>
+                                                {(() => {
+                                                    const regularServices = String(report.regular_service || '')
+                                                        .split(',')
+                                                        .map(service => service.trim())
+                                                        .filter(Boolean);
+                                                    const attendedMorning = regularServices.includes('Morning Service') ||
+                                                        String(report.morning_service || '').toLowerCase() === 'yes';
+                                                    return (
+                                                        <div className="space-y-2">
+                                                            <div className="flex items-center justify-between gap-3">
+                                                                <span className="text-sm font-medium text-gray-700">Morning Service</span>
+                                                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                                    attendedMorning ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                                                                }`}>
+                                                                    {attendedMorning ? 'Yes' : 'No'}
+                                                                </span>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-semibold text-gray-500 mb-1.5">Attended Services</p>
+                                                                {regularServices.length > 0 ? (
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {regularServices.map(service => (
+                                                                            <span key={service} className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                                                                service === 'No Service Attended'
+                                                                                    ? 'bg-gray-100 text-gray-700'
+                                                                                    : 'bg-pink-100 text-pink-800'
+                                                                            }`}>
+                                                                                {service}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-sm text-gray-500">No service selected</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                             </div>
 
                                             {/* Other Activities */}

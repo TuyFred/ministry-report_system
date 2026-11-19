@@ -388,6 +388,11 @@ const ReportForm = () => {
                 exerciseTimeHHMM = `${hhStr}:${String(mm).padStart(2, '0')}`;
             }
 
+            const selectedServices = editReport.regular_service
+                ? (typeof editReport.regular_service === 'string'
+                    ? editReport.regular_service.split(',').map(s => s.trim()).filter(Boolean)
+                    : [])
+                : [];
             setFormData({
                 date: editReport.date,
                 name: editReport.name || '',
@@ -404,8 +409,10 @@ const ReportForm = () => {
                 meditation_hours_hhmm: formatHoursToHHMM(editReport.meditation_time),
                 prayer_hours: editReport.prayer_time?.toString() || '',
                 prayer_hours_hhmm: formatHoursToHHMM(editReport.prayer_time),
-                morning_service: editReport.morning_service || 'No',
-                regular_service: editReport.regular_service ? (typeof editReport.regular_service === 'string' ? editReport.regular_service.split(',').map(s => s.trim()) : []) : [],
+                morning_service: selectedServices.includes('Morning Service')
+                    ? 'Yes'
+                    : (editReport.morning_service || 'No'),
+                regular_service: selectedServices,
                 sermons_listened: editReport.sermons_listened?.toString() || '',
                 articles_written: editReport.articles_written?.toString() || '',
                 exercise_time_hhmm: exerciseTimeHHMM,
@@ -460,17 +467,35 @@ const ReportForm = () => {
 
     const onServiceChange = (serviceName) => {
         const currentServices = formData.regular_service;
+        if (serviceName === 'No Service Attended') {
+            const isSelected = currentServices.includes(serviceName);
+            setFormData({
+                ...formData,
+                morning_service: 'No',
+                regular_service: isSelected ? [] : ['No Service Attended']
+            });
+            return;
+        }
+
         if (currentServices.includes(serviceName)) {
-            // Remove service if already selected
-            setFormData({ 
-                ...formData, 
-                regular_service: currentServices.filter(s => s !== serviceName) 
+            const nextServices = currentServices
+                .filter(s => s !== 'No Service Attended')
+                .filter(s => s !== serviceName);
+            setFormData({
+                ...formData,
+                morning_service: serviceName === 'Morning Service'
+                    ? 'No'
+                    : formData.morning_service,
+                regular_service: nextServices
             });
         } else {
-            // Add service if not selected
-            setFormData({ 
-                ...formData, 
-                regular_service: [...currentServices, serviceName] 
+            const nextServices = [...currentServices.filter(s => s !== 'No Service Attended'), serviceName];
+            setFormData({
+                ...formData,
+                morning_service: serviceName === 'Morning Service'
+                    ? 'Yes'
+                    : formData.morning_service,
+                regular_service: nextServices
             });
         }
     };
