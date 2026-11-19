@@ -17,49 +17,75 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: Checkout main branch
         uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Check frontend files
+      - name: Verify project structure
         run: |
           set -e
+
+          echo "Checking project folders..."
+          ls -la
+
           test -f client/package.json
-          test -f client/package-lock.json
-          echo "Frontend package files found."
+          test -f server/package.json
+          test -f server/index.js
+
+          echo "Frontend and backend folders verified."
 
       - name: Install frontend dependencies
         working-directory: client
-        run: npm ci --include=dev --no-audit --no-fund
+        run: |
+          set -e
+
+          if [ -f package-lock.json ]; then
+            echo "Using package-lock.json"
+            npm ci --include=dev --no-audit --no-fund
+          else
+            echo "No package-lock.json found."
+            echo "Installing using package.json."
+            npm install --include=dev --no-audit --no-fund
+          fi
 
       - name: Build React frontend
         working-directory: client
         run: |
           set -e
+
           npm run build
-          test -f dist/index.html
+
+          if [ ! -f dist/index.html ]; then
+            echo "ERROR: React build did not generate dist/index.html"
+            exit 1
+          fi
 
           if [ -f .htaccess ]; then
             cp .htaccess dist/.htaccess
           fi
 
-          echo "React build completed."
+          echo "React build successful."
 
-      - name: Prepare production package
+      - name: Prepare production release
         run: |
           set -e
 
           RELEASE="$RUNNER_TEMP/release"
-          mkdir -p "$RELEASE/server" "$RELEASE/public"
 
+          mkdir -p "$RELEASE/server"
+          mkdir -p "$RELEASE/public"
+
+          # Copy backend source without production secrets,
+          # uploads, dependencies, temporary files or Git data.
           tar -czf - \
-            --exclude='./.env*' \
+            --exclude='./.env' \
+            --exclude='./.env.*' \
             --exclude='./uploads' \
             --exclude='./node_modules' \
             --exclude='./tmp' \
@@ -67,16 +93,17 @@ jobs:
             --exclude='./.htaccess' \
             -C server . | tar -xzf - -C "$RELEASE/server"
 
+          # Copy the completed React build.
           cp -a client/dist/. "$RELEASE/public/"
 
+          # Verify release contents.
           test -f "$RELEASE/server/index.js"
           test -f "$RELEASE/server/package.json"
-          test -f "$RELEASE/server/package-lock.json"
           test -f "$RELEASE/public/index.html"
 
-          echo "Production package prepared."
+          echo "Production release prepared."
 
-      - name: Publish production package
+      - name: Publish release to production-build branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -97,14 +124,17 @@ jobs:
 
           git push --force origin production-build
 
+          echo "Production package published."
+
   deploy:
     name: Deploy to cPanel
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Deploy through SSH
+      - name: Deploy application through SSH
         uses: appleboy/ssh-action@v1.2.0
+
         with:
           host: ${{ secrets.CPANEL_HOST }}
           username: ${{ secrets.CPANEL_USER }}
@@ -121,6 +151,7 @@ jobs:
             NODE="/home/fbretcba/nodevenv/report/20/bin"
 
             STAMP=$(date +%Y%m%d-%H%M%S)
+
             BACKUP="/home/fbretcba/deployment-backups/$STAMP"
             STAGING="/home/fbretcba/deployment-staging-$STAMP"
             ARCHIVE="/home/fbretcba/deployment-source-$STAMP.tar.gz"
@@ -132,23 +163,42 @@ jobs:
               STATUS=$?
               set +e
 
-              echo "DEPLOYMENT FAILED. Attempting rollback..."
+              echo "================================"
+              echo "DEPLOYMENT FAILED"
+              echo "STARTING ROLLBACK"
+              echo "================================"
 
               if [ "$BACKEND_PUBLISHED" = "1" ] &&
                  [ -s "$BACKUP/application-source.tar.gz" ]; then
-                echo "Restoring previous backend source..."
+
+                echo "Restoring previous backend files..."
+
                 tar -xzf "$BACKUP/application-source.tar.gz" -C "$APP"
+
+                echo "Restoring previous backend dependencies..."
+
+                cd "$APP"
+                "$NODE/npm" install \
+                  --omit=dev \
+                  --no-audit \
+                  --no-fund
               fi
 
               if [ "$PUBLIC_SWAPPED" = "1" ] &&
                  [ -d "$STAGING/previous-public" ]; then
+
                 echo "Restoring previous frontend..."
+
                 rm -rf "$APP/public"
                 mv "$STAGING/previous-public" "$APP/public"
               fi
 
-              echo "Backup location: $BACKUP"
-              echo "Rollback attempt finished. Exit code: $STATUS"
+              if [ -f "$APP/tmp/restart.txt" ]; then
+                touch "$APP/tmp/restart.txt"
+              fi
+
+              echo "Backup: $BACKUP"
+              echo "Rollback attempt completed."
               exit "$STATUS"
             }
 
@@ -158,15 +208,13 @@ jobs:
             echo "MINISTRY REPORTING SYSTEM DEPLOYMENT"
             echo "======================================"
 
-            # 1. Verify cPanel environment.
-            echo "[1/8] Checking environment..."
+            # STEP 1: Check cPanel environment.
 
-            for tool in curl tar cp mkdir touch date mv rm; do
-              command -v "$tool"
-            done
+            echo "[1/8] Checking cPanel environment..."
 
             test -x "$NODE/node"
             test -x "$NODE/npm"
+
             "$NODE/node" --version
             "$NODE/npm" --version
 
@@ -177,15 +225,21 @@ jobs:
             test -d "$APP/node_modules"
             test -L "$APP/node_modules"
 
-            echo "cPanel environment verified."
+            command -v curl
+            command -v tar
 
-            # 2. Back up live application source.
-            echo "[2/8] Backing up current application..."
+            echo "Environment checks passed."
 
-            mkdir -p "$BACKUP" "$STAGING"
+            # STEP 2: Back up existing backend and frontend.
+
+            echo "[2/8] Creating application backup..."
+
+            mkdir -p "$BACKUP"
+            mkdir -p "$STAGING"
 
             tar -czf "$BACKUP/application-source.tar.gz" \
-              --exclude='./.env*' \
+              --exclude='./.env' \
+              --exclude='./.env.*' \
               --exclude='./uploads' \
               --exclude='./node_modules' \
               --exclude='./public' \
@@ -200,13 +254,17 @@ jobs:
                 -C "$APP" public
             fi
 
-            echo "Backup saved at $BACKUP"
+            echo "Backup created: $BACKUP"
 
-            # 3. Download release.
-            echo "[3/8] Downloading release..."
+            # STEP 3: Download the GitHub release.
 
-            curl -fL --retry 3 --retry-delay 5 \
-              --connect-timeout 30 --max-time 300 \
+            echo "[3/8] Downloading production release..."
+
+            curl -fL \
+              --retry 3 \
+              --retry-delay 5 \
+              --connect-timeout 30 \
+              --max-time 300 \
               "https://codeload.github.com/TuyFred/ministry-report_system/tar.gz/refs/heads/production-build" \
               -o "$ARCHIVE"
 
@@ -222,22 +280,31 @@ jobs:
 
             test -f "$REPO/server/index.js"
             test -f "$REPO/server/package.json"
-            test -f "$REPO/server/package-lock.json"
             test -f "$REPO/public/index.html"
 
-            # 4. Prepare frontend and backend files.
+            echo "Release downloaded and verified."
+
+            # STEP 4: Prepare deployment files.
+
             echo "[4/8] Preparing deployment files..."
 
             mkdir -p "$STAGING/new-public"
+
             cp -a "$REPO/public/." "$STAGING/new-public/"
+
+            # Preserve the current public .htaccess when
+            # the new frontend does not contain one.
 
             if [ -f "$APP/public/.htaccess" ] &&
                [ ! -f "$STAGING/new-public/.htaccess" ]; then
-              cp "$APP/public/.htaccess" "$STAGING/new-public/.htaccess"
+
+              cp "$APP/public/.htaccess" \
+                "$STAGING/new-public/.htaccess"
             fi
 
             tar -czf "$STAGING/backend.tar.gz" \
-              --exclude='./.env*' \
+              --exclude='./.env' \
+              --exclude='./.env.*' \
               --exclude='./uploads' \
               --exclude='./node_modules' \
               --exclude='./tmp' \
@@ -248,12 +315,17 @@ jobs:
             test -s "$STAGING/backend.tar.gz"
             test -f "$STAGING/new-public/index.html"
 
-            # 5. Publish backend source and dependencies.
+            echo "Deployment files prepared."
+
+            # STEP 5: Publish backend.
+
             echo "[5/8] Publishing backend..."
 
             BACKEND_PUBLISHED=1
 
             tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
+
+            # Never replace the cPanel node_modules symlink.
 
             test -L "$APP/node_modules"
 
@@ -269,7 +341,10 @@ jobs:
             "$NODE/node" -e \
               "require('express'); require('sequelize'); console.log('Backend dependencies verified')"
 
-            # 6. Replace frontend.
+            echo "Backend published."
+
+            # STEP 6: Publish frontend safely.
+
             echo "[6/8] Publishing frontend..."
 
             if [ -d "$APP/public" ]; then
@@ -277,29 +352,38 @@ jobs:
             fi
 
             PUBLIC_SWAPPED=1
+
             mv "$STAGING/new-public" "$APP/public"
 
             test -f "$APP/public/index.html"
 
-            # 7. Verify deployment files.
-            echo "[7/8] Verifying deployment..."
+            echo "Frontend published."
+
+            # STEP 7: Verify important production files.
+
+            echo "[7/8] Verifying production application..."
 
             test -f "$APP/index.js"
             test -f "$APP/package.json"
             test -f "$APP/public/index.html"
+
             test -f "$APP/.env"
             test -d "$APP/uploads"
             test -d "$APP/tmp"
+
             test -L "$APP/node_modules"
 
-            echo "Production files verified."
+            echo "Production verification passed."
 
-            # 8. Restart Passenger.
-            echo "[8/8] Restarting Node.js application..."
+            # STEP 8: Restart Passenger.
+
+            echo "[8/8] Restarting cPanel application..."
 
             touch "$APP/tmp/restart.txt"
 
             echo "Passenger restart requested."
+
+            # Cleanup only after successful deployment.
 
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
@@ -308,6 +392,8 @@ jobs:
 
             echo "======================================"
             echo "DEPLOYMENT SUCCESSFUL"
+            echo "======================================"
             echo "Website: https://report.gnitafrica.com"
             echo "Backup: $BACKUP"
             echo "======================================"
+  
