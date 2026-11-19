@@ -77,14 +77,16 @@ const Analytics = () => {
     const fetchMembersAndReports = async () => {
         try {
             const token = localStorage.getItem('token');
+            try {
+                const membersRes = await axios.get(`${API_URL}/api/users`, {
+                    headers: { 'x-auth-token': token }
+                });
+                setMembers(membersRes.data);
+            } catch (error) {
+                if (error.response?.status !== 403) console.error('Error fetching members:', error);
+                setMembers([]);
+            }
 
-            // Fetch members (filtered by country for leaders)
-            const membersRes = await axios.get(`${API_URL}/api/users`, {
-                headers: { 'x-auth-token': token }
-            });
-            setMembers(membersRes.data);
-
-            // Fetch all reports (filtered by country for leaders)
             const reportsRes = await axios.get(`${API_URL}/api/reports`, {
                 headers: { 'x-auth-token': token }
             });
@@ -236,6 +238,21 @@ const Analytics = () => {
         );
     }
 
+    const countryOptions = [...new Set((analytics?.allStats || []).map(member => member.country).filter(Boolean))].sort();
+    const matchesMemberFilters = (member) => {
+        const matchesCountry = !countryFilter || member.country === countryFilter;
+        const search = memberSearch.trim().toLowerCase();
+        const matchesSearch = !search ||
+            member.fullname?.toLowerCase().includes(search) ||
+            member.email?.toLowerCase().includes(search);
+        const matchesCompletion =
+            completionFilter === 'all' ||
+            (completionFilter === 'excellent' && member.completionRate >= 90) ||
+            (completionFilter === 'good' && member.completionRate >= 70 && member.completionRate < 90) ||
+            (completionFilter === 'needs-improvement' && member.completionRate < 70);
+        return matchesCountry && matchesSearch && matchesCompletion;
+    };
+
     // Calculate member performance stats
     const getMemberStats = () => {
         const memberMap = new Map();
@@ -296,22 +313,6 @@ const Analytics = () => {
     const needsAttentionTotalPages = Math.ceil(filteredNeedsAttentionLocal.length / itemsPerPage);
     const currentNeedsAttention = filteredNeedsAttentionLocal.slice(needsAttentionIndexOfFirst, needsAttentionIndexOfLast);
 
-    const currentCountryStats = paginateData(analytics?.countryStats, countryPage);
-    const currentAllStats = paginateData(analytics?.allStats, membersPage);
-    const countryOptions = [...new Set((analytics?.allStats || []).map(member => member.country).filter(Boolean))].sort();
-    const matchesMemberFilters = (member) => {
-        const matchesCountry = !countryFilter || member.country === countryFilter;
-        const search = memberSearch.trim().toLowerCase();
-        const matchesSearch = !search ||
-            member.fullname?.toLowerCase().includes(search) ||
-            member.email?.toLowerCase().includes(search);
-        const matchesCompletion =
-            completionFilter === 'all' ||
-            (completionFilter === 'excellent' && member.completionRate >= 90) ||
-            (completionFilter === 'good' && member.completionRate >= 70 && member.completionRate < 90) ||
-            (completionFilter === 'needs-improvement' && member.completionRate < 70);
-        return matchesCountry && matchesSearch && matchesCompletion;
-    };
     const filteredAllStats = (analytics?.allStats || []).filter(matchesMemberFilters);
     const filteredCountryStats = (analytics?.countryStats || []).filter(stat =>
         !countryFilter || stat.country === countryFilter
@@ -521,6 +522,21 @@ const Analytics = () => {
                     </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    <div className="bg-white rounded-xl shadow p-5 border border-indigo-100">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Meditation Time</p>
+                        <p className="text-xl font-bold text-indigo-700 mt-2">{formatDuration(analytics?.totalMeditationHours, { compact: true })}</p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow p-5 border border-purple-100">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Prayer Time</p>
+                        <p className="text-xl font-bold text-purple-700 mt-2">{formatDuration(analytics?.totalPrayerHours, { compact: true })}</p>
+                    </div>
+                    <div className="bg-white rounded-xl shadow p-5 border border-green-100">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Exercise Time</p>
+                        <p className="text-xl font-bold text-green-700 mt-2">{formatDuration(analytics?.totalExerciseHours, { compact: true })}</p>
+                    </div>
+                </div>
+
                 {/* Country Performance (Admin Only) */}
                 {filteredCountryStats.length > 0 && (
                     <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
@@ -725,6 +741,7 @@ const Analytics = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Evangelism Hours</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Streak</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Report</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted At</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -746,6 +763,7 @@ const Analytics = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-bold">{formatDuration(member.totalEvangelismHours, { compact: true })}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.currentStreak} days</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.lastReportDate || 'Never'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.lastSubmittedAt || 'Never'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -784,6 +802,10 @@ const Analytics = () => {
                                     <div className="bg-white p-2 rounded border border-gray-100 col-span-2">
                                         <p className="text-xs text-gray-500">Evangelism Hours</p>
                                         <p className="font-bold text-indigo-600">{formatDuration(member.totalEvangelismHours, { compact: true })}</p>
+                                    </div>
+                                    <div className="bg-white p-2 rounded border border-gray-100 col-span-2">
+                                        <p className="text-xs text-gray-500">Submitted At</p>
+                                        <p className="font-semibold text-gray-700">{member.lastSubmittedAt || 'Never'}</p>
                                     </div>
                                 </div>
                             </div>

@@ -782,7 +782,7 @@ exports.getAnalytics = async (req, res) => {
 
         // Get all users based on role
         let users;
-        if (req.user.role === 'admin') {
+        if (req.user.role === 'admin' || req.user.role === 'leader') {
             users = await User.findAll({ where: { role: { [Op.ne]: 'admin' } } });
         } else if (req.user.role === 'leader') {
             users = await User.findAll({ where: { country: req.user.country, role: { [Op.ne]: 'admin' } } });
@@ -798,7 +798,8 @@ exports.getAnalytics = async (req, res) => {
                 user_id: { [Op.in]: userIds },
                 date: { [Op.between]: [startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]] }
             },
-            include: [{ model: User, attributes: ['id', 'fullname', 'email', 'country', 'contact'] }]
+            include: [{ model: User, attributes: ['id', 'fullname', 'email', 'country', 'contact'] }],
+            order: [['date', 'DESC'], ['createdAt', 'DESC']]
         });
 
         // Calculate statistics for each user
@@ -807,8 +808,13 @@ exports.getAnalytics = async (req, res) => {
             const reportsSubmitted = userReports.length;
             const completionRate = Math.round((reportsSubmitted / expectedDays) * 100);
 
-            // Calculate total evangelism hours
             const totalEvangelismHours = userReports.reduce((sum, r) => sum + (parseFloat(r.evangelism_hours) || 0), 0);
+            const totalMeditationHours = userReports.reduce((sum, r) => sum + (parseFloat(r.meditation_time) || 0), 0);
+            const totalPrayerHours = userReports.reduce((sum, r) => sum + (parseFloat(r.prayer_time) || 0), 0);
+            const totalExerciseHours = userReports.reduce((sum, r) => sum + (parseFloat(r.exercise_time) || 0), 0);
+            const latestReport = userReports
+                .slice()
+                .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))[0];
 
             // Calculate current streak (consecutive days)
             const sortedDates = userReports
@@ -849,7 +855,13 @@ exports.getAnalytics = async (req, res) => {
                 currentStreak,
                 lastReportDate,
                 missedDays,
-                totalEvangelismHours // Added total hours
+                totalEvangelismHours,
+                totalMeditationHours,
+                totalPrayerHours,
+                totalExerciseHours,
+                lastSubmittedAt: latestReport?.createdAt
+                    ? new Date(latestReport.createdAt).toLocaleString()
+                    : null
             };
         });
 
@@ -883,7 +895,10 @@ exports.getAnalytics = async (req, res) => {
         // Calculate overall statistics
         const totalMembers = users.length;
         const totalReports = reports.length;
-        const totalEvangelismHours = userStats.reduce((sum, stat) => sum + stat.totalEvangelismHours, 0); // Calculate grand total
+        const totalEvangelismHours = userStats.reduce((sum, stat) => sum + stat.totalEvangelismHours, 0);
+        const totalMeditationHours = userStats.reduce((sum, stat) => sum + stat.totalMeditationHours, 0);
+        const totalPrayerHours = userStats.reduce((sum, stat) => sum + stat.totalPrayerHours, 0);
+        const totalExerciseHours = userStats.reduce((sum, stat) => sum + stat.totalExerciseHours, 0);
         const averageCompletion = totalMembers > 0
             ? Math.round(userStats.reduce((sum, stat) => sum + stat.completionRate, 0) / totalMembers)
             : 0;
@@ -894,7 +909,10 @@ exports.getAnalytics = async (req, res) => {
         res.json({
             totalMembers,
             totalReports,
-            totalEvangelismHours, // Return grand total
+            totalEvangelismHours,
+            totalMeditationHours,
+            totalPrayerHours,
+            totalExerciseHours,
             averageCompletion,
             topStreak,
             topPerformers,
