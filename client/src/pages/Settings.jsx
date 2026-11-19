@@ -218,7 +218,13 @@ const Settings = () => {
                         <div className="bg-gradient-to-r from-orange-50 to-yellow-50 p-4 rounded-xl">
                             <p className="text-sm text-gray-600 mb-1">Member Since</p>
                             <p className="font-semibold text-gray-800">
-                                {new Date(user?.createdAt).toLocaleDateString()}
+                                {user?.createdAt && !Number.isNaN(new Date(user.createdAt).getTime())
+                                    ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                    })
+                                    : 'Date unavailable'}
                             </p>
                         </div>
                     </div>

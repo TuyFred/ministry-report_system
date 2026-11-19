@@ -212,7 +212,19 @@ exports.login = async (req, res) => {
 
         jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' }, (err, token) => {
             if (err) throw err;
-            res.json({ token, user: { id: user.id, fullname: user.fullname, email: user.email, role: user.role, country: user.country, profile_image: user.profile_image } });
+            res.json({
+                token,
+                user: {
+                    id: user.id,
+                    fullname: user.fullname,
+                    email: user.email,
+                    role: user.role,
+                    country: user.country,
+                    profile_image: user.profile_image,
+                    createdAt: user.createdAt,
+                    updatedAt: user.updatedAt
+                }
+            });
         });
 
     } catch (err) {

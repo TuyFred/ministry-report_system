@@ -786,9 +786,9 @@ exports.getAnalytics = async (req, res) => {
         // Get all users based on role
         let users;
         if (req.user.role === 'admin' || req.user.role === 'leader') {
-            users = await User.findAll({ where: { role: { [Op.ne]: 'admin' } } });
+            users = await User.findAll({ where: { role: { [Op.ne]: 'admin' }, reporting_exempt: { [Op.ne]: true } } });
         } else if (req.user.role === 'leader') {
-            users = await User.findAll({ where: { country: req.user.country, role: { [Op.ne]: 'admin' } } });
+            users = await User.findAll({ where: { country: req.user.country, role: { [Op.ne]: 'admin' }, reporting_exempt: { [Op.ne]: true } } });
         } else {
             users = [await User.findByPk(req.user.id)];
         }
@@ -808,8 +808,12 @@ exports.getAnalytics = async (req, res) => {
         // Calculate statistics for each user
         const userStats = users.map(user => {
             const userReports = reports.filter(r => r.user_id === user.id);
-            const reportsSubmitted = userReports.length;
-            const completionRate = Math.round((reportsSubmitted / expectedDays) * 100);
+            const uniqueReportDates = new Set(userReports.map(report => report.date));
+            const reportsSubmitted = uniqueReportDates.size;
+            const memberJoinedAt = user.createdAt ? new Date(user.createdAt) : null;
+            const eligibleStart = memberJoinedAt && memberJoinedAt > startDate ? memberJoinedAt : startDate;
+            const eligibleDays = Math.max(1, Math.min(expectedDays, Math.floor((endDate - eligibleStart) / 86400000) + 1));
+            const completionRate = Math.min(100, Math.round((reportsSubmitted / eligibleDays) * 100));
 
             const totalEvangelismHours = userReports.reduce((sum, r) => sum + (parseFloat(r.evangelism_hours) || 0), 0);
             const totalMeditationHours = userReports.reduce((sum, r) => sum + (parseFloat(r.meditation_time) || 0), 0);
@@ -825,17 +829,12 @@ exports.getAnalytics = async (req, res) => {
                 .sort((a, b) => b - a);
 
             let currentStreak = 0;
-            let checkDate = new Date();
-
-            for (let i = 0; i < sortedDates.length; i++) {
-                const reportDate = sortedDates[i].toISOString().split('T')[0];
-                const expectedDate = checkDate.toISOString().split('T')[0];
-
-                if (reportDate === expectedDate) {
+            if (sortedDates.length > 0) {
+                const reportDateSet = new Set(sortedDates.map(date => date.toISOString().split('T')[0]));
+                let checkDate = new Date(sortedDates[0]);
+                while (reportDateSet.has(checkDate.toISOString().split('T')[0])) {
                     currentStreak++;
-                    checkDate.setDate(checkDate.getDate() - 1);
-                } else {
-                    break;
+                    checkDate.setUTCDate(checkDate.getUTCDate() - 1);
                 }
             }
 
@@ -845,7 +844,7 @@ exports.getAnalytics = async (req, res) => {
                 : null;
 
             // Calculate missed days
-            const missedDays = expectedDays - reportsSubmitted;
+            const missedDays = Math.max(0, eligibleDays - reportsSubmitted);
 
             return {
                 id: user.id,
@@ -853,6 +852,11 @@ exports.getAnalytics = async (req, res) => {
                 email: user.email,
                 country: user.country,
                 role: user.role,
+                memberSince: user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }) : null,
                 reportsSubmitted,
                 completionRate,
                 currentStreak,
@@ -878,19 +882,24 @@ exports.getAnalytics = async (req, res) => {
             .filter(stat => stat.completionRate < 70)
             .sort((a, b) => a.completionRate - b.completionRate);
 
-        // Calculate Country Stats (for Admin)
+        // Calculate Country Stats (admin and leader)
         let countryStats = [];
-        if (req.user.role === 'admin') {
+        if (req.user.role === 'admin' || req.user.role === 'leader') {
             const countries = [...new Set(users.map(u => u.country))];
             countryStats = countries.map(country => {
                 const countryUsers = userStats.filter(u => users.find(user => user.id === u.id).country === country);
                 const avgCompletion = countryUsers.length > 0
                     ? Math.round(countryUsers.reduce((sum, u) => sum + u.completionRate, 0) / countryUsers.length)
                     : 0;
+                const countryReportCount = reports.filter(report =>
+                    users.find(user => user.id === report.user_id)?.country === country
+                ).length;
                 return {
                     country,
                     averageCompletion: avgCompletion,
-                    memberCount: countryUsers.length
+                    memberCount: countryUsers.length,
+                    totalReports: countryReportCount,
+                    missingReports: countryUsers.reduce((sum, member) => sum + member.missedDays, 0)
                 };
             }).sort((a, b) => b.averageCompletion - a.averageCompletion);
         }

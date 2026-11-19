@@ -649,6 +649,8 @@ const Analytics = () => {
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Completion</th>
                                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Members</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reports</th>
+                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Missing</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-gray-200">
@@ -677,6 +679,8 @@ const Analytics = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-500">{stat.memberCount}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-semibold">{stat.totalReports || 0}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-red-700 font-semibold">{stat.missingReports || 0}</td>
                                         </tr>
                                     )})}
                                 </tbody>
@@ -711,6 +715,10 @@ const Analytics = () => {
                                         </div>
                                         <div className="text-sm text-gray-600 pl-11">
                                             {stat.memberCount} members
+                                        </div>
+                                        <div className="flex gap-4 mt-2 pl-11 text-xs">
+                                            <span className="text-gray-700"><strong>{stat.totalReports || 0}</strong> reports</span>
+                                            <span className="text-red-700"><strong>{stat.missingReports || 0}</strong> missing</span>
                                         </div>
                                     </div>
                                 );
@@ -837,6 +845,7 @@ const Analytics = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Streak</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Report</th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted At</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member Since</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -859,6 +868,7 @@ const Analytics = () => {
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.currentStreak} days</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.lastReportDate || 'Never'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.lastSubmittedAt || 'Never'}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.memberSince || 'Unavailable'}</td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -901,6 +911,10 @@ const Analytics = () => {
                                     <div className="bg-white p-2 rounded border border-gray-100 col-span-2">
                                         <p className="text-xs text-gray-500">Submitted At</p>
                                         <p className="font-semibold text-gray-700">{member.lastSubmittedAt || 'Never'}</p>
+                                    </div>
+                                    <div className="bg-white p-2 rounded border border-gray-100 col-span-2">
+                                        <p className="text-xs text-gray-500">Member Since</p>
+                                        <p className="font-semibold text-gray-700">{member.memberSince || 'Unavailable'}</p>
                                     </div>
                                 </div>
                             </div>

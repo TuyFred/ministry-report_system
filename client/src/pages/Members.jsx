@@ -5,6 +5,13 @@ import { FaEdit, FaTrash, FaUserPlus, FaTimes, FaFilter, FaChevronLeft, FaChevro
 import { API_URL } from '../utils/api';
 import CountrySelect from '../components/CountrySelect';
 
+const formatMemberSince = (value) => {
+  if (!value) return 'Date unavailable';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Date unavailable';
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+};
+
 const Members = () => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -321,6 +328,7 @@ const Members = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Country</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Member Since</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -359,6 +367,7 @@ const Members = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{member.country}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{formatMemberSince(member.createdAt)}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         {(user.role === 'admin' || (user.role === 'leader' && member.role === 'member')) && (
                             <div className="flex gap-3">
@@ -416,6 +425,9 @@ const Members = () => {
                         <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                             <div className="text-sm text-gray-600">
                                 <span className="font-medium">Country:</span> {member.country}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                                <span className="font-medium">Member Since:</span> {formatMemberSince(member.createdAt)}
                             </div>
                             {(user.role === 'admin' || (user.role === 'leader' && member.role === 'member')) && (
                                 <div className="flex gap-3">
