@@ -6,7 +6,6 @@ import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlo
 import { API_URL } from '../utils/api';
 import ExportReports from '../components/ExportReports';
 import { formatDuration, parseHours, formatSubmittedAt } from '../utils/time';
-import BrandLogo from '../components/BrandLogo';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
@@ -58,9 +57,6 @@ const Dashboard = () => {
     return (
         <div className="space-y-6 p-4 sm:p-6">
             {/* Header */}
-            <div className="flex justify-center sm:justify-start">
-                <BrandLogo size="small" className="mb-1" />
-            </div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex items-center gap-5">
                     <div>

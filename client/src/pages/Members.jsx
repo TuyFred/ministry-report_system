@@ -19,6 +19,7 @@ const Members = () => {
   const { user } = useContext(AuthContext);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [selectedMember, setSelectedMember] = useState(null);
   
   // Pagination & Filters
   const [currentPage, setCurrentPage] = useState(1);
@@ -317,6 +318,70 @@ const Members = () => {
             </div>
           </div>
         )}
+
+        {selectedMember && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gray-950/60 p-4" role="dialog" aria-modal="true">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+              <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-indigo-100">Member Profile</p>
+                  <h3 className="text-xl font-bold text-white">{selectedMember.fullname}</h3>
+                </div>
+                <button type="button" onClick={() => setSelectedMember(null)} className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white text-2xl" aria-label="Close">&times;</button>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center gap-5 mb-6">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-indigo-100 bg-indigo-50 flex items-center justify-center text-2xl font-bold text-indigo-600">
+                    {selectedMember.profile_image ? (
+                      <img src={`${API_URL}/${selectedMember.profile_image}`} alt={selectedMember.fullname} className="w-full h-full object-cover" />
+                    ) : (
+                      selectedMember.fullname?.charAt(0)?.toUpperCase()
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-gray-900">{selectedMember.fullname}</p>
+                    <span className={`inline-block mt-1 px-2.5 py-1 rounded-full text-xs font-bold capitalize ${
+                      selectedMember.role === 'admin' ? 'bg-red-100 text-red-800' :
+                      selectedMember.role === 'leader' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                    }`}>{selectedMember.role}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold uppercase text-gray-500">Email</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 break-all">{selectedMember.email || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold uppercase text-gray-500">Country</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{selectedMember.country || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold uppercase text-gray-500">Contact</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{selectedMember.contact || 'N/A'}</p>
+                  </div>
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold uppercase text-gray-500">Member Since</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">{formatMemberSince(selectedMember.createdAt)}</p>
+                  </div>
+                  <div className="sm:col-span-2 bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <p className="text-xs font-semibold uppercase text-gray-500">Reporting Status</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900">
+                      {selectedMember.reporting_exempt ? `Exempt${selectedMember.exemption_reason ? ` — ${selectedMember.exemption_reason}` : ''}` : 'Active reporting member'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+                {(user.role === 'admin' || (user.role === 'leader' && selectedMember.role === 'member')) && (
+                  <button type="button" onClick={() => { const member = selectedMember; setSelectedMember(null); startEdit(member); }} className="px-4 py-2 bg-indigo-600 text-white rounded-lg font-semibold">
+                    Edit Member
+                  </button>
+                )}
+                <button type="button" onClick={() => setSelectedMember(null)} className="px-4 py-2 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50">Close</button>
+              </div>
+            </div>
+          </div>
+        )}
         
         <>
             {/* Desktop Table */}
@@ -353,7 +418,13 @@ const Members = () => {
                                     member.fullname.charAt(0)
                                 )}
                             </div>
-                            {member.fullname}
+                            <button
+                                type="button"
+                                onClick={() => setSelectedMember(member)}
+                                className="font-semibold text-indigo-700 hover:text-indigo-900 hover:underline"
+                            >
+                                {member.fullname}
+                            </button>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">{member.email}</td>
@@ -409,7 +480,13 @@ const Members = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-gray-900">{member.fullname}</h3>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedMember(member)}
+                                        className="font-bold text-indigo-700 hover:underline"
+                                    >
+                                        {member.fullname}
+                                    </button>
                                     <p className="text-xs text-gray-500">{member.email}</p>
                                 </div>
                             </div>
