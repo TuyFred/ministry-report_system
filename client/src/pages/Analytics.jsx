@@ -23,6 +23,7 @@ const Analytics = () => {
     const [reminderSubject, setReminderSubject] = useState('');
     const [reminderMessage, setReminderMessage] = useState('');
     const [reminderPreview, setReminderPreview] = useState([]);
+    const [showReminderModal, setShowReminderModal] = useState(false);
 
     // Pagination State
     const [countryPage, setCountryPage] = useState(1);
@@ -66,7 +67,6 @@ const Analytics = () => {
     };
 
     const sendWeeklyReminders = async () => {
-        if (!window.confirm('Send reminders to every member with missed reports for the previous week?')) return;
         setSendingReminders(true);
         try {
             const token = localStorage.getItem('token');
@@ -80,7 +80,8 @@ const Analytics = () => {
                 headers: { 'x-auth-token': token }
             });
             await fetchReminders();
-            alert(`Reminders sent: ${response.data.sent.length}. Skipped: ${response.data.skipped.length}.`);
+            setReminderPreview([]);
+            setShowReminderModal(false);
         } catch (error) {
             alert(error.response?.data?.msg || 'Unable to send weekly reminders.');
         } finally {
@@ -457,10 +458,26 @@ const Analytics = () => {
                         </button>
                     </div>
                     <div className="mt-5 border-t border-gray-200 pt-5">
-                        <div className="flex items-center gap-2 mb-4">
-                            <FaEnvelope className="text-red-600" />
-                            <h3 className="text-lg font-bold text-gray-800">Weekly Reminder Control</h3>
-                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowReminderModal(true)}
+                            className="px-4 py-2.5 bg-red-600 text-white rounded-lg font-semibold flex items-center gap-2 hover:bg-red-700"
+                        >
+                            <FaEnvelope />
+                            Open Weekly Reminder Control
+                        </button>
+                    </div>
+                    {showReminderModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/60 p-4" role="dialog" aria-modal="true">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900">Weekly Reminder Control</h3>
+                                    <p className="text-sm text-gray-500 mt-1">Choose, preview, edit, and send professional reminder emails.</p>
+                                </div>
+                                <button type="button" onClick={() => setShowReminderModal(false)} className="w-10 h-10 rounded-full hover:bg-gray-100 text-2xl text-gray-500" aria-label="Close">&times;</button>
+                            </div>
+                            <div className="p-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                             <select
                                 value={reminderMode}
@@ -525,7 +542,10 @@ const Analytics = () => {
                                 ))}
                             </div>
                         )}
+                            </div>
+                        </div>
                     </div>
+                    )}
                     <div className="flex flex-wrap gap-3 mt-4">
                         <button
                             type="button"

@@ -94,6 +94,15 @@ const ReportReminder = sequelize.define('report_reminders', {
         type: DataTypes.JSON,
         allowNull: false,
         defaultValue: []
+    },
+    follow_up_sent_at: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
+    follow_up_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
     }
 }, {
     timestamps: true

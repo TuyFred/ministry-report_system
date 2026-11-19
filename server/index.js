@@ -143,8 +143,63 @@ app.use((err, req, res, next) => {
     return res.status(500).json({ msg: 'The system is temporarily unavailable. Please try again.' });
 });
 
+const runOneHourReminderFollowUps = async () => {
+    try {
+        const { Op } = require('sequelize');
+        const Report = require('./models/Report');
+        const User = require('./models/User');
+        const ReportReminder = require('./models/ReportReminder');
+        const { sendReminderEmail, detectPreferredLanguage, chooseReminderVerse } = require('./services/emailService');
+        const cutoff = new Date(Date.now() - 60 * 60 * 1000);
+        const reminders = await ReportReminder.findAll({
+            where: {
+                recipient_type: 'member',
+                sent_at: { [Op.lt]: cutoff },
+                follow_up_sent_at: null
+            },
+            include: [{ model: User, as: 'User', attributes: ['id', 'fullname', 'email', 'country', 'preferred_language', 'reporting_exempt'] }]
+        });
+        for (const reminder of reminders) {
+            const member = reminder.User;
+            if (!member || member.reporting_exempt) continue;
+            const reportCount = await Report.count({
+                where: { user_id: member.id, date: { [Op.between]: [reminder.week_start, reminder.week_end] } }
+            });
+            if (reportCount > 0) continue;
+            try {
+                const language = detectPreferredLanguage({ preferredLanguage: member.preferred_language, country: member.country });
+                const verse = await chooseReminderVerse(member.id);
+                const delivery = await sendReminderEmail({
+                    email: member.email,
+                    name: member.fullname,
+                    country: member.country,
+                    preferredLanguage: language,
+                    weekStart: reminder.week_start,
+                    weekEnd: reminder.week_end,
+                    submittedReports: 0,
+                    missedReports: reminder.missed_reports,
+                    customSubject: `Follow-up: weekly report reminder for ${reminder.week_start}–${reminder.week_end}`,
+                    verse
+                });
+                await reminder.update({
+                    follow_up_sent_at: new Date(),
+                    follow_up_count: (reminder.follow_up_count || 0) + 1,
+                    email_status: delivery.deliveryStatus,
+                    message_id: delivery.messageId
+                });
+            } catch (error) {
+                await reminder.update({ email_status: 'failed' });
+                console.error(`One-hour reminder follow-up failed for ${member.email}:`, error.message);
+            }
+        }
+    } catch (error) {
+        console.error('One-hour reminder follow-up sweep error:', error.message);
+    }
+};
+
 const runAutomaticWeeklyReminders = async () => {
     try {
+        await runOneHourReminderFollowUps();
         const now = new Date();
         if (now.getUTCDay() !== 0) return;
         const configuredHour = Number(process.env.WEEKLY_REMINDER_HOUR_UTC);
@@ -272,6 +327,7 @@ const runAutomaticWeeklyReminders = async () => {
                 console.error(`Leader summary failed for ${leader.email}:`, error.message);
             }
         }
+
     } catch (error) {
         console.error('Automatic weekly reminder sweep error:', error.message);
     }
@@ -305,11 +361,26 @@ connectDB().then(async () => {
             allowNull: true
         });
     }
+    await ReportReminder.sync();
+    const reminderColumns = await queryInterface.describeTable('report_reminders');
+    if (!reminderColumns.follow_up_sent_at) {
+        await queryInterface.addColumn('report_reminders', 'follow_up_sent_at', {
+            type: DataTypes.DATE,
+            allowNull: true
+        });
+    }
+    if (!reminderColumns.follow_up_count) {
+        await queryInterface.addColumn('report_reminders', 'follow_up_count', {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+            defaultValue: 0
+        });
+    }
     await User.sync();
     await EmailOtp.sync();
     await ReportReminder.sync();
     await runAutomaticWeeklyReminders();
-    setInterval(runAutomaticWeeklyReminders, 6 * 60 * 60 * 1000);
+    setInterval(runAutomaticWeeklyReminders, 15 * 60 * 1000);
     app.listen(PORT, () => {
         console.log(`Server running on port ${PORT}`);
     });
