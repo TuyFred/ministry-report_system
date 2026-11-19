@@ -16,6 +16,16 @@ const formatHoursForExport = (value) => {
     return `${hours} hr ${minutes} min`;
 };
 
+const getReportIdentity = (report) => {
+    const user = report.User || null;
+    return {
+        fullname: String(user?.fullname || report.name || '').trim() || 'N/A',
+        email: String(user?.email || '').trim() || 'N/A',
+        country: String(user?.country || report.country || '').trim() || 'N/A',
+        contact: String(user?.contact || '').trim() || 'N/A'
+    };
+};
+
 const getUtcDayOfWeek = (dateStr) => {
     if (!dateStr || typeof dateStr !== 'string') return null;
     const d = new Date(`${dateStr}T00:00:00Z`);
@@ -394,6 +404,25 @@ exports.exportPDF = async (req, res) => {
             order: [['date', 'ASC']]
         });
 
+        const missingUserReports = reports.filter(report =>
+            !report.User?.fullname || !report.User?.country
+        );
+        if (missingUserReports.length > 0) {
+            const userIds = [...new Set(missingUserReports.map(report => report.user_id).filter(Boolean))];
+            if (userIds.length > 0) {
+                const fallbackUsers = await User.findAll({
+                    where: { id: { [Op.in]: userIds } },
+                    attributes: ['id', 'fullname', 'email', 'country', 'contact']
+                });
+                const fallbackMap = new Map(fallbackUsers.map(user => [user.id, user]));
+                missingUserReports.forEach(report => {
+                    const fallback = fallbackMap.get(report.user_id);
+                    if (fallback) {
+                        report.User = fallback;
+                    }
+                });
+            }
+        }
         // Generate unique filename
         const dateStr = startDate && endDate ? `${startDate}_to_${endDate}` : (startDate || 'report');
         const filename = `ministry_report_${dateStr}.pdf`;
@@ -432,6 +461,7 @@ exports.exportPDF = async (req, res) => {
 
             reports.forEach((report, index) => {
                 if (index > 0) doc.addPage();
+                const identity = getReportIdentity(report);
 
                 // Report Header
                 doc.fontSize(18).fillColor('#4F46E5').text(`Report #${index + 1}`, { underline: true });
@@ -441,14 +471,14 @@ exports.exportPDF = async (req, res) => {
                 const startY = doc.y;
                 doc.fontSize(12).fillColor('#111827');
 
-                doc.text(`Name: ${report.User?.fullname || 'N/A'}`, 50, startY);
-                doc.text(`Country: ${report.User?.country || 'N/A'}`, 300, startY);
+                doc.text(`Name: ${identity.fullname}`, 50, startY);
+                doc.text(`Country: ${identity.country}`, 300, startY);
 
                 const nextY = startY + 20;
                 doc.text(`Church: ${report.church || 'N/A'}`, 50, nextY);
                 doc.text(`Date: ${new Date(report.date).toLocaleDateString()}`, 300, nextY);
-                doc.text(`Email: ${report.User?.email || 'N/A'}`, 50, nextY + 20);
-                doc.text(`Contact: ${report.User?.contact || 'N/A'}`, 300, nextY + 20);
+                doc.text(`Email: ${identity.email}`, 50, nextY + 20);
+                doc.text(`Contact: ${identity.contact}`, 300, nextY + 20);
                 doc.text(`Submitted: ${report.createdAt ? new Date(report.createdAt).toLocaleString() : 'N/A'}`, 50, nextY + 40);
 
                 doc.y = nextY + 70; // Move down
@@ -604,6 +634,24 @@ exports.exportExcel = async (req, res) => {
             order: [['date', 'ASC']]
         });
 
+        const missingExcelUserReports = reports.filter(report =>
+            !report.User?.fullname || !report.User?.country
+        );
+        if (missingExcelUserReports.length > 0) {
+            const userIds = [...new Set(missingExcelUserReports.map(report => report.user_id).filter(Boolean))];
+            if (userIds.length > 0) {
+                const fallbackUsers = await User.findAll({
+                    where: { id: { [Op.in]: userIds } },
+                    attributes: ['id', 'fullname', 'email', 'country', 'contact']
+                });
+                const fallbackMap = new Map(fallbackUsers.map(user => [user.id, user]));
+                missingExcelUserReports.forEach(report => {
+                    const fallback = fallbackMap.get(report.user_id);
+                    if (fallback) report.User = fallback;
+                });
+            }
+        }
+
         // Generate unique filename
         const dateStr = startDate && endDate ? `${startDate}_to_${endDate}` : (startDate || 'report');
         const filename = `ministry_report_${dateStr}.xlsx`;
@@ -688,13 +736,14 @@ exports.exportExcel = async (req, res) => {
 
         // Add data rows
         reports.forEach(report => {
+            const identity = getReportIdentity(report);
             worksheet.addRow({
                 date: new Date(report.date).toLocaleDateString(),
                 submitted_at: report.createdAt ? new Date(report.createdAt).toLocaleString() : 'N/A',
-                name: report.User?.fullname || 'N/A',
-                email: report.User?.email || 'N/A',
-                country: report.User?.country || 'N/A',
-                contact: report.User?.contact || 'N/A',
+                name: identity.fullname,
+                email: identity.email,
+                country: identity.country,
+                contact: identity.contact,
                 church: report.church || 'N/A',
                 evangelism_hours: report.evangelism_hours || 0,
                 people_reached: report.people_reached || 0,
