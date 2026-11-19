@@ -2,6 +2,9 @@
 name: Ministry Reporting System - Build and cPanel Deployment
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -81,8 +84,7 @@ jobs:
           mkdir -p "$RELEASE/server"
           mkdir -p "$RELEASE/public"
 
-          # Copy backend source without production secrets,
-          # uploads, dependencies, temporary files or Git data.
+          # Exclude secrets, uploads and server dependencies.
           tar -czf - \
             --exclude='./.env' \
             --exclude='./.env.*' \
@@ -93,7 +95,7 @@ jobs:
             --exclude='./.htaccess' \
             -C server . | tar -xzf - -C "$RELEASE/server"
 
-          # Copy the completed React build.
+          # Copy the React production build.
           cp -a client/dist/. "$RELEASE/public/"
 
           # Verify release contents.
@@ -292,8 +294,7 @@ jobs:
 
             cp -a "$REPO/public/." "$STAGING/new-public/"
 
-            # Preserve the current public .htaccess when
-            # the new frontend does not contain one.
+            # Preserve existing public .htaccess if needed.
 
             if [ -f "$APP/public/.htaccess" ] &&
                [ ! -f "$STAGING/new-public/.htaccess" ]; then
@@ -325,7 +326,7 @@ jobs:
 
             tar -xzf "$STAGING/backend.tar.gz" -C "$APP"
 
-            # Never replace the cPanel node_modules symlink.
+            # Keep the cPanel node_modules symlink.
 
             test -L "$APP/node_modules"
 
@@ -359,7 +360,7 @@ jobs:
 
             echo "Frontend published."
 
-            # STEP 7: Verify important production files.
+            # STEP 7: Verify production files.
 
             echo "[7/8] Verifying production application..."
 
@@ -383,7 +384,7 @@ jobs:
 
             echo "Passenger restart requested."
 
-            # Cleanup only after successful deployment.
+            # Cleanup after successful deployment.
 
             rm -rf "$STAGING"
             rm -f "$ARCHIVE"
@@ -396,4 +397,3 @@ jobs:
             echo "Website: https://report.gnitafrica.com"
             echo "Backup: $BACKUP"
             echo "======================================"
-  
