@@ -58,9 +58,11 @@ const Dashboard = () => {
     return (
         <div className="space-y-6 p-4 sm:p-6">
             {/* Header */}
+            <div className="flex justify-center sm:justify-start">
+                <BrandLogo size="small" className="mb-1" />
+            </div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex items-center gap-5">
-                    <BrandLogo size="tiny" className="shrink-0" />
                     <div>
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight break-words">
                             Welcome back, {user?.fullname}!

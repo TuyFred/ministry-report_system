@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { FaTachometerAlt, FaFileAlt, FaPlus, FaUsers, FaChartBar, FaCog, FaEye, FaCalendarWeek, FaCalendarAlt, FaKey, FaTools, FaDatabase } from 'react-icons/fa';
 import { API_URL } from '../../utils/api';
 import { AuthContext } from '../../context/AuthContext';
-import BrandLogo from '../BrandLogo';
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
     const location = useLocation();
@@ -32,10 +31,6 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
     return (
         <div className={`fixed inset-y-0 left-0 z-30 w-64 bg-gradient-to-b from-gray-900 to-gray-800 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="flex items-center justify-center h-14 bg-gray-900 border-b border-gray-700 flex-shrink-0">
-                <BrandLogo compact dark />
-            </div>
-            
             {/* User Info */}
             <div className="px-4 py-3 bg-gray-800 bg-opacity-50 border-b border-gray-700 flex items-center gap-3 flex-shrink-0">
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-700 flex-shrink-0 border-2 border-gray-600">
