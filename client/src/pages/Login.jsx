@@ -60,7 +60,6 @@ const Login = ({ isModal = false, onClose, onSwitchToRegister, initialEmail = ''
             // If login successful, navigate to dashboard
             navigate('/dashboard');
         } catch (err) {
-            console.error(err);
             if (err.response?.status === 503 && err.response?.data?.maintenanceMode) {
                 // Show error but don't redirect - admin might be trying to login
                 setError('⚠️ System is under maintenance. Only administrators can access the system.');

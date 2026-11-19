@@ -134,6 +134,15 @@ app.use((req, res, next) => {
     });
 });
 
+app.use((err, req, res, next) => {
+    console.error('API request error:', err.message);
+    if (res.headersSent) return next(err);
+    if (err.message === 'Not allowed by CORS') {
+        return res.status(403).json({ msg: 'This website is not allowed to access the system.' });
+    }
+    return res.status(500).json({ msg: 'The system is temporarily unavailable. Please try again.' });
+});
+
 const runAutomaticWeeklyReminders = async () => {
     try {
         const now = new Date();
@@ -271,6 +280,32 @@ const runAutomaticWeeklyReminders = async () => {
 connectDB().then(async () => {
     const EmailOtp = require('./models/EmailOtp');
     const ReportReminder = require('./models/ReportReminder');
+    const User = require('./models/User');
+    const { sequelize } = require('./config/db');
+    const { DataTypes } = require('sequelize');
+    const queryInterface = sequelize.getQueryInterface();
+    const userColumns = await queryInterface.describeTable('users');
+    if (!userColumns.preferred_language) {
+        await queryInterface.addColumn('users', 'preferred_language', {
+            type: DataTypes.STRING,
+            allowNull: false,
+            defaultValue: 'en'
+        });
+    }
+    if (!userColumns.reporting_exempt) {
+        await queryInterface.addColumn('users', 'reporting_exempt', {
+            type: DataTypes.BOOLEAN,
+            allowNull: false,
+            defaultValue: false
+        });
+    }
+    if (!userColumns.exemption_reason) {
+        await queryInterface.addColumn('users', 'exemption_reason', {
+            type: DataTypes.STRING,
+            allowNull: true
+        });
+    }
+    await User.sync();
     await EmailOtp.sync();
     await ReportReminder.sync();
     await runAutomaticWeeklyReminders();

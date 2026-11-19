@@ -120,7 +120,7 @@ exports.createReport = async (req, res) => {
         res.json(newReport);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to save the report. Please try again.' });
     }
 };
 
@@ -201,7 +201,7 @@ exports.getReports = async (req, res) => {
         res.json(reports);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to load reports. Please try again.' });
     }
 };
 
@@ -282,7 +282,7 @@ exports.updateReport = async (req, res) => {
         res.json(report);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to load report details. Please try again.' });
     }
 };
 
@@ -311,7 +311,7 @@ exports.getReportById = async (req, res) => {
         res.json(report);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to update the report. Please try again.' });
     }
 };
 
@@ -940,7 +940,7 @@ exports.getAnalytics = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to complete analytics. Please try again.' });
     }
 };
 
@@ -1290,6 +1290,6 @@ exports.deleteReport = async (req, res) => {
         res.json({ msg: 'Report removed' });
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to remove the report. Please try again.' });
     }
 };

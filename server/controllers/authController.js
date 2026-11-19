@@ -153,7 +153,7 @@ exports.registerAdmin = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to complete the request. Please try again.' });
     }
 };
 
@@ -237,7 +237,7 @@ exports.login = async (req, res) => {
 
     } catch (err) {
         console.error('Login error:', err.message);
-        res.status(500).json({ msg: 'Server Error', error: err.message });
+        res.status(500).json({ msg: 'Unable to sign in right now. Please try again.' });
     }
 };
 
@@ -247,7 +247,7 @@ exports.getMe = async (req, res) => {
         res.json(user);
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to load your account. Please try again.' });
     }
 };
 
@@ -335,7 +335,7 @@ exports.resetPassword = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to reset the password. Please try again.' });
     }
 };
 
@@ -365,7 +365,7 @@ exports.changePassword = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to change the password. Please try again.' });
     }
 };
 
@@ -402,6 +402,6 @@ exports.createAdmin = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to create the administrator account. Please try again.' });
     }
 };

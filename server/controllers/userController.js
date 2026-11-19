@@ -73,7 +73,7 @@ exports.createUser = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to complete the user request. Please try again.' });
     }
 };
 
@@ -100,7 +100,7 @@ exports.getUsers = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to load users. Please try again.' });
     }
 };
 
@@ -127,7 +127,7 @@ exports.deleteUser = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to remove the user. Please try again.' });
     }
 };
 
@@ -154,7 +154,7 @@ exports.updateProfileImage = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to update the profile image. Please try again.' });
     }
 };
 
@@ -219,7 +219,7 @@ exports.updateUser = async (req, res) => {
 
     } catch (err) {
         console.error(err.message);
-        res.status(500).send('Server Error');
+        res.status(500).json({ msg: 'Unable to update the user. Please try again.' });
     }
 };
 
