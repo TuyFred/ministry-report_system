@@ -3,6 +3,7 @@ import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarWeek, FaFilePdf, FaFileExcel, FaChevronLeft, FaChevronRight, FaUsers, FaClock, FaBook, FaPray, FaChurch, FaHeart } from 'react-icons/fa';
+import { formatDuration, parseHours } from '../utils/time';
 
 const WeeklyReport = () => {
     const { user } = useContext(AuthContext);
@@ -89,11 +90,7 @@ const WeeklyReport = () => {
             const parseTime = (timeValue) => {
                 if (!timeValue) return 0;
                 // Handle if it's already a number (hours)
-                if (typeof timeValue === 'number') return timeValue;
-                // Handle if it's a string number
-                const parsed = parseFloat(timeValue);
-                if (isNaN(parsed)) return 0;
-                return parsed;
+                return parseHours(timeValue);
             };
 
             return {
@@ -138,11 +135,7 @@ const WeeklyReport = () => {
         });
     };
 
-    const formatHours = (hours) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}h ${m}m`;
-    };
+    const formatHours = (hours) => formatDuration(hours, { compact: true });
 
     const handlePreviousWeek = () => {
         const curr = new Date(selectedDate);
@@ -500,7 +493,7 @@ const WeeklyReport = () => {
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                                 <div>
                                                     <p className="text-gray-600">Evangelism</p>
-                                                    <p className="font-bold text-gray-800">{report.evangelism_hours || '0:00'}</p>
+                                                    <p className="font-bold text-gray-800">{formatDuration(report.evangelism_hours, { compact: true })}</p>
                                                 </div>
                                                 <div>
                                                     <p className="text-gray-600">People Reached</p>

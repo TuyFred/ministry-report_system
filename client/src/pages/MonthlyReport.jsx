@@ -3,6 +3,7 @@ import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarAlt, FaFilePdf, FaFileExcel, FaChevronLeft, FaChevronRight, FaUsers, FaClock, FaBook, FaPray, FaChurch, FaHeart, FaChartLine } from 'react-icons/fa';
+import { formatDuration, parseHours as parseTime } from '../utils/time';
 
 const MonthlyReport = () => {
     const { user } = useContext(AuthContext);
@@ -10,13 +11,6 @@ const MonthlyReport = () => {
     const [loading, setLoading] = useState(false);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [monthDates, setMonthDates] = useState({ start: '', end: '', month: '', year: '' });
-    const parseTime = (timeValue) => {
-        if (!timeValue) return 0;
-        if (typeof timeValue === 'number') return timeValue;
-        const parsed = parseFloat(timeValue);
-        if (isNaN(parsed)) return 0;
-        return parsed;
-    };
     const [summary, setSummary] = useState({
         totalReports: 0,
         totalEvangelismHours: 0,
@@ -170,9 +164,7 @@ const MonthlyReport = () => {
     };
 
     const formatHours = (hours) => {
-        const h = Math.floor(hours);
-        const m = Math.round((hours - h) * 60);
-        return `${h}h ${m}m`;
+        return formatDuration(hours, { compact: true });
     };
 
     const handlePreviousMonth = () => {
@@ -551,7 +543,7 @@ const MonthlyReport = () => {
                                             <div className="space-y-1 text-sm">
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Evangelism:</span>
-                                                    <span className="font-semibold text-gray-800">{report.evangelism_hours || '0:00'}</span>
+                                                    <span className="font-semibold text-gray-800">{formatDuration(report.evangelism_hours, { compact: true })}</span>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Reached:</span>

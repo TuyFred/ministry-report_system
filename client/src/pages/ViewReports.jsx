@@ -4,6 +4,7 @@ import { API_URL } from '../utils/api';
 import { AuthContext } from '../context/AuthContext';
 import { FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaEye, FaChevronDown, FaChevronUp, FaChevronLeft, FaChevronRight, FaEdit, FaFilePdf, FaFileExcel, FaTrash, FaUser, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { formatDuration } from '../utils/time';
 
 const ViewReports = () => {
     const { user } = useContext(AuthContext);
@@ -208,26 +209,7 @@ const ViewReports = () => {
     };
 
     const formatTime = (timeValue) => {
-        // Handle if it's already a number (hours)
-        if (typeof timeValue === 'number') {
-            const hours = Math.floor(timeValue);
-            const mins = Math.round((timeValue - hours) * 60);
-            if (mins === 0) {
-                return `${hours} hrs`;
-            }
-            return `${hours} hrs ${mins} min`;
-        }
-        // Handle if it's a string number
-        const parsed = parseFloat(timeValue);
-        if (!isNaN(parsed)) {
-            const hours = Math.floor(parsed);
-            const mins = Math.round((parsed - hours) * 60);
-            if (mins === 0) {
-                return `${hours} hrs`;
-            }
-            return `${hours} hrs ${mins} min`;
-        }
-        return '0 hrs';
+        return formatDuration(timeValue, { compact: true });
     };
 
     // Pagination Logic

@@ -161,27 +161,21 @@ exports.login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        console.log('Login attempt for email:', email);
-
         // Validate input
         if (!email || !password) {
-            console.log('Missing email or password');
             return res.status(400).json({ msg: 'Please provide email and password' });
         }
 
         // Check user
-        const user = await User.findOne({ where: { email } });
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const user = await User.findOne({ where: { email: normalizedEmail } });
         if (!user) {
-            console.log('User not found:', email);
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
-
-        console.log('User found, checking password...');
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            console.log('Password mismatch for user:', email);
             return res.status(400).json({ msg: 'Invalid Credentials' });
         }
 
@@ -191,20 +185,21 @@ exports.login = async (req, res) => {
         const maintenanceFilePath = path.join(__dirname, '../maintenance.json');
         
         if (fs.existsSync(maintenanceFilePath)) {
-            const data = fs.readFileSync(maintenanceFilePath, 'utf8');
-            const maintenanceData = JSON.parse(data);
+            let maintenanceData = { isMaintenanceMode: false };
+            try {
+                maintenanceData = JSON.parse(fs.readFileSync(maintenanceFilePath, 'utf8'));
+            } catch (maintenanceError) {
+                console.error('Unable to read maintenance mode configuration:', maintenanceError.message);
+            }
             
             // If maintenance is on and user is not admin, block login
             if (maintenanceData.isMaintenanceMode && user.role !== 'admin') {
-                console.log('Login blocked during maintenance for non-admin:', email);
                 return res.status(503).json({ 
                     msg: 'System is under maintenance. Only administrators can access.',
                     maintenanceMode: true 
                 });
             }
         }
-
-        console.log('Login successful for user:', email);
 
         // Create token
         const payload = {

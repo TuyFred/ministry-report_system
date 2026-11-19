@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { FaChartLine, FaTrophy, FaExclamationTriangle, FaCheckCircle, FaCalendarCheck, FaUsers, FaFire, FaChevronLeft, FaChevronRight, FaFilePdf, FaFileExcel } from 'react-icons/fa';
+import { formatDuration } from '../utils/time';
 
 const Analytics = () => {
     const [analytics, setAnalytics] = useState(null);
@@ -308,7 +309,7 @@ const Analytics = () => {
                     <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
                         <FaChartLine className="text-3xl mb-2 opacity-80" />
                         <p className="text-sm opacity-90">Evangelism Hours</p>
-                        <p className="text-4xl font-bold">{analytics?.totalEvangelismHours || 0}</p>
+                        <p className="text-2xl sm:text-3xl font-bold break-words">{formatDuration(analytics?.totalEvangelismHours, { compact: true })}</p>
                     </div>
                     <div className="bg-gradient-to-br from-yellow-400 to-orange-600 rounded-2xl shadow-lg p-6 text-white">
                         <FaCheckCircle className="text-3xl mb-2 opacity-80" />
@@ -540,7 +541,7 @@ const Analytics = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.reportsSubmitted}</td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-bold">{member.totalEvangelismHours || 0}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-bold">{formatDuration(member.totalEvangelismHours, { compact: true })}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.currentStreak} days</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{member.lastReportDate || 'Never'}</td>
                                     </tr>
@@ -578,7 +579,7 @@ const Analytics = () => {
                                     </div>
                                     <div className="bg-white p-2 rounded border border-gray-100 col-span-2">
                                         <p className="text-xs text-gray-500">Evangelism Hours</p>
-                                        <p className="font-bold text-indigo-600">{member.totalEvangelismHours || 0}</p>
+                                        <p className="font-bold text-indigo-600">{formatDuration(member.totalEvangelismHours, { compact: true })}</p>
                                     </div>
                                 </div>
                             </div>

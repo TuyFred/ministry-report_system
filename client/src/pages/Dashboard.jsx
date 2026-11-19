@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { FaFileAlt, FaFilePdf, FaFileExcel, FaUsers, FaChartLine, FaClock, FaGlobe, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { API_URL } from '../utils/api';
 import ExportReports from '../components/ExportReports';
+import { formatDuration, parseHours } from '../utils/time';
 
 const Dashboard = () => {
     const { user } = useContext(AuthContext);
@@ -27,7 +28,7 @@ const Dashboard = () => {
                 setReports(reportsRes.data);
                 
                 // Calculate stats
-                const totalHours = reportsRes.data.reduce((sum, r) => sum + (r.evangelism_hours || 0), 0);
+                const totalHours = reportsRes.data.reduce((sum, r) => sum + parseHours(r.evangelism_hours), 0);
                 const totalReached = reportsRes.data.reduce((sum, r) => sum + (r.people_reached || 0), 0);
                 setStats({
                     totalReports: reportsRes.data.length,
@@ -119,7 +120,7 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <p className="text-purple-100 text-sm font-medium">Evangelism Hours</p>
-                            <h3 className="text-3xl font-bold mt-2">{stats.totalHours}</h3>
+                            <h3 className="text-2xl sm:text-3xl font-bold mt-2 break-words">{formatDuration(stats.totalHours, { compact: true })}</h3>
                         </div>
                         <div className="w-14 h-14 bg-white bg-opacity-20 rounded-xl flex items-center justify-center">
                             <FaClock className="text-2xl" />
@@ -205,7 +206,7 @@ const Dashboard = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                                                {report.evangelism_hours}h
+                                                {formatDuration(report.evangelism_hours, { compact: true })}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
                                                 {report.people_reached}
@@ -239,7 +240,7 @@ const Dashboard = () => {
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <div className="bg-white p-3 rounded-lg border border-gray-100">
                                             <p className="text-xs text-gray-500 mb-1">Hours</p>
-                                            <p className="font-bold text-indigo-600">{report.evangelism_hours}h</p>
+                                            <p className="font-bold text-indigo-600">{formatDuration(report.evangelism_hours, { compact: true })}</p>
                                         </div>
                                         <div className="bg-white p-3 rounded-lg border border-gray-100">
                                             <p className="text-xs text-gray-500 mb-1">Reached</p>
