@@ -37,6 +37,20 @@ const User = sequelize.define('users', {
     address: {
         type: DataTypes.STRING
     },
+    preferred_language: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'en'
+    },
+    reporting_exempt: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false
+    },
+    exemption_reason: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
     profile_image: {
         type: DataTypes.STRING
     },

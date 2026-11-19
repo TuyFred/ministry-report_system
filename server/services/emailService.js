@@ -68,7 +68,76 @@ const sendOtpEmail = async ({ email, name, otp, expiresMinutes }) => {
     return { messageId, deliveryStatus: 'queued' };
 };
 
-const sendReminderEmail = async ({ email, name, weekStart, weekEnd, submittedReports, missedReports }) => {
+const REMINDER_VERSES = [
+    { reference: 'Colossians 3:23', text: 'Whatever you do, work at it with all your heart, as working for the Lord.' },
+    { reference: '1 Thessalonians 5:11', text: 'Therefore encourage one another and build each other up.' },
+    { reference: 'Matthew 28:19', text: 'Go and make disciples of all nations.' },
+    { reference: 'Romans 12:11', text: 'Never be lacking in zeal, but keep your spiritual fervor, serving the Lord.' },
+    { reference: 'Galatians 6:9', text: 'Let us not become weary in doing good, for at the proper time we will reap a harvest.' }
+];
+
+const REMINDER_TEXT = {
+    en: {
+        greeting: 'Dear',
+        subject: 'Personal mission service report reminder',
+        intro: 'Warm greetings! We hope you are doing well.',
+        remind: 'We have not yet received your personal mission service report',
+        encouragement: 'We would love to hear about your activities and experiences in God’s work this week.',
+        verseTitle: 'A Word of Encouragement',
+        closing: 'May God continue to strengthen you and bless your service. Every effort made in His name matters!',
+        thankYou: 'Thank you for serving together with us.',
+        signoff: 'With love,',
+        team: 'The Administration Team'
+    },
+    fr: {
+        greeting: 'Cher/Chère',
+        subject: 'Rappel de rapport de service missionnaire',
+        intro: 'Chers salutations! Nous espérons que vous allez bien.',
+        remind: 'Nous n’avons pas encore reçu votre rapport personnel de service missionnaire',
+        encouragement: 'Nous aimerions connaître vos activités et expériences dans l’œuvre de Dieu cette semaine.',
+        verseTitle: 'Une parole d’encouragement',
+        closing: 'Que Dieu continue de vous fortifier et de bénir votre service. Chaque effort fait en Son nom compte!',
+        thankYou: 'Merci de servir avec nous.',
+        signoff: 'Avec amour,',
+        team: 'L’équipe administrative'
+    },
+    rw: {
+        greeting: 'Muraho',
+        subject: 'Kwibutsa gutanga raporo ya buri cyumweru',
+        intro: 'Muraho! Twizeye ko mubaye neza.',
+        remind: 'Ntabwo twakiriye raporo y’akazi ryanyu rya misiyoni',
+        encouragement: 'Twifuza kumenya ibikorwa n’uburambe bwanyu mu murimo w’Imana muri iki cyumweru.',
+        verseTitle: 'Ijambo ry’Inkuru y’Imbaraga',
+        closing: 'Imana ikomeze kubaha imbaraga kandi ihe umugisha mu murimo wanyu.',
+        thankYou: 'Murakoze gukorera hamwe natwe.',
+        signoff: 'Kubw’urukundo,',
+        team: 'Itsinda ry’Ubuyobozi'
+    }
+};
+
+const detectPreferredLanguage = ({ preferredLanguage, country }) => {
+    const configured = String(preferredLanguage || '').trim().toLower().slice(0, 2);
+    if (REMINDER_TEXT[configured]) return configured;
+    const normalizedCountry = String(country || '').trim().toLower();
+    if (normalizedCountry.includes('rwanda')) return 'rw';
+    if (normalizedCountry.includes('france') || normalizedCountry.includes('cameroon') || normalizedCountry.includes('senegal')) return 'fr';
+    return 'en';
+};
+
+const chooseReminderVerse = async (userId) => {
+    const { Op } = require('sequelize');
+    const ReportReminder = require('../models/ReportReminder');
+    const recent = await ReportReminder.findAll({
+        where: { user_id: userId, verse_reference: { [Op.ne]: null } },
+        attributes: ['verse_reference'],
+        order: [['createdAt', 'DESC']],
+        limit: 12
+    });
+    const recentReferences = new Set(recent.map(record => record.verse_reference));
+    return REMINDER_VERSES.find(verse => !recentReferences.has(verse.reference)) || REMINDER_VERSES[0];
+};
+
+const sendReminderEmail = async ({ email, name, country, preferredLanguage, weekStart, weekEnd, submittedReports, missedReports, customSubject, customMessage, verse: selectedVerse }) => {
     const apiKey = process.env.BREVO_API_KEY;
     const senderEmail = process.env.BREVO_SENDER_EMAIL;
     if (!apiKey || !senderEmail) {
@@ -78,29 +147,74 @@ const sendReminderEmail = async ({ email, name, weekStart, weekEnd, submittedRep
     }
 
     const appName = process.env.APP_NAME || 'Ministry Reports';
+    const language = detectPreferredLanguage({ preferredLanguage, country });
+    const texts = REMINDER_TEXT[language];
     const safeName = escapeHtml(name || 'Member');
     const safeWeekStart = escapeHtml(weekStart);
     const safeWeekEnd = escapeHtml(weekEnd);
+    const verse = selectedVerse || REMINDER_VERSES[0];
+    const subject = customSubject || `${texts.subject}: ${weekStart}–${weekEnd}`;
+    const defaultMessage = `${texts.greeting} ${safeName},<br><br>${texts.intro}<br><br>${texts.remind} for <strong>${safeWeekStart}–${safeWeekEnd}</strong>.<br><br>${texts.encouragement}`;
+    const htmlBody = customMessage || defaultMessage;
+    const htmlContent = `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px"><tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border-radius:16px;overflow:hidden">
+      <tr><td style="background:#4f46e5;padding:24px 32px;color:#fff;font-size:22px;font-weight:bold">${escapeHtml(appName)}</td></tr>
+      <tr><td style="padding:32px"><p style="line-height:1.7">${htmlBody}</p>
+      <div style="border-left:4px solid #6366f1;background:#eef2ff;padding:16px;margin:20px 0"><strong>${texts.verseTitle}</strong><br><em>“${escapeHtml(verse.text)}” — ${verse.reference}</em></div>
+      <p>${texts.closing}</p><p>${texts.thankYou}</p><p>${texts.signoff}<br><strong>${texts.team}</strong></p></td></tr></table></td></tr></table></body></html>`;
     const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
         sender: {
             email: senderEmail,
             name: process.env.BREVO_SENDER_NAME || appName
         },
         to: [{ email, name: name || undefined }],
-        subject: `Weekly report reminder: ${weekStart} to ${weekEnd}`,
-        htmlContent: `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px"><tr><td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fff;border-radius:16px">
-          <tr><td style="background:#4f46e5;padding:24px 32px;color:#fff;font-size:22px;font-weight:bold">${escapeHtml(appName)}</td></tr>
-          <tr><td style="padding:32px"><h1 style="margin-top:0">Your weekly report is incomplete</h1>
-          <p>Hello ${safeName},</p><p>The reporting week <strong>${safeWeekStart}</strong> to <strong>${safeWeekEnd}</strong> has ended. You submitted <strong>${submittedReports}</strong> report(s), with <strong>${missedReports}</strong> reporting day(s) missing.</p>
-          <p>Please submit the remaining reports as soon as possible.</p></td></tr></table></td></tr></table></body></html>`,
-        textContent: `Hello ${name || 'Member'}, your reporting week (${weekStart} to ${weekEnd}) is incomplete. Submitted: ${submittedReports}. Missing: ${missedReports}. Please submit the remaining reports.`
+        subject,
+        htmlContent,
+        textContent: `${texts.greeting} ${name || 'Member'}, ${texts.remind} ${weekStart}–${weekEnd}. Submitted: ${submittedReports}. Missing: ${missedReports}. ${texts.closing}`
     }, {
         headers: { 'api-key': apiKey, accept: 'application/json', 'content-type': 'application/json' },
         timeout: 15000
     });
-    return { messageId: response.data?.messageId || null, deliveryStatus: 'queued' };
+    return { messageId: response.data?.messageId || null, deliveryStatus: 'queued', language, verse, subject, htmlContent };
 };
 
-module.exports = { sendOtpEmail, sendReminderEmail };
+const sendLeaderSummaryEmail = async ({ email, name, country, weekStart, weekEnd, expectedMembers, submittedReports, missingMembers, customSubject, customMessage }) => {
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
+    if (!apiKey || !senderEmail) {
+        const error = new Error('Brevo email is not configured.');
+        error.code = 'EMAIL_NOT_CONFIGURED';
+        throw error;
+    }
+    const missedCount = missingMembers.length;
+    const completionRate = expectedMembers > 0 ? Math.round((submittedReports / expectedMembers) * 100) : 0;
+    const verse = REMINDER_VERSES[1];
+    const subject = customSubject || `Weekly reporting update for ${country}`;
+    const rows = missingMembers.map((member, index) =>
+        `<tr><td style="padding:8px;border:1px solid #e5e7eb">${index + 1}</td><td style="padding:8px;border:1px solid #e5e7eb">${escapeHtml(member.fullname)}</td><td style="padding:8px;border:1px solid #e5e7eb"><a href="mailto:${escapeHtml(member.email)}">${escapeHtml(member.email)}</a></td></tr>`
+    ).join('');
+    const summaryMessage = customMessage || `Dear ${escapeHtml(name || 'Country Leader')},<br><br>Here is the weekly reporting update for <strong>${escapeHtml(country)}</strong>.`;
+    const htmlContent = `<!doctype html><html><body style="margin:0;background:#f3f4f6;font-family:Arial,sans-serif;color:#1f2937">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:32px 12px"><tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#fff;border-radius:16px;overflow:hidden">
+      <tr><td style="background:#4f46e5;padding:24px 32px;color:#fff;font-size:22px;font-weight:bold">Ministry Report System</td></tr>
+      <tr><td style="padding:32px"><p style="line-height:1.7">${summaryMessage}</p><p><strong>Reporting period:</strong> ${escapeHtml(weekStart)}–${escapeHtml(weekEnd)}</p>
+      <h3>Reporting Summary</h3><ul><li>Expected members: ${expectedMembers}</li><li>Submitted reports: ${submittedReports}</li><li>Missing reports: ${missedCount}</li><li>Completion rate: ${completionRate}%</li></ul>
+      ${missedCount > 0 ? `<h3>Members Who Have Not Reported</h3><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse"><thead><tr><th style="padding:8px;border:1px solid #e5e7eb;text-align:left">No.</th><th style="padding:8px;border:1px solid #e5e7eb;text-align:left">Member</th><th style="padding:8px;border:1px solid #e5e7eb;text-align:left">Email</th></tr></thead><tbody>${rows}</tbody></table>` : '<p>All expected members submitted a report.</p>'}
+      <div style="border-left:4px solid #6366f1;background:#eef2ff;padding:16px;margin:20px 0"><strong>Word of God:</strong><br><em>“${escapeHtml(verse.text)}” — ${verse.reference}</em></div>
+      <p>With appreciation,<br><strong>The Administration Team</strong></p></td></tr></table></td></tr></table></body></html>`;
+    const response = await axios.post('https://api.brevo.com/v3/smtp/email', {
+        sender: { email: senderEmail, name: process.env.BREVO_SENDER_NAME || 'Ministry Reports' },
+        to: [{ email, name: name || undefined }],
+        subject,
+        htmlContent,
+        textContent: `Reporting update for ${country}, ${weekStart}–${weekEnd}. Expected: ${expectedMembers}. Submitted: ${submittedReports}. Missing: ${missedCount}. Completion: ${completionRate}%`
+    }, {
+        headers: { 'api-key': apiKey, accept: 'application/json', 'content-type': 'application/json' },
+        timeout: 15000
+    });
+    return { messageId: response.data?.messageId || null, deliveryStatus: 'queued', language: 'en', subject, htmlContent };
+};
+
+module.exports = { sendOtpEmail, sendReminderEmail, sendLeaderSummaryEmail, detectPreferredLanguage, chooseReminderVerse, REMINDER_VERSES };

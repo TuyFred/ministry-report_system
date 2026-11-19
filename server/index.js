@@ -138,19 +138,21 @@ const runAutomaticWeeklyReminders = async () => {
     try {
         const now = new Date();
         if (now.getUTCDay() !== 0) return;
+        const configuredHour = Number(process.env.WEEKLY_REMINDER_HOUR_UTC);
+        if (Number.isFinite(configuredHour) && now.getUTCHours() < configuredHour) return;
 
         const { Op } = require('sequelize');
         const Report = require('./models/Report');
         const User = require('./models/User');
         const ReportReminder = require('./models/ReportReminder');
-        const { sendReminderEmail } = require('./services/emailService');
+        const { sendReminderEmail, sendLeaderSummaryEmail, detectPreferredLanguage, chooseReminderVerse } = require('./services/emailService');
         const weekEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1));
         const weekStart = new Date(weekEnd);
         weekStart.setUTCDate(weekEnd.getUTCDate() - 6);
         const start = weekStart.toISOString().split('T')[0];
         const end = weekEnd.toISOString().split('T')[0];
 
-        const users = await User.findAll({ where: { role: { [Op.ne]: 'admin' } } });
+        const users = await User.findAll({ where: { role: { [Op.ne]: 'admin' }, reporting_exempt: { [Op.ne]: true } } });
         for (const user of users) {
             const reports = await Report.findAll({
                 attributes: ['date'],
@@ -173,22 +175,92 @@ const runAutomaticWeeklyReminders = async () => {
             if (reminder.sent_at) continue;
 
             try {
+                const language = detectPreferredLanguage({ preferredLanguage: user.preferred_language, country: user.country });
+                const verse = await chooseReminderVerse(user.id);
                 const delivery = await sendReminderEmail({
                     email: user.email,
                     name: user.fullname,
+                    country: user.country,
+                    preferredLanguage: language,
                     weekStart: start,
                     weekEnd: end,
                     submittedReports: submitted,
-                    missedReports: 7 - submitted
+                    missedReports: 7 - submitted,
+                    verse
                 });
                 await reminder.update({
                     email_status: delivery.deliveryStatus,
                     message_id: delivery.messageId,
-                    sent_at: new Date()
+                    sent_at: new Date(),
+                    recipient_type: 'member',
+                    recipient_id: user.id,
+                    country: user.country,
+                    language: delivery.language,
+                    subject: delivery.subject,
+                    message_html: delivery.htmlContent,
+                    verse_reference: delivery.verse.reference,
+                    verse_text: delivery.verse.text
                 });
             } catch (error) {
                 await reminder.update({ email_status: 'failed', sent_at: new Date() });
                 console.error(`Weekly reminder failed for ${user.email}:`, error.message);
+            }
+        }
+
+        const leaders = await User.findAll({ where: { role: 'leader', reporting_exempt: { [Op.ne]: true } } });
+        for (const leader of leaders) {
+            const countryUsers = await User.findAll({
+                where: { country: leader.country, role: { [Op.ne]: 'admin' }, reporting_exempt: { [Op.ne]: true } }
+            });
+            const missingMembers = [];
+            let submittedCount = 0;
+            for (const member of countryUsers) {
+                const reportCount = await Report.count({
+                    where: { user_id: member.id, date: { [Op.between]: [start, end] } }
+                });
+                if (reportCount > 0) submittedCount++;
+                else missingMembers.push({ fullname: member.fullname, email: member.email });
+            }
+            const existing = await ReportReminder.findOne({
+                where: { recipient_type: 'leader-summary', recipient_id: leader.id, week_start: start, week_end: end }
+            });
+            if (existing?.sent_at) continue;
+            const [summary] = await ReportReminder.findOrCreate({
+                where: { recipient_type: 'leader-summary', recipient_id: leader.id, week_start: start, week_end: end },
+                defaults: {
+                    user_id: leader.id,
+                    recipient_type: 'leader-summary',
+                    recipient_id: leader.id,
+                    country: leader.country,
+                    language: 'en',
+                    week_start: start,
+                    week_end: end,
+                    expected_reports: countryUsers.length,
+                    submitted_reports: submittedCount,
+                    missed_reports: missingMembers.length
+                }
+            });
+            try {
+                const delivery = await sendLeaderSummaryEmail({
+                    email: leader.email,
+                    name: leader.fullname,
+                    country: leader.country,
+                    weekStart: start,
+                    weekEnd: end,
+                    expectedMembers: countryUsers.length,
+                    submittedReports: submittedCount,
+                    missingMembers
+                });
+                await summary.update({
+                    email_status: delivery.deliveryStatus,
+                    message_id: delivery.messageId,
+                    sent_at: new Date(),
+                    subject: delivery.subject,
+                    message_html: delivery.htmlContent
+                });
+            } catch (error) {
+                await summary.update({ email_status: 'failed', sent_at: new Date() });
+                console.error(`Leader summary failed for ${leader.email}:`, error.message);
             }
         }
     } catch (error) {

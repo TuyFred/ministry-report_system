@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { API_URL } from '../utils/api';
 import { FaChartLine, FaTrophy, FaExclamationTriangle, FaCheckCircle, FaCalendarCheck, FaUsers, FaFire, FaChevronLeft, FaChevronRight, FaFilePdf, FaFileExcel, FaEnvelope, FaFilter } from 'react-icons/fa';
 import { formatDuration } from '../utils/time';
+import { AuthContext } from '../context/AuthContext';
 
 const Analytics = () => {
+    const { user } = useContext(AuthContext);
     const [analytics, setAnalytics] = useState(null);
     const [members, setMembers] = useState([]);
     const [reports, setReports] = useState([]);
@@ -15,6 +17,12 @@ const Analytics = () => {
     const [completionFilter, setCompletionFilter] = useState('all');
     const [reminders, setReminders] = useState([]);
     const [sendingReminders, setSendingReminders] = useState(false);
+    const [reminderMode, setReminderMode] = useState('bulk');
+    const [selectedMemberId, setSelectedMemberId] = useState('');
+    const [forceReminder, setForceReminder] = useState(false);
+    const [reminderSubject, setReminderSubject] = useState('');
+    const [reminderMessage, setReminderMessage] = useState('');
+    const [reminderPreview, setReminderPreview] = useState([]);
 
     // Pagination State
     const [countryPage, setCountryPage] = useState(1);
@@ -41,12 +49,34 @@ const Analytics = () => {
         }
     };
 
+    const previewWeeklyReminders = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.post(`${API_URL}/api/reports/reminders/send`, {
+                recipientMode: reminderMode,
+                userId: reminderMode === 'individual' ? selectedMemberId : undefined,
+                preview: true,
+                customSubject: reminderSubject || undefined,
+                customMessage: reminderMessage || undefined
+            }, { headers: { 'x-auth-token': token } });
+            setReminderPreview(response.data.sent || []);
+        } catch (error) {
+            alert(error.response?.data?.msg || 'Unable to preview reminders.');
+        }
+    };
+
     const sendWeeklyReminders = async () => {
         if (!window.confirm('Send reminders to every member with missed reports for the previous week?')) return;
         setSendingReminders(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.post(`${API_URL}/api/reports/reminders/send`, {}, {
+            const response = await axios.post(`${API_URL}/api/reports/reminders/send`, {
+                recipientMode: reminderMode,
+                userId: reminderMode === 'individual' ? selectedMemberId : undefined,
+                force: forceReminder,
+                customSubject: reminderSubject || undefined,
+                customMessage: reminderMessage || undefined
+            }, {
                 headers: { 'x-auth-token': token }
             });
             await fetchReminders();
@@ -426,6 +456,76 @@ const Analytics = () => {
                             Clear Filters
                         </button>
                     </div>
+                    <div className="mt-5 border-t border-gray-200 pt-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <FaEnvelope className="text-red-600" />
+                            <h3 className="text-lg font-bold text-gray-800">Weekly Reminder Control</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <select
+                                value={reminderMode}
+                                onChange={event => setReminderMode(event.target.value)}
+                                className="px-3 py-2 border border-gray-300 rounded-lg"
+                            >
+                                <option value="bulk">All missing members</option>
+                                <option value="individual">One member</option>
+                                {user?.role === 'admin' && <option value="leader-summaries">Country leaders</option>}
+                                {user?.role === 'leader' && <option value="leader-summaries">My country leader summary</option>}
+                            </select>
+                            {reminderMode === 'individual' && (
+                                <select
+                                    value={selectedMemberId}
+                                    onChange={event => setSelectedMemberId(event.target.value)}
+                                    className="px-3 py-2 border border-gray-300 rounded-lg"
+                                >
+                                    <option value="">Select a member</option>
+                                    {(analytics?.allStats || []).filter(member => member.role !== 'admin').map(member => (
+                                        <option key={member.id} value={member.id}>{member.fullname} — {member.country}</option>
+                                    ))}
+                                </select>
+                            )}
+                            <input
+                                value={reminderSubject}
+                                onChange={event => setReminderSubject(event.target.value)}
+                                placeholder="Optional custom subject"
+                                className="px-3 py-2 border border-gray-300 rounded-lg md:col-span-2"
+                            />
+                            <textarea
+                                value={reminderMessage}
+                                onChange={event => setReminderMessage(event.target.value)}
+                                placeholder="Optional custom message. You can edit it before approval."
+                                rows={3}
+                                className="px-3 py-2 border border-gray-300 rounded-lg md:col-span-2 lg:col-span-4"
+                            />
+                        </div>
+                        <label className="flex items-center gap-2 mt-3 text-sm text-gray-700">
+                            <input type="checkbox" checked={forceReminder} onChange={event => setForceReminder(event.target.checked)} />
+                            Allow an additional reminder for a period already contacted
+                        </label>
+                        <div className="flex flex-wrap gap-3 mt-4">
+                            <button type="button" onClick={previewWeeklyReminders} className="px-4 py-2 bg-gray-800 text-white rounded-lg font-semibold">
+                                Preview
+                            </button>
+                            <button
+                                type="button"
+                                onClick={sendWeeklyReminders}
+                                disabled={sendingReminders || (reminderMode === 'individual' && !selectedMemberId)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold disabled:opacity-60"
+                            >
+                                {sendingReminders ? 'Sending...' : 'Approve & Send via Brevo'}
+                            </button>
+                        </div>
+                        {reminderPreview.length > 0 && (
+                            <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+                                <p className="font-bold text-indigo-900 mb-2">Preview ({reminderPreview.length} recipient(s))</p>
+                                {reminderPreview.slice(0, 10).map(item => (
+                                    <div key={item.id || item.leaderId} className="text-sm text-gray-700 py-1">
+                                        {item.fullname || item.email} — {item.country || 'Member'} — {item.language || 'en'}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <div className="flex flex-wrap gap-3 mt-4">
                         <button
                             type="button"
@@ -440,15 +540,6 @@ const Analytics = () => {
                             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-semibold"
                         >
                             Download Country Performance
-                        </button>
-                        <button
-                            type="button"
-                            onClick={sendWeeklyReminders}
-                            disabled={sendingReminders}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold flex items-center gap-2 disabled:opacity-60"
-                        >
-                            <FaEnvelope />
-                            {sendingReminders ? 'Sending...' : 'Send Missed-Week Emails'}
                         </button>
                     </div>
                 </div>
@@ -466,6 +557,8 @@ const Analytics = () => {
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Member</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Email</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Country</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Recipient</th>
+                                        <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Language</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Week</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Missing</th>
                                         <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase">Status</th>
@@ -477,6 +570,8 @@ const Analytics = () => {
                                             <td className="px-4 py-3 text-sm font-medium text-gray-900">{reminder.User?.fullname || 'Unknown member'}</td>
                                             <td className="px-4 py-3 text-sm text-gray-600">{reminder.User?.email || 'N/A'}</td>
                                             <td className="px-4 py-3 text-sm text-gray-600">{reminder.User?.country || 'N/A'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{reminder.recipient_type || 'member'}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{reminder.language || 'en'}</td>
                                             <td className="px-4 py-3 text-sm text-gray-600">{reminder.week_start} to {reminder.week_end}</td>
                                             <td className="px-4 py-3 text-sm text-red-700 font-semibold">{reminder.missed_reports} days</td>
                                             <td className="px-4 py-3">

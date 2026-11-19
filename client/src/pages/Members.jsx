@@ -26,7 +26,10 @@ const Members = () => {
     role: 'member',
     country: '',
     contact: '',
-    address: ''
+    address: '',
+    preferred_language: 'en',
+    reporting_exempt: false,
+    exemption_reason: ''
   });
 
   const fetchMembers = async () => {
@@ -110,7 +113,10 @@ const Members = () => {
       role: member.role,
       country: member.country,
       contact: member.contact || '',
-      address: member.address || ''
+      address: member.address || '',
+      preferred_language: member.preferred_language || 'en',
+      reporting_exempt: Boolean(member.reporting_exempt),
+      exemption_reason: member.exemption_reason || ''
     });
     setShowModal(true);
   };
@@ -124,7 +130,10 @@ const Members = () => {
         role: 'member', 
         country: user.role === 'leader' ? user.country : '', 
         contact: '', 
-        address: '' 
+        address: '',
+        preferred_language: 'en',
+        reporting_exempt: false,
+        exemption_reason: ''
     });
     setShowModal(true);
   };
@@ -132,7 +141,7 @@ const Members = () => {
   const closeModal = () => {
     setShowModal(false);
     setEditingUser(null);
-    setFormData({ fullname: '', email: '', password: '', role: 'member', country: '', contact: '', address: '' });
+    setFormData({ fullname: '', email: '', password: '', role: 'member', country: '', contact: '', address: '', preferred_language: 'en', reporting_exempt: false, exemption_reason: '' });
   };
 
   if (loading) return <div>Loading...</div>;
@@ -254,6 +263,42 @@ const Members = () => {
                         <input type="text" className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500"
                             value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} />
                     </div>
+                    <div className="col-span-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Reminder Language</label>
+                        <select
+                            className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500"
+                            value={formData.preferred_language}
+                            onChange={e => setFormData({ ...formData, preferred_language: e.target.value })}
+                        >
+                            <option value="en">English</option>
+                            <option value="fr">French</option>
+                            <option value="rw">Kinyarwanda</option>
+                        </select>
+                    </div>
+                    <label className="col-span-1 md:col-span-2 flex items-start gap-3 p-3 border rounded-xl bg-gray-50">
+                        <input
+                            type="checkbox"
+                            checked={formData.reporting_exempt}
+                            onChange={e => setFormData({ ...formData, reporting_exempt: e.target.checked })}
+                            className="mt-1"
+                        />
+                        <span>
+                            <span className="block text-sm font-medium text-gray-800">Exclude from weekly reporting</span>
+                            <span className="block text-xs text-gray-500">Use for leave, inactive members, or members not required to report.</span>
+                        </span>
+                    </label>
+                    {formData.reporting_exempt && (
+                        <div className="col-span-1 md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Exemption Reason</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500"
+                                placeholder="Leave, inactive, transfer, etc."
+                                value={formData.exemption_reason}
+                                onChange={e => setFormData({ ...formData, exemption_reason: e.target.value })}
+                            />
+                        </div>
+                    )}
                     </div>
                     <div className="mt-6 flex justify-end gap-3">
                         <button type="button" onClick={closeModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded border">Cancel</button>

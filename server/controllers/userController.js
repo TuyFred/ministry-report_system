@@ -7,7 +7,7 @@ const { requestOtp, consumeOtp } = require('../services/otpService');
 // Create a new user (Admin creates Leader, Leader creates Member)
 exports.createUser = async (req, res) => {
     try {
-        const { fullname, email, password, role, country, contact, address } = req.body;
+        const { fullname, email, password, role, country, contact, address, preferred_language, reporting_exempt, exemption_reason } = req.body;
         const requestingUser = req.user;
 
         // Authorization checks
@@ -63,7 +63,10 @@ exports.createUser = async (req, res) => {
             role,
             country,
             contact,
-            address
+            address,
+            preferred_language: preferred_language || 'en',
+            reporting_exempt: Boolean(reporting_exempt),
+            exemption_reason: reporting_exempt ? (exemption_reason || null) : null
         });
 
         res.json(user);
@@ -158,7 +161,7 @@ exports.updateProfileImage = async (req, res) => {
 // Update User
 exports.updateUser = async (req, res) => {
     try {
-        const { fullname, email, role, country, contact, address } = req.body;
+        const { fullname, email, role, country, contact, address, preferred_language, reporting_exempt, exemption_reason } = req.body;
         const user = await User.findByPk(req.params.id);
         
         if (!user) return res.status(404).json({ msg: 'User not found' });
@@ -205,6 +208,11 @@ exports.updateUser = async (req, res) => {
         }
         user.contact = contact || user.contact;
         user.address = address || user.address;
+        if (preferred_language) user.preferred_language = preferred_language;
+        if (typeof reporting_exempt === 'boolean') {
+            user.reporting_exempt = reporting_exempt;
+            user.exemption_reason = reporting_exempt ? (exemption_reason || null) : null;
+        }
 
         await user.save();
         res.json(user);

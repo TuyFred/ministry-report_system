@@ -110,10 +110,23 @@ const consumeOtp = async ({ email, purpose, otp, transaction }) => {
 const recordDeliveryEvent = async ({ messageId, event }) => {
     if (!messageId) return false;
     const record = await EmailOtp.findOne({ where: { messageId } });
-    if (!record) return false;
-    await record.update({ deliveryStatus: event });
-    console.info('Brevo delivery status updated', { messageId, event });
-    return true;
+    if (record) {
+        await record.update({ deliveryStatus: event });
+    }
+    const ReportReminder = require('../models/ReportReminder');
+    const reminder = await ReportReminder.findOne({ where: { message_id: messageId } });
+    if (reminder) {
+        const events = Array.isArray(reminder.delivery_events) ? reminder.delivery_events : [];
+        await reminder.update({
+            email_status: event,
+            delivery_events: [...events, { event, receivedAt: new Date().toISOString() }]
+        });
+    }
+    if (record || reminder) {
+        console.info('Brevo delivery status updated', { messageId, event });
+        return true;
+    }
+    return false;
 };
 
 module.exports = { requestOtp, consumeOtp, recordDeliveryEvent };

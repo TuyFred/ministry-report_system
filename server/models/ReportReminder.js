@@ -47,6 +47,53 @@ const ReportReminder = sequelize.define('report_reminders', {
     sent_at: {
         type: DataTypes.DATE,
         allowNull: true
+    },
+    recipient_type: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'member'
+    },
+    recipient_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    country: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    language: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'en'
+    },
+    subject: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    message_html: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    message_text: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    verse_reference: {
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    verse_text: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    },
+    sent_by: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    delivery_events: {
+        type: DataTypes.JSON,
+        allowNull: false,
+        defaultValue: []
     }
 }, {
     timestamps: true
