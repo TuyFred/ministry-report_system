@@ -25,14 +25,14 @@ const FIELD_DEFS = [
     { key: 'name', label: 'Name' },
     { key: 'country', label: 'Country' },
     { key: 'church', label: 'Church' },
-    { key: 'evangelism_hours', label: 'Evangelism Hours' },
+    { key: 'evangelism_hours', label: 'Evangelism Time' },
     { key: 'people_reached', label: 'People Reached' },
     { key: 'contacts_received', label: 'Contacts Received' },
     { key: 'newcomers', label: 'Newcomers' },
     { key: 'bible_study_sessions', label: 'Bible Study Sessions' },
     { key: 'bible_study_attendants', label: 'Bible Study Attendants' },
-    { key: 'meditation_hours', label: 'Bible Reading and Meditation (Hours)' },
-    { key: 'prayer_hours', label: 'Prayer (Hours)' },
+    { key: 'meditation_hours', label: 'Bible Reading and Meditation Time' },
+    { key: 'prayer_hours', label: 'Prayer Time' },
     { key: 'regular_service', label: 'Service Attendance' },
     { key: 'sermons_listened', label: 'Sermons Listened' },
     { key: 'articles_written', label: 'Articles Written' },
@@ -45,14 +45,14 @@ const DEFAULT_FIELD_META = {
     name: { label: 'Name', placeholder: 'Your Full Name' },
     country: { label: 'Country', placeholder: 'Search or select a country' },
     church: { label: 'Church Currently Serving At', placeholder: 'Church Name' },
-    evangelism_hours: { label: 'Evangelism Hours', placeholder: 'Enter Hours' },
+    evangelism_hours: { label: 'Evangelism Time', placeholder: 'Enter hours and minutes' },
     people_reached: { label: 'People Reached', placeholder: 'Input Number' },
     contacts_received: { label: 'Contacts Received', placeholder: 'Input Number' },
     newcomers: { label: 'Newcomers', placeholder: 'Input Number' },
     bible_study_sessions: { label: 'Bible Study Sessions', placeholder: 'Number of Sessions' },
     bible_study_attendants: { label: 'Bible Study Attendants', placeholder: 'Input Number' },
-    meditation_hours: { label: 'Bible Reading and Meditation (Hours)', placeholder: 'Enter Hours' },
-    prayer_hours: { label: 'Prayer (Hours)', placeholder: 'Enter Hours' },
+    meditation_hours: { label: 'Bible Reading and Meditation Time', placeholder: 'Enter hours and minutes' },
+    prayer_hours: { label: 'Prayer Time', placeholder: 'Enter hours and minutes' },
     regular_service: { label: 'Regular Service Type(s) - Select all that apply', placeholder: '' },
     sermons_listened: { label: 'Sermons or Bible Study Listened To', placeholder: 'Input Number' },
     articles_written: { label: 'Articles Written', placeholder: 'Input Number' },
@@ -825,7 +825,7 @@ const ReportManager = () => {
                                         if (key === 'ministryActivities') {
                                             return (
                                                 <SectionPreview key={key} title={section?.label || key}>
-                                                    <PreviewField label={fieldText.label('evangelism_hours', 'Evangelism Hours')} placeholder={fieldText.placeholder('evangelism_hours', 'Enter Hours')} />
+                                                    <PreviewField label={fieldText.label('evangelism_hours', 'Evangelism Time')} placeholder={fieldText.placeholder('evangelism_hours', 'Hours and minutes')} />
                                                     <PreviewField label={fieldText.label('people_reached', 'People Reached')} placeholder={fieldText.placeholder('people_reached', 'Input Number')} />
                                                     <PreviewField label={fieldText.label('contacts_received', 'Contacts Received')} placeholder={fieldText.placeholder('contacts_received', 'Input Number')} />
                                                     <PreviewField label={fieldText.label('newcomers', 'Newcomers')} placeholder={fieldText.placeholder('newcomers', 'Input Number')} />
@@ -843,8 +843,8 @@ const ReportManager = () => {
                                         if (key === 'spiritualDiscipline') {
                                             return (
                                                 <SectionPreview key={key} title={section?.label || key}>
-                                                    <PreviewField label={fieldText.label('meditation_hours', 'Bible Reading and Meditation (Hours)')} placeholder={fieldText.placeholder('meditation_hours', 'Enter Hours')} />
-                                                    <PreviewField label={fieldText.label('prayer_hours', 'Prayer (Hours)')} placeholder={fieldText.placeholder('prayer_hours', 'Enter Hours')} />
+                                                    <PreviewField label={fieldText.label('meditation_hours', 'Bible Reading and Meditation Time')} placeholder={fieldText.placeholder('meditation_hours', 'Hours and minutes')} />
+                                                    <PreviewField label={fieldText.label('prayer_hours', 'Prayer Time')} placeholder={fieldText.placeholder('prayer_hours', 'Hours and minutes')} />
                                                 </SectionPreview>
                                             );
                                         }

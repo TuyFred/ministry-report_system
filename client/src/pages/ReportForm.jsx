@@ -5,6 +5,78 @@ import { FaCalendarAlt, FaChurch, FaUser, FaClock, FaUsers, FaBook, FaPray, FaDu
 import { API_URL } from '../utils/api';
 import CountrySelect from '../components/CountrySelect';
 
+const DurationField = ({ label, value, onChange, required = false, accent = 'indigo' }) => {
+    const [hoursText, minutesText] = String(value || '').includes(':')
+        ? String(value).split(':')
+        : ['', ''];
+    const hours = hoursText === '' ? '' : Number(hoursText);
+    const minutes = minutesText === '' ? '' : Number(minutesText);
+    const validMinutes = minutes === '' || (Number.isFinite(minutes) && minutes >= 0 && minutes <= 59);
+    const validHours = hours === '' || (Number.isFinite(hours) && hours >= 0 && hours <= 999);
+    const totalMinutes = ((validHours && hours !== '' ? hours : 0) * 60) + (validMinutes && minutes !== '' ? minutes : 0);
+
+    const updateDuration = (nextHours, nextMinutes) => {
+        const hasHours = nextHours !== '';
+        const hasMinutes = nextMinutes !== '';
+        if (!hasHours && !hasMinutes) {
+            onChange('');
+            return;
+        }
+        onChange(`${hasHours ? String(Number(nextHours) || 0) : '0'}:${hasMinutes ? String(nextMinutes).padStart(2, '0') : '00'}`);
+    };
+
+    const preview = totalMinutes > 0
+        ? `${Math.floor(totalMinutes / 60)} hr ${totalMinutes % 60} min`
+        : '0 hr 0 min';
+
+    const accentClasses = accent === 'purple'
+        ? 'focus:border-purple-500'
+        : accent === 'green'
+            ? 'focus:border-green-500'
+            : 'focus:border-indigo-500';
+
+    return (
+        <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-3">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                <div>
+                    <span className="block text-xs font-medium text-gray-500 mb-1">Hours</span>
+                    <input
+                        type="number"
+                        min="0"
+                        max="999"
+                        value={hoursText}
+                        onChange={(event) => updateDuration(event.target.value, minutesText)}
+                        required={required}
+                        placeholder="0"
+                        className={`w-full px-3 py-3 text-center border-2 border-gray-300 rounded-xl bg-white focus:outline-none ${accentClasses}`}
+                    />
+                </div>
+                <div>
+                    <span className="block text-xs font-medium text-gray-500 mb-1">Minutes</span>
+                    <input
+                        type="number"
+                        min="0"
+                        max="59"
+                        value={minutesText}
+                        onChange={(event) => updateDuration(hoursText, event.target.value)}
+                        required={required}
+                        placeholder="00"
+                        className={`w-full px-3 py-3 text-center border-2 border-gray-300 rounded-xl bg-white focus:outline-none ${accentClasses}`}
+                    />
+                </div>
+                <div className="hidden sm:block px-3 py-3 text-sm font-bold text-indigo-700 bg-indigo-50 rounded-xl whitespace-nowrap">
+                    {preview}
+                </div>
+            </div>
+            <div className="sm:hidden mt-2 text-sm font-bold text-indigo-700">{preview}</div>
+            {(!validHours || !validMinutes) && (
+                <p className="mt-2 text-xs font-semibold text-red-600">Use 0-999 hours and 00-59 minutes.</p>
+            )}
+        </div>
+    );
+};
+
 const ReportForm = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -26,13 +98,16 @@ const ReportForm = () => {
         country: '',
         church: '',
         evangelism_hours: '',
+        evangelism_hours_hhmm: '',
         people_reached: '',
         contacts_received: '',
         bible_study_sessions: '',
         bible_study_attendants: '',
         newcomers: '',
         meditation_hours: '',
+        meditation_hours_hhmm: '',
         prayer_hours: '',
+        prayer_hours_hhmm: '',
         morning_service: 'No',
         regular_service: [],
         sermons_listened: '',
@@ -68,9 +143,9 @@ const ReportForm = () => {
         ],
         requiredFields: [
             'date', 'name', 'country', 'church',
-            'evangelism_hours', 'people_reached', 'contacts_received',
+            'evangelism_hours_hhmm', 'people_reached', 'contacts_received',
             'bible_study_sessions', 'bible_study_attendants',
-            'newcomers', 'meditation_hours', 'prayer_hours',
+            'newcomers', 'meditation_hours_hhmm', 'prayer_hours_hhmm',
             'sermons_listened', 'articles_written'
         ]
     }), []);
@@ -259,6 +334,15 @@ const ReportForm = () => {
         return hours + (minutes / 60);
     };
 
+    const formatHoursToHHMM = (value) => {
+        const numericValue = Number(value);
+        if (!Number.isFinite(numericValue) || numericValue < 0) return '';
+        const totalMinutes = Math.max(0, Math.round(numericValue * 60));
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours}:${String(minutes).padStart(2, '0')}`;
+    };
+
     // Check if selected date is weekend (Saturday or Sunday) and check for existing reports
     useEffect(() => {
         if (formData.date) {
@@ -310,13 +394,16 @@ const ReportForm = () => {
                 country: editReport.country || '',
                 church: editReport.church || '',
                 evangelism_hours: editReport.evangelism_hours?.toString() || '',
+                evangelism_hours_hhmm: formatHoursToHHMM(editReport.evangelism_hours),
                 people_reached: editReport.people_reached?.toString() || '',
                 contacts_received: editReport.contacts_received?.toString() || '',
                 bible_study_sessions: editReport.bible_study_sessions?.toString() || '',
                 bible_study_attendants: editReport.bible_study_attendants?.toString() || '',
                 newcomers: editReport.newcomers?.toString() || '',
                 meditation_hours: editReport.meditation_time?.toString() || '',
+                meditation_hours_hhmm: formatHoursToHHMM(editReport.meditation_time),
                 prayer_hours: editReport.prayer_time?.toString() || '',
+                prayer_hours_hhmm: formatHoursToHHMM(editReport.prayer_time),
                 morning_service: editReport.morning_service || 'No',
                 regular_service: editReport.regular_service ? (typeof editReport.regular_service === 'string' ? editReport.regular_service.split(',').map(s => s.trim()) : []) : [],
                 sermons_listened: editReport.sermons_listened?.toString() || '',
@@ -345,7 +432,12 @@ const ReportForm = () => {
                     : defaultWeekdayConfig.requiredFields));
 
         const allRequiredFilled = requiredFields.every(field => {
-            const value = formData[field];
+            const normalizedField =
+                field === 'evangelism_hours' ? 'evangelism_hours_hhmm'
+                    : field === 'meditation_hours' ? 'meditation_hours_hhmm'
+                        : field === 'prayer_hours' ? 'prayer_hours_hhmm'
+                            : field;
+            const value = formData[normalizedField];
             if (Array.isArray(value)) {
                 return value.length > 0;
             }
@@ -354,7 +446,12 @@ const ReportForm = () => {
 
         const prayerOk = !isSaturday || countNonEmptyLines(formData.prayer_requests) <= 3;
         const exerciseOk = !isSaturday || isValidDurationHHMM(formData.exercise_time_hhmm);
-        setIsFormValid(allRequiredFilled && prayerOk && exerciseOk);
+        const weekdayDurationOk = isSaturday || isSunday || (
+            isValidDurationHHMM(formData.evangelism_hours_hhmm) &&
+            (!showSection('spiritualDiscipline') ||
+                (isValidDurationHHMM(formData.meditation_hours_hhmm) && isValidDurationHHMM(formData.prayer_hours_hhmm)))
+        );
+        setIsFormValid(allRequiredFilled && prayerOk && exerciseOk && weekdayDurationOk);
     }, [formData, isSaturday, isSunday, dayConfig, defaultSaturdayConfig, defaultSundayConfig, defaultWeekdayConfig]);
 
     const onChange = e => {
@@ -397,6 +494,19 @@ const ReportForm = () => {
             return;
         }
 
+        if (!isSaturday && !isSunday) {
+            const weekdayDurations = [
+                ['Evangelism', formData.evangelism_hours_hhmm],
+                ['Meditation', formData.meditation_hours_hhmm],
+                ['Prayer', formData.prayer_hours_hhmm]
+            ];
+            const invalidDuration = weekdayDurations.find(([, value]) => !isValidDurationHHMM(value));
+            if (invalidDuration) {
+                alert(`${invalidDuration[0]} time must include valid hours and minutes (00-59).`);
+                return;
+            }
+        }
+
         if (!isFormValid) {
             alert('Please fill all required fields');
             return;
@@ -405,11 +515,14 @@ const ReportForm = () => {
         const exerciseTotalHours = isSaturday
             ? (parseDurationHHMMToHours(formData.exercise_time_hhmm) || 0)
             : 0;
+        const evangelismTotalHours = parseDurationHHMMToHours(formData.evangelism_hours_hhmm) || 0;
+        const meditationTotalHours = parseDurationHHMMToHours(formData.meditation_hours_hhmm) || 0;
+        const prayerTotalHours = parseDurationHHMMToHours(formData.prayer_hours_hhmm) || 0;
 
         // Normalize numeric fields so weekend submissions can omit weekday sections safely
         const dataToSend = {
             ...formData,
-            evangelism_hours: parseFloat(formData.evangelism_hours) || 0,
+            evangelism_hours: evangelismTotalHours,
             people_reached: parseInt(formData.people_reached, 10) || 0,
             contacts_received: parseInt(formData.contacts_received, 10) || 0,
             bible_study_sessions: parseInt(formData.bible_study_sessions, 10) || 0,
@@ -417,8 +530,8 @@ const ReportForm = () => {
             newcomers: parseInt(formData.newcomers, 10) || 0,
             sermons_listened: parseInt(formData.sermons_listened, 10) || 0,
             articles_written: parseInt(formData.articles_written, 10) || 0,
-            meditation_time: parseFloat(formData.meditation_hours) || 0,
-            prayer_time: parseFloat(formData.prayer_hours) || 0,
+            meditation_time: meditationTotalHours,
+            prayer_time: prayerTotalHours,
             exercise_time: exerciseTotalHours || 0,
             regular_service: Array.isArray(formData.regular_service) ? formData.regular_service.join(', ') : formData.regular_service
         };
@@ -429,6 +542,9 @@ const ReportForm = () => {
         delete dataToSend.meditation_hours;
         delete dataToSend.prayer_hours;
         delete dataToSend.exercise_time_hhmm;
+        delete dataToSend.evangelism_hours_hhmm;
+        delete dataToSend.meditation_hours_hhmm;
+        delete dataToSend.prayer_hours_hhmm;
 
         try {
             const token = localStorage.getItem('token');
@@ -557,17 +673,12 @@ const ReportForm = () => {
                                 </h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('evangelism_hours', 'Evangelism Hours')}</label>
-                                        <input
-                                            type="number"
-                                            name="evangelism_hours"
-                                            value={formData.evangelism_hours}
-                                            onChange={onChange}
-                                            placeholder={getPlaceholder('evangelism_hours', 'Enter Hours')}
-                                            min="0"
-                                            step="0.5"
+                                        <DurationField
+                                            label={getLabel('evangelism_hours', 'Evangelism Time')}
+                                            value={formData.evangelism_hours_hhmm}
+                                            onChange={(value) => setFormData({ ...formData, evangelism_hours_hhmm: value })}
                                             required
-                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            accent="green"
                                         />
                                     </div>
 
@@ -663,32 +774,22 @@ const ReportForm = () => {
                                 </h2>
                                 <div className="space-y-3">
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('meditation_hours', 'Bible Reading and Meditation (Hours)')}</label>
-                                        <input
-                                            type="number"
-                                            name="meditation_hours"
-                                            value={formData.meditation_hours}
-                                            onChange={onChange}
-                                            placeholder={getPlaceholder('meditation_hours', 'Enter Hours')}
-                                            min="0"
-                                            step="0.5"
+                                        <DurationField
+                                            label={getLabel('meditation_hours', 'Bible Reading and Meditation')}
+                                            value={formData.meditation_hours_hhmm}
+                                            onChange={(value) => setFormData({ ...formData, meditation_hours_hhmm: value })}
                                             required
-                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            accent="purple"
                                         />
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-semibold text-gray-700 mb-1">{getLabel('prayer_hours', 'Prayer (Hours)')}</label>
-                                        <input
-                                            type="number"
-                                            name="prayer_hours"
-                                            value={formData.prayer_hours}
-                                            onChange={onChange}
-                                            placeholder={getPlaceholder('prayer_hours', 'Enter Hours')}
-                                            min="0"
-                                            step="0.5"
+                                        <DurationField
+                                            label={getLabel('prayer_hours', 'Prayer Time')}
+                                            value={formData.prayer_hours_hhmm}
+                                            onChange={(value) => setFormData({ ...formData, prayer_hours_hhmm: value })}
                                             required
-                                            className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                            accent="purple"
                                         />
                                     </div>
                                 </div>
@@ -707,19 +808,12 @@ const ReportForm = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                        Exercise :
-                                    </label>
-                                    <input
-                                        type="text"
-                                        name="exercise_time_hhmm"
+                                    <DurationField
+                                        label="Exercise Time"
                                         value={formData.exercise_time_hhmm}
-                                        onChange={onChange}
-                                        placeholder="HH:MM"
-                                        inputMode="numeric"
-                                        pattern="^\\d{1,3}:[0-5]\\d$"
+                                        onChange={(value) => setFormData({ ...formData, exercise_time_hhmm: value })}
                                         required={isSaturday}
-                                        className="w-full px-3 py-2.5 border-2 border-gray-300 rounded-xl focus:border-indigo-500 focus:outline-none"
+                                        accent="green"
                                     />
                                 </div>
 
